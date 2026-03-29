@@ -1,1 +1,0 @@
-# Sutton API\n\nCCCD AI Brand Ambassador Backend — Claude Sonnet + RAG Pipeline

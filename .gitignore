@@ -1,0 +1,22 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+.venv/
+
+# Large binary files (use generate_embeddings.py to rebuild)
+rag_embeddings.npy
+rag_embeddings.npz
+rag_embeddings.json
+
+# Training data (stored in cccd-training-architect repo)
+training_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
