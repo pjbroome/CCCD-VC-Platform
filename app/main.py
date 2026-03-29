@@ -1149,10 +1149,31 @@ async def submit_feedback(request: FeedbackRequest):
     """Submit Dr. Broome's feedback — generates learning rules for BOTH Sutton and the critic."""
     global SUTTON_SYSTEM_PROMPT, TOPS_CRITIC_SYSTEM_PROMPT
 
-    if not gemini_client:
-        return {"error": "Gemini not connected"}
+    # --- Detect positive/approval feedback ---
+    positive_words = {"good", "great", "fantastic", "excellent", "perfect", "nice", "amazing",
+                      "awesome", "love", "loved", "wonderful", "brilliant", "yes", "correct",
+                      "right", "spot on", "nailed it", "well done", "bravo", "exactly",
+                      "that's it", "much better", "way better", "solid", "beautiful", "impressive"}
+    feedback_lower = request.feedback.strip().lower().rstrip("!.,")
+    # Check if the entire feedback is just a positive word/phrase (with optional punctuation)
+    is_positive = feedback_lower in positive_words or any(
+        feedback_lower.startswith(pw) and len(feedback_lower) < len(pw) + 10
+        for pw in positive_words
+    )
 
-    # Use Gemini to distill feedback into learning rules
+    if is_positive:
+        # Positive feedback = approval, NOT a new rule
+        return {
+            "status": "feedback_absorbed",
+            "sutton_rule": f"Dr. Broome approved this response pattern — keep doing this!",
+            "critic_rule": f"Dr. Broome rated this response positively — this style scores well.",
+            "summary": f"Approved: {request.feedback}",
+            "total_sutton_rules": len(dr_broome_rules),
+            "total_critic_rules": len(critic_patches),
+            "approval": True,
+        }
+
+    # --- Coaching/correction feedback — distill into learning rules ---
     distill_prompt = f"""Dr. Broome (the practice owner and master trainer) just gave feedback on Sutton's reply.
 
 Guest's message: {request.guest_message or 'N/A'}
@@ -1168,15 +1189,27 @@ Output ONLY valid JSON:
 {{"sutton_rule": "string", "critic_rule": "string", "summary": "short 1-sentence summary of what was learned"}}"""
 
     try:
-        response = gemini_client.models.generate_content(
-            model=CRITIC_MODEL,
-            contents=[{"role": "user", "parts": [{"text": distill_prompt}]}],
-        )
-        raw = response.text.strip()
+        if anthropic_client:
+            response = anthropic_client.messages.create(
+                model=CRITIC_MODEL,
+                max_tokens=300,
+                messages=[{"role": "user", "content": distill_prompt}],
+            )
+            raw = response.content[0].text.strip()
+        elif gemini_client:
+            response = gemini_client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=[{"role": "user", "parts": [{"text": distill_prompt}]}],
+            )
+            raw = response.text.strip()
+        else:
+            raise Exception("No LLM client available")
+
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         rules = json.loads(raw)
     except Exception as e:
+        print(f"Warning: Could not distill feedback via LLM: {e}")
         # Fallback: use the feedback directly as both rules
         rules = {
             "sutton_rule": request.feedback,
