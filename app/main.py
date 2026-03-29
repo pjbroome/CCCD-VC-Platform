@@ -163,11 +163,11 @@ Every conversation must ADVANCE through these stages. Never stay in the same sta
 
 **Stage 1 — DISCOVER (replies 1-2):** Ask discovery questions to understand the guest's goals and situation. Keep it short. ONE question per reply.
 **Stage 2 — CONNECT (reply 2-3):** Once the guest shares their goals, STOP asking and START connecting. Share how Dr. Broome helps people like them. Weave in resonating phrases. Build value. Show you understand what they want.
-**Stage 3 — GUIDE (reply 3+):** Present the guest's TWO options for getting started:
-  - **Virtual Consult (VC):** Best if they're still exploring options — they can talk with Dr. Broome from home, get his suggestions, and see what's possible before committing.
-  - **In-Office New Patient Experience (NPE):** Best if they're ready to go — Dr. Broome will do a full evaluation, share his suggestions, and they can start treatment immediately after that visit.
-  Present both options naturally: "We have two great ways to get you started and make sure your questions are answered with Dr. Broome's input — our Virtual Consult or our in-office New Patient Experience. If you're still exploring, I'd suggest the VC. If you're ready to dive in, the in-office visit means you could start treatment right away. Which feels like the better fit? I'll help you with either one."
-  The guest has told you enough — now be the expert and give them their options.
+**Stage 3 — GUIDE (reply 3+):** Read the context and guide toward the RIGHT next step:
+  - **Guest is EXPLORING (unsure what they want, comparing options, price shopping):** Offer BOTH options — Virtual Consult (explore from home, get Dr. Broome's suggestions) AND in-office New Patient Experience (full evaluation, start treatment same day). Let them choose.
+  - **Guest ALREADY WANTS TO COME IN (asked for cleaning, appointment, wants to see Dr. Broome, mentioned specific treatment):** Do NOT offer the VC. Just schedule them for the in-office visit directly. They've already decided to come in — don't give them a reason to stay home.
+  - **Guest is READY TO ACT ("just schedule me", "I need to go"):** Skip everything and help them book immediately.
+  The context dictates the offer. Match what the guest is asking for — don't offer options they didn't ask about.
 
 IMPORTANT: If a guest has shared their smile goals (even vaguely like "I want a nicer smile"), you have enough to move to Stage 2. Do NOT keep asking variations of "what do you want?" — that's looping, not discovering.
 
@@ -504,8 +504,8 @@ _CORPORATE_FILLER_PATTERNS = [
     _re.compile(r"I\s+(?:completely\s+)?understand\s+you(?:'re|\.)\.?\s*", _re.IGNORECASE),
     # "I appreciate you reaching out."
     _re.compile(r"I\s+appreciate\s+you\s+reaching\s+out\.?\s*", _re.IGNORECASE),
-    # "That's a great approach." / "That's a very practical question."
-    _re.compile(r"That(?:'s|\s+is)\s+a\s+(?:very\s+)?(?:great|smart|practical|sensible)\s+(?:approach|question|idea)\.?\s*", _re.IGNORECASE),
+    # "That's a great approach/goal/question." / "That's a very practical question."
+    _re.compile(r"That(?:'s|\s+is)\s+a\s+(?:very\s+)?(?:great|smart|practical|sensible|perfect|wonderful|fantastic|excellent)\s+(?:approach|question|idea|goal|plan)(?:\s+to\s+have[^.!]*)?\.?\s*", _re.IGNORECASE),
     # "It's smart to..."
     _re.compile(r"It(?:'s|\s+is)\s+(?:really\s+)?smart\s+to\.?\s*", _re.IGNORECASE),
     # "when you're looking at your smile transformation"
@@ -558,7 +558,7 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     if is_continued:
         continuation_note = " This is a CONTINUED conversation -- do NOT re-introduce yourself or say 'I'm Sutton.' The guest already knows you. Just continue naturally."
 
-    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your system prompt guidelines. CRITICAL RULES:\n1. OPENER ROTATION: Check the conversation history. Whatever opening phrases you already used (Love that, Got it, Totally, etc.) — do NOT use them again. Pick a FRESH opener or skip straight to substance.\n2. BANNED PHRASES (never use): 'makes total sense', 'makes perfect sense', 'totally sensible', 'I understand you\\'re', 'That\\'s a great approach', 'It\\'s smart to', 'I appreciate you reaching out'. Sound like a FRIEND, not a call center.\n3. ADVANCE the conversation every reply. DISCOVER (1-2 replies max) then CONNECT (build value) then GUIDE (present the VC and in-office NPE options). If the guest has shared ANY goals, move past discovery. NEVER ask more than 2 discovery questions total.\n4. When GUIDING, present BOTH options: Virtual Consult (for exploring) and in-office New Patient Experience (for ready-to-go guests). Let the guest choose.\n5. Keep responses SHORT (Exploring: 80-120 words, Interested: 60-100, Ready to Act: 40-80).\n6. For Ready to Act guests, SKIP questions and help them take action immediately.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
+    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your system prompt guidelines. CRITICAL RULES:\n1. OPENER ROTATION: Check the conversation history. Whatever opening phrases you already used (Love that, Got it, Totally, etc.) — do NOT use them again. Pick a FRESH opener or skip straight to substance.\n2. BANNED PHRASES (never use): 'makes total sense', 'makes perfect sense', 'totally sensible', 'I understand you\\'re', 'That\\'s a great approach', 'It\\'s smart to', 'I appreciate you reaching out'. Sound like a FRIEND, not a call center.\n3. ADVANCE the conversation every reply. DISCOVER (1-2 replies max) then CONNECT (build value) then GUIDE (help them book). If the guest has shared ANY goals, move past discovery. NEVER ask more than 2 discovery questions total.\n4. When GUIDING, read context: If guest is EXPLORING/UNSURE, offer both VC and in-office NPE. If guest ALREADY WANTS TO COME IN (cleaning, appointment, see Dr. Broome), just schedule the in-office visit — do NOT offer VC.\n5. Keep responses SHORT (Exploring: 80-120 words, Interested: 60-100, Ready to Act: 40-80).\n6. For Ready to Act guests, SKIP questions and help them take action immediately.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
 
     full_system = SUTTON_SYSTEM_PROMPT + rag_section
 
