@@ -513,7 +513,7 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     if is_continued:
         continuation_note = " This is a CONTINUED conversation -- do NOT re-introduce yourself or say 'I'm Sutton.' The guest already knows you. Just continue naturally."
 
-    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your system prompt guidelines. Be INFORMATIVE first — share relevant details about the practice, the New Patient Experience, Dr. Broome's approach, or his case library before asking questions. Then end with ONE discovery question. Match your response length to the guest's readiness level.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
+    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your system prompt guidelines. CRITICAL RULES:\n1. Label the guest's emotion FIRST (1 sentence).\n2. Then ask ONE specific discovery question to understand their goals/situation before providing detailed information.\n3. Keep your response SHORT — match the Guest Readiness Level word counts strictly (Exploring: 80-120 words max, Interested: 60-100, Ready to Act: 40-80).\n4. Do NOT dump information, list options, or recite practice facts. Be conversational, not a brochure.\n5. A price-shopping caller is EXPLORING level — acknowledge their question warmly, then ask what prompted their interest.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
 
     full_system = SUTTON_SYSTEM_PROMPT + rag_section
 
@@ -1211,7 +1211,7 @@ Output ONLY valid JSON:
             raw = response.content[0].text.strip()
         elif gemini_client:
             response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash",
+                model=SUTTON_MODEL,
                 contents=[{"role": "user", "parts": [{"text": distill_prompt}]}],
             )
             raw = response.text.strip()
