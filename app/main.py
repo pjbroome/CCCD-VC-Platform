@@ -524,7 +524,10 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
                 contents=[{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}],
                 config=genai_types.GenerateContentConfig(
                     temperature=SUTTON_TEMPERATURE,
-                    max_output_tokens=1024,
+                    max_output_tokens=8192,
+                    thinking_config=genai_types.ThinkingConfig(
+                        thinking_budget=0,  # Disable thinking for fast responses
+                    ),
                 ),
             )
             return response.text if response.text else "Tell me more about what brought you to us today!"
