@@ -485,7 +485,11 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     if rag_context:
         rag_section = f"\n\n## RELEVANT TRAINING CONTENT (use this to inform your response)\n{rag_context}"
 
-    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton -- naturally, warmly, like a friend. Feel what the guest is feeling first. Be curious before being informative. Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
+    rag_instruction = ""
+    if rag_context:
+        rag_instruction = " When the training content above is relevant to the guest's question, weave that knowledge naturally into your response -- share what you know first, then get curious about what matters most to them."
+
+    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton -- naturally, warmly, like a friend. Feel what the guest is feeling first. If the guest asks a direct question, answer it with what you know before asking your own questions.{rag_instruction} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
 
     full_system = SUTTON_SYSTEM_PROMPT + rag_section
 
