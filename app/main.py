@@ -496,12 +496,19 @@ def _load_chat_history():
 # Post-processing filter to strip corporate filler the LLM keeps generating
 import re as _re
 _CORPORATE_FILLER_PATTERNS = [
+    # "That's completely sensible." / "That is totally reasonable."
     _re.compile(r"That(?:'s|\s+is)\s+(?:completely|totally|absolutely|very|perfectly)\s+(?:sensible|understandable|reasonable|practical)\.?\s*", _re.IGNORECASE),
-    _re.compile(r"(?:That|It)\s+makes\s+(?:total|perfect|complete)\s+sense\.?\s*", _re.IGNORECASE),
+    # "It makes perfect sense that you're..." -> strips whole phrase including trailing "that"
+    _re.compile(r"(?:That|It)\s+makes\s+(?:total|perfect|complete)\s+sense(?:\s+that)?\s*\.?\s*", _re.IGNORECASE),
+    # "I understand you're..." / "I completely understand."
     _re.compile(r"I\s+(?:completely\s+)?understand\s+you(?:'re|\.)\.?\s*", _re.IGNORECASE),
+    # "I appreciate you reaching out."
     _re.compile(r"I\s+appreciate\s+you\s+reaching\s+out\.?\s*", _re.IGNORECASE),
+    # "That's a great approach." / "That's a very practical question."
     _re.compile(r"That(?:'s|\s+is)\s+a\s+(?:very\s+)?(?:great|smart|practical|sensible)\s+(?:approach|question|idea)\.?\s*", _re.IGNORECASE),
+    # "It's smart to..."
     _re.compile(r"It(?:'s|\s+is)\s+(?:really\s+)?smart\s+to\.?\s*", _re.IGNORECASE),
+    # "when you're looking at your smile transformation"
     _re.compile(r"when\s+you(?:'re|\.?)\s+looking\s+at\s+your\s+smile\s+transformation\.?\s*", _re.IGNORECASE),
 ]
 
