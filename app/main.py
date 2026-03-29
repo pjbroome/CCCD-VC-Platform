@@ -509,7 +509,7 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     if is_continued:
         continuation_note = " This is a CONTINUED conversation -- do NOT re-introduce yourself or say 'I'm Sutton.' The guest already knows you. Just continue naturally."
 
-    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your system prompt guidelines. Match your response length to the guest's readiness level.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
+    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your system prompt guidelines. Be INFORMATIVE first — share relevant details about the practice, the New Patient Experience, Dr. Broome's approach, or his case library before asking questions. Then end with ONE discovery question. Match your response length to the guest's readiness level.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
 
     full_system = SUTTON_SYSTEM_PROMPT + rag_section
 
