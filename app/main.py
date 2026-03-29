@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Any
@@ -6,6 +6,8 @@ import os
 import json
 import re
 import uuid
+import asyncio
+import concurrent.futures
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -688,9 +690,51 @@ async def rag_search(q: str, top_k: int = 5):
         return {"error": str(e)}
 
 
+# Thread pool for running blocking Coach scoring in the background
+_coach_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+
+def _run_coach_background(session_id: str, guest_id: Optional[str], raw_reply: str, message: str, disc_profile: str, is_training: bool):
+    """Run Coach scoring in background — doesn't block the guest response."""
+    try:
+        context = get_conversation_context(session_id)
+        guest_profile = {
+            "disc_profile": disc_profile,
+            "motivations": "not yet determined",
+            "fears": "not yet determined",
+            "style_preferences": "default warm and professional",
+        }
+        critic_result = run_tops_critic(raw_reply, context, guest_profile)
+        log_to_supabase(session_id, guest_id, raw_reply, critic_result)
+
+        # Save coach results to chat history
+        now_iso = datetime.now(timezone.utc).isoformat()
+        save_chat_message(session_id, {
+            "id": f"coach-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+            "role": "coach",
+            "content": "",
+            "timestamp": now_iso,
+            "guestMessage": message,
+            "tops": {
+                "tops_score": critic_result.get("tops_score", 0),
+                "warmth": critic_result.get("category_scores", {}).get("warmth", 0),
+                "curiosity": critic_result.get("category_scores", {}).get("curiosity", 0),
+                "natural_flow": critic_result.get("category_scores", {}).get("natural_flow", 0),
+                "artistry": critic_result.get("category_scores", {}).get("artistry", 0),
+                "guest_matching": critic_result.get("category_scores", {}).get("guest_matching", 0),
+            },
+            "coach": {
+                "coaching_notes": critic_result.get("coaching_notes", ""),
+                "needs_rewrite": critic_result.get("needs_rewrite", False),
+                "rationale": critic_result.get("rationale", ""),
+            },
+        })
+        print(f"Background coach scored session {session_id}: {critic_result.get('tops_score', 0)}")
+    except Exception as e:
+        print(f"Background coach error for session {session_id}: {e}")
+
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Send a message to Sutton. Returns the ToPS-critic-reviewed reply."""
+async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
+    """Send a message to Sutton. Returns reply immediately — Coach scores in background."""
     session_id = request.session_id or str(uuid.uuid4())
 
     add_to_conversation(session_id, "user", request.message)
@@ -705,36 +749,11 @@ async def chat(request: ChatRequest):
         disc_profile=request.disc_profile or "unknown",
     )
 
-    if is_training:
-        # Training mode: use raw reply directly, no coach scoring
-        critic_result = {
-            "tops_score": 0,
-            "category_scores": {},
-            "coaching_notes": "",
-            "needs_rewrite": False,
-            "rewritten_reply": raw_reply,
-            "rationale": "Training mode — coach skipped",
-        }
-        final_reply = raw_reply
-    else:
-        context = get_conversation_context(session_id)
-        guest_profile = {
-            "disc_profile": request.disc_profile or "unknown",
-            "motivations": "not yet determined",
-            "fears": "not yet determined",
-            "style_preferences": "default warm and professional",
-        }
-        critic_result = run_tops_critic(raw_reply, context, guest_profile)
-        # Coach only rewrites when there's a hard violation — otherwise trust Sutton's voice
-        if critic_result.get("needs_rewrite", False):
-            final_reply = critic_result.get("rewritten_reply", raw_reply)
-        else:
-            final_reply = raw_reply
+    final_reply = raw_reply
 
     add_to_conversation(session_id, "assistant", final_reply)
-    log_to_supabase(session_id, request.guest_id, raw_reply, critic_result)
 
-    # Save full message data for cross-device history
+    # Save user + assistant messages immediately
     now_iso = datetime.now(timezone.utc).isoformat()
     save_chat_message(session_id, {
         "id": f"user-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
@@ -748,30 +767,24 @@ async def chat(request: ChatRequest):
         "content": final_reply,
         "timestamp": now_iso,
         "guestMessage": request.message,
-        "tops": {
-            "tops_score": critic_result.get("tops_score", 0),
-            "warmth": critic_result.get("category_scores", {}).get("warmth", 0),
-            "curiosity": critic_result.get("category_scores", {}).get("curiosity", 0),
-            "natural_flow": critic_result.get("category_scores", {}).get("natural_flow", 0),
-            "artistry": critic_result.get("category_scores", {}).get("artistry", 0),
-            "guest_matching": critic_result.get("category_scores", {}).get("guest_matching", 0),
-        } if critic_result.get("tops_score", 0) > 0 else None,
-        "coach": {
-            "coaching_notes": critic_result.get("coaching_notes", ""),
-            "needs_rewrite": critic_result.get("needs_rewrite", False),
-            "rationale": critic_result.get("rationale", ""),
-            "raw_reply": raw_reply if critic_result.get("needs_rewrite", False) else None,
-        } if not is_training else None,
     })
+
+    # Run Coach scoring in background — doesn't delay the guest response
+    if not is_training:
+        background_tasks.add_task(
+            _run_coach_background,
+            session_id, request.guest_id, raw_reply, request.message,
+            request.disc_profile or "unknown", is_training,
+        )
 
     return ChatResponse(
         reply=final_reply,
         session_id=session_id,
-        tops_score=critic_result.get("tops_score", 0),
-        category_scores=critic_result.get("category_scores", {}),
-        issues_detected=critic_result.get("coaching_notes", "").split("\n") if critic_result.get("coaching_notes") else [],
-        raw_reply=raw_reply if critic_result.get("needs_rewrite", False) else raw_reply,
-        rationale=critic_result.get("rationale", ""),
+        tops_score=0,
+        category_scores={},
+        issues_detected=[],
+        raw_reply=raw_reply,
+        rationale="Coach scoring in background — results available via /conversation endpoint",
     )
 
 
