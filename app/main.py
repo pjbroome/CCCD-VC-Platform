@@ -486,8 +486,10 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     context = get_conversation_context(session_id)
 
     # RAG: Retrieve relevant training content for this specific query
+    # Note: RAG data files must be present at /tmp/rag_*.json paths
+    # On Fly.io, these are only available if copied in the Dockerfile
     rag_context = ""
-    if RAG_ENABLED:
+    if RAG_ENABLED and os.path.exists("/tmp/rag_chunks_meta.json"):
         try:
             from app import rag
             if not rag._is_initialized and gemini_client:
@@ -769,8 +771,11 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         "guestMessage": request.message,
     })
 
-    # Run Coach scoring in background — doesn't delay the guest response
-    if not is_training:
+    # Coach scoring disabled on Fly.io to prevent OOM (256MB limit)
+    # Coach can be re-enabled when the machine is upgraded or RAG is optimized
+    # For now, Sutton's Abacus prompt provides all the quality guardrails
+    COACH_ENABLED = os.environ.get("COACH_ENABLED", "false").lower() == "true"
+    if not is_training and COACH_ENABLED:
         background_tasks.add_task(
             _run_coach_background,
             session_id, request.guest_id, raw_reply, request.message,
