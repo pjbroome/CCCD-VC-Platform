@@ -29,8 +29,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "gemini-2.5-flash")
-CRITIC_MODEL = os.environ.get("CRITIC_MODEL", "gemini-2.5-flash")
+SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "gemini-2.5-flash-lite")
+CRITIC_MODEL = os.environ.get("CRITIC_MODEL", "gemini-2.5-flash-lite")
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "gemini")  # "anthropic" or "gemini"
 SUTTON_TEMPERATURE = float(os.environ.get("SUTTON_TEMPERATURE", "0.8"))
 CROWN_COUNCIL_EMAIL = os.environ.get("CROWN_COUNCIL_EMAIL", "")
@@ -524,10 +524,7 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
                 contents=[{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}],
                 config=genai_types.GenerateContentConfig(
                     temperature=SUTTON_TEMPERATURE,
-                    max_output_tokens=8192,
-                    thinking_config=genai_types.ThinkingConfig(
-                        thinking_budget=0,  # Disable thinking for fast responses
-                    ),
+                    max_output_tokens=1024,
                 ),
             )
             return response.text if response.text else "Tell me more about what brought you to us today!"
