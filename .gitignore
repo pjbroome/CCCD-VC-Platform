@@ -20,3 +20,9 @@ training_data/
 # OS
 .DS_Store
 Thumbs.db
+rag_embeddings.npy
+rag_chunks_meta.json
+rag_chunks_text.jsonl
+rag_chunks_text_offsets.json
+rag_inverted_index.json
+/tmp/rag_embeddings.json
