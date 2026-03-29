@@ -493,6 +493,30 @@ def _load_chat_history():
         print(f"Warning: Could not load chat history from Supabase: {e}")
 
 
+# Post-processing filter to strip corporate filler the LLM keeps generating
+import re as _re
+_CORPORATE_FILLER_PATTERNS = [
+    _re.compile(r"That(?:'s|\s+is)\s+(?:completely|totally|absolutely|very|perfectly)\s+(?:sensible|understandable|reasonable|practical)\.?\s*", _re.IGNORECASE),
+    _re.compile(r"(?:That|It)\s+makes\s+(?:total|perfect|complete)\s+sense\.?\s*", _re.IGNORECASE),
+    _re.compile(r"I\s+(?:completely\s+)?understand\s+you(?:'re|\.)\.?\s*", _re.IGNORECASE),
+    _re.compile(r"I\s+appreciate\s+you\s+reaching\s+out\.?\s*", _re.IGNORECASE),
+    _re.compile(r"That(?:'s|\s+is)\s+a\s+(?:very\s+)?(?:great|smart|practical|sensible)\s+(?:approach|question|idea)\.?\s*", _re.IGNORECASE),
+    _re.compile(r"It(?:'s|\s+is)\s+(?:really\s+)?smart\s+to\.?\s*", _re.IGNORECASE),
+    _re.compile(r"when\s+you(?:'re|\.?)\s+looking\s+at\s+your\s+smile\s+transformation\.?\s*", _re.IGNORECASE),
+]
+
+def _clean_corporate_filler(text: str) -> str:
+    """Remove corporate filler phrases the LLM generates despite prompt bans."""
+    for pattern in _CORPORATE_FILLER_PATTERNS:
+        text = pattern.sub("", text)
+    # Clean up any double spaces or leading spaces after removal
+    text = _re.sub(r"  +", " ", text).strip()
+    # Clean up sentences that start with lowercase after removal
+    if text and text[0].islower():
+        text = text[0].upper() + text[1:]
+    return text
+
+
 def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "unknown") -> str:
     if not anthropic_client and not gemini_client:
         return "I appreciate you reaching out! I'm Sutton, your virtual concierge at Charlotte Center for Cosmetic Dentistry. How can I help you today?"
@@ -543,7 +567,8 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
                     max_output_tokens=1024,
                 ),
             )
-            return response.text if response.text else "Tell me more about what brought you to us today!"
+            reply = response.text if response.text else "Tell me more about what brought you to us today!"
+            return _clean_corporate_filler(reply)
         except Exception as e:
             print(f"Gemini error: {e}")
             # Fall through to Anthropic
@@ -556,7 +581,8 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
                 system=full_system,
                 messages=[{"role": "user", "content": user_prompt}],
             )
-            return response.content[0].text if response.content else "Tell me more about what brought you to us today!"
+            reply = response.content[0].text if response.content else "Tell me more about what brought you to us today!"
+            return _clean_corporate_filler(reply)
         except Exception as e:
             print(f"Anthropic error: {e}")
 
