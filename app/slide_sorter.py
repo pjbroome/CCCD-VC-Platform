@@ -400,7 +400,7 @@ def save_recording_deck(name: str, slide_numbers: list[int]) -> dict:
     _load_decks()
     import datetime
     deck = {
-        "id": len(_decks) + 1,
+        "id": max((d["id"] for d in _decks), default=0) + 1,
         "name": name,
         "slide_numbers": slide_numbers,
         "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
