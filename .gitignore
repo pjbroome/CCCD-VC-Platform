@@ -20,6 +20,9 @@ training_data/
 # OS
 .DS_Store
 Thumbs.db
+
+# VC slide images (119MB — too large for git, bundled in Docker build)
+app/vc_slides/slide_images/
 rag_embeddings.npy
 rag_chunks_meta.json
 rag_chunks_text.jsonl

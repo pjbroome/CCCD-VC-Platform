@@ -1,0 +1,3380 @@
+[
+  {
+    "slide_number": 1,
+    "images": [
+      "slide_001_img_1.jpg",
+      "slide_001_img_2.png"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Dr. Patrick Broome",
+      "Smile Design Projects - 22+ years\u000b\n60%+ of patients are Rescue Smile Projects\u000b   - unhappy with work done elsewhere.\u000b\nI\u2019ve treated 1000\u2019s of patients just like you!"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "bad_previous_work"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Dr. Broome General info \u000bMost cosmetic cases are Redo or Rescue Projects - patient do not like their previous results and want it redone differently.",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 2,
+    "images": [
+      "slide_002_img_1.jpg",
+      "slide_002_img_2.jpg",
+      "slide_002_img_3.jpg",
+      "slide_002_img_4.jpg",
+      "slide_002_img_5.jpg",
+      "slide_002_img_6.jpg",
+      "slide_002_img_7.jpg",
+      "slide_002_img_8.jpg",
+      "slide_002_img_9.jpg",
+      "slide_002_img_10.jpg",
+      "slide_002_img_11.jpg",
+      "slide_002_img_12.jpg",
+      "slide_002_img_13.jpg",
+      "slide_002_img_14.jpg",
+      "slide_002_img_15.png",
+      "slide_002_img_16.jpg",
+      "slide_002_img_17.jpg"
+    ],
+    "image_count": 17,
+    "text_content": [],
+    "condition": "broken teeth, discoloration, uneven smile, spaces, crowding, stained bonding, lost tooth or teeth, Chipped or damaged teeth",
+    "solution": "e.g., 10 Upper Veneers, Invisalign Full, Bonding, Implants, Implant bridges, Full Arch solution, Smile Makeover, Smile Rehab, Sile Rescue Projects",
+    "complexity": 1,
+    "tone": [
+      "e.g.",
+      "Total Facial Aesthetics",
+      "Smile Makeover",
+      "Transformation",
+      "Functional",
+      "Natural",
+      "Invisible Dentistry",
+      "Predictable results",
+      "Dentistry Done Differently"
+    ],
+    "duration": "e.g., 2 visits, 6 months",
+    "visits": 2,
+    "treatment_weeks": 24,
+    "cost_bracket": "Limited Scope Projects to Complex multi-stage Project fees are provided at our VC to give patients an idea of Project Fee ranges",
+    "cost_numeric": null,
+    "treatments": [
+      "invisalign",
+      "implants",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "worn_teeth",
+      "spacing",
+      "crowding",
+      "missing_teeth",
+      "bad_previous_work",
+      "trauma"
+    ],
+    "gender": "male",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "These smiles transformation provide the real full face appearance of these patients new smile created by Dr Broome\u000bEvery person comes to Dr Broome for help with their smile and each story is unique as are their smile goals\u000bOur Philosophy: \u201cWe meet you where you are and help you get to where you want to go with your smile.\u201d \u000b A new smile custom designed specifically for you is only weeks away from being your new reality. \u000b\u000bEach slide will list he following for indexing\u000bCondition: (e.g., broken teeth, discoloration, uneven smile, spaces, crowding, stained bonding, lost tooth or teeth, Chipped or damaged teeth)\nSolution: (e.g., 10 Upper Veneers, Invisalign Full, Bonding, Implants, Implant bridges, Full Arch solution, Smile Makeover, Smile Rehab, Sile Rescue Projects)\nComplexity: (1 to 10)\nTone: (e.g., Total Facial Aesthetics, Smile Makeover, Transformation,  Functional, Natural, Invisible Dentistry, Predictable results, Dentistry Done Differently)\nDuration: (e.g., 2 visits, 6 months)\nCost_Bracket: (Limited Scope Projects to Complex multi-stage Project fees are provided at our VC to give patients an idea of Project Fee ranges )",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 3,
+    "images": [
+      "slide_003_img_1.jpg",
+      "slide_003_img_2.jpg",
+      "slide_003_img_3.jpg",
+      "slide_003_img_4.jpg",
+      "slide_003_img_5.jpg",
+      "slide_003_img_6.png",
+      "slide_003_img_7.jpg",
+      "slide_003_img_8.jpg",
+      "slide_003_img_9.jpg",
+      "slide_003_img_10.jpg"
+    ],
+    "image_count": 10,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 4,
+    "images": [
+      "slide_004_img_1.jpg",
+      "slide_004_img_2.jpg",
+      "slide_004_img_3.png",
+      "slide_004_img_4.png"
+    ],
+    "image_count": 4,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "Brooke Sill (left) - CCCD Brand ambassador - Clemson Univ Cheerleader, Clemson grad, actress on TV shows - Outer banks, Stranger Things, Landman, numerous network commercials\u000bCaelynn Miller Keyes (right)  - CCCD Brand ambassador - Miss NC, Miss USA 1st runner up, IG Influencer, ,ABC, \u201cBachelor, Bachelor in Paradise\u201d finalist, and numerous reality TV shows",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 5,
+    "images": [
+      "slide_005_img_1.jpg",
+      "slide_005_img_2.jpg",
+      "slide_005_img_3.png"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "minimal_prep_veneers",
+      "invisalign",
+      "bonding"
+    ],
+    "concerns": [
+      "bad_previous_work"
+    ],
+    "gender": "male",
+    "age_context": "adult",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "Zak - (left) CCCD Smile Ambassador  -Frustrated with multi-year Invisalign + bonding w/ another office - we reimagined his smile w/ 10 minimal prep veneers to solve issues and build a smile he loves in 4 weeks.\u000bFrank Stewart - CCCD Smile Ambassador - CEO, Entrepreneur, visited multiple offices in multiple states and felt we were the best fit to handle his smile makeover goals.",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 6,
+    "images": [
+      "slide_006_img_1.jpg",
+      "slide_006_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "Courtney Little Swindell (left) - CCCD Brand Ambassador, Charlotte Honeybee Cheerleader, wife of Cole Swindel\n\u000bMadison Bryant (right) - CCCD Brand Ambassador, Miss NC, ICU nurse, IG influencer",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 7,
+    "images": [
+      "slide_007_img_1.jpg",
+      "slide_007_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "Valerie Brooks - CCCD Brand Ambassador, HGTV Personality, Real Estate Coach, Reality TV personality\n\u000bBuffy",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 8,
+    "images": [
+      "slide_008_img_1.jpg",
+      "slide_008_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 9,
+    "images": [
+      "slide_009_img_1.jpg",
+      "slide_009_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 10,
+    "images": [
+      "slide_010_img_1.jpg",
+      "slide_010_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 11,
+    "images": [
+      "slide_011_img_1.jpg",
+      "slide_011_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "young",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "George Phillips: ARCA-series Driver - custom no-prep smile designed at 15 year old. No -prep veneers that everyone thinks sre his real teeth. No tooth removal, 100% no-prep technique. - conservative, invisible dentistry\u000b\u000bAmy: Her smile design has help build her business brand and upgrade her marketing. She found it upgraded her self -esteem and no one knows they aren\u2019t natural. She said, every single person tells me I have a beautiful smile and no one has ever asked are those veneers? She said I have honestly forgotten they really are veneer because they look adn feel just like my natural teeth but better!",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 12,
+    "images": [
+      "slide_012_img_1.jpg",
+      "slide_012_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "no_prep_veneers",
+      "gum_lift"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "Laura LIttle - brand ambassador - Gum Lift, 10 no-prep veneers\nAmy: 24 veneers, smile makeover",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 13,
+    "images": [
+      "slide_013_img_1.jpg",
+      "slide_013_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "New veneer smiles \u000bBoth cases are 10 Upper veneers that match their personality and no one knows they are veneers",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 14,
+    "images": [
+      "slide_014_img_1.jpg",
+      "slide_014_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "mature",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "A smile for any age and designed just for your unique facial aesthetic so it can blend seamlessly into your life",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 15,
+    "images": [
+      "slide_015_img_1.jpg",
+      "slide_015_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Custom built for every person we work with",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 16,
+    "images": [
+      "slide_016_img_1.jpg",
+      "slide_016_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "maryland_bridge"
+    ],
+    "concerns": [
+      "trauma"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Smiles that defy detection. \n\nTara -(Right) - tooth damage caused the loss of front tooth, unique solution to allow for implant in the future,  we use a custom designed 3D printed ceramic maryland bridge Dr Broome characterized to match her natural teeth so no one knows she has any dentistry in her smile.",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 17,
+    "images": [
+      "slide_017_img_1.jpg",
+      "slide_017_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "maryland_bridge"
+    ],
+    "concerns": [
+      "trauma"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Michelle - (left) - RN, professional, fitness competitor, MedSpa owner - felt her smile lacked interest, wanted an upgrade and to feel her smile was the best it could be  (10 upper veneers) \nTara -(Right) - tooth damage caused the loss of front tooth, unique solution to allow for implant in the future,  we use a custom designed 3D printed ceramic maryland bridge Dr Broome characterized to match her natural teeth so no one knows she has any dentistry in her smile.",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 18,
+    "images": [
+      "slide_018_img_1.jpg",
+      "slide_018_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "Emily - (left) stained bonding problems resolved with no-prep veneers that restored her smile to a clean and fresh look. She started her own company and is not an incredible successful entrepreneur. It all started with improving her confidence to smile and discuss project with new clients.\n\nMadison Bryant- (right)  CCCD Brand Ambassador - Miss NC, ICU Nurse, didn\u2019t hate her smile but felt it was it had flaws but didn\u2019t want thick, fake teeth.  We designed a trial smile for her and she was hooked on the upgraded look. No-prep/Prep-less technique used to avoid thick bulky look but deliver hollywood style smile that makes her total facial aesthetics pop on camera.",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 19,
+    "images": [
+      "slide_019_img_1.jpg"
+    ],
+    "image_count": 1,
+    "text_content": [],
+    "condition": "15yo - gummy smile, dark, uneven smile, low confidence in his smile, marketing and brand building as a race car drive",
+    "solution": "No-prep veneers - enhance smile but must be natural, 10 Upper No-prep Veneers.",
+    "complexity": 9,
+    "tone": [
+      "Transformational",
+      "Custom smile resolved tooth color",
+      "gum health",
+      "confidence",
+      "camera ready smile"
+    ],
+    "duration": "3 visits, 4 week total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 4,
+    "cost_bracket": "$35k All-in project case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "gummy_smile",
+      "confidence"
+    ],
+    "gender": "male",
+    "age_context": "young",
+    "is_celebrity_case": true,
+    "is_process_slide": false,
+    "notes_raw": "George Phillips - ARCA Series Race Car Driver \u000b\u000bCondition: (15yo - gummy smile, dark, uneven smile, low confidence in his smile, marketing and brand building as a race car drive)\nSolution: (No-prep veneers - enhance smile but must be natural, 10 Upper No-prep Veneers.)\nComplexity: (9 out of 10)\nTone: (Transformational, Custom smile resolved tooth color, gum health, confidence, camera ready smile )\nDuration: (3 visits, 4 week total Treatment time)\nCost_Bracket: ($35k All-in project case fee)",
+    "slide_type": "single_image"
+  },
+  {
+    "slide_number": 20,
+    "images": [
+      "slide_020_img_1.jpg",
+      "slide_020_img_2.jpg",
+      "slide_020_img_3.jpg",
+      "slide_020_img_4.png",
+      "slide_020_img_5.png",
+      "slide_020_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Worn teeth, extreme sensitivity, discolored, Chipped edges",
+    "solution": "Invisalign to improve level and alignment of teeth, 10 Upper No-prep Veneers.",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile resolved painful teeth",
+      "Quality of life",
+      "Confidence restored"
+    ],
+    "duration": "3 visits, 6 months total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 24,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "discoloration",
+      "worn_teeth",
+      "sensitivity",
+      "confidence"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn teeth, extreme sensitivity, discolored, Chipped edges)\nSolution: (Invisalign to improve level and alignment of teeth, 10 Upper No-prep Veneers.)\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile resolved painful teeth, Quality of life, Confidence restored)\nDuration: (3 visits, 6 months total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 21,
+    "images": [
+      "slide_021_img_1.jpg",
+      "slide_021_img_2.jpg",
+      "slide_021_img_3.jpg",
+      "slide_021_img_4.png",
+      "slide_021_img_5.png",
+      "slide_021_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "uncomfortable bite, uneven teeth, Dark teeth, whitening didn\u2019t work, discolored, wanted a smile he could love",
+    "solution": "Invisalign to improve tooth position, level and alignment of teeth, 20 No-prep Veneers.",
+    "complexity": 7,
+    "tone": [
+      "Transformational",
+      "Custom smile resolved uncomfortable bite",
+      "discoloration",
+      "lack of confidence",
+      "Quality of life",
+      "Confidence restored"
+    ],
+    "duration": "3 visits, 6 months total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 24,
+    "cost_bracket": "$55k All-in project  case fee",
+    "cost_numeric": 55000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign",
+      "whitening"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence",
+      "bite_issues"
+    ],
+    "gender": "male",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., uncomfortable bite, uneven teeth, Dark teeth, whitening didn\u2019t work, discolored, wanted a smile he could love)\nSolution: (Invisalign to improve tooth position, level and alignment of teeth, 20 No-prep Veneers.)\nComplexity: (7 out of 10)\nTone: (Transformational, Custom smile resolved uncomfortable bite, discoloration, lack of confidence, Quality of life, Confidence restored)\nDuration: (3 visits, 6 months total Treatment time)\nCost_Bracket: ($55k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 22,
+    "images": [
+      "slide_022_img_1.jpg",
+      "slide_022_img_2.jpg",
+      "slide_022_img_3.jpg",
+      "slide_022_img_4.png",
+      "slide_022_img_5.png",
+      "slide_022_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Worn, broken, discolored teeth, chipped edges, sensitivity",
+    "solution": "Invisalign to improve level and alignment of teeth, Phase 1: 10 Upper No-prep/  minimal prep veneers Veneers with lower are prototypes. Phase 2: Lower arch completed, Phase 3: all back teeth rebuilt to match and optimize bite based on new smile design.",
+    "complexity": 8,
+    "tone": [
+      "Phased solution to allow patient to pay fo optimal treatment",
+      "Creative solutions to help his budget",
+      "Custom smile built to look exactly how he wanted",
+      "Confidence restored"
+    ],
+    "duration": "6 visits, 12 months total Treatment time",
+    "visits": 6,
+    "treatment_weeks": 48,
+    "cost_bracket": "$68k All-in project  case fee",
+    "cost_numeric": 68000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "minimal_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "discoloration",
+      "worn_teeth",
+      "sensitivity",
+      "confidence",
+      "bite_issues"
+    ],
+    "gender": "male",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn, broken, discolored teeth, chipped edges, sensitivity)\nSolution: (Invisalign to improve level and alignment of teeth, Phase 1: 10 Upper No-prep/  minimal prep veneers Veneers with lower are prototypes. Phase 2: Lower arch completed, Phase 3: all back teeth rebuilt to match and optimize bite based on new smile design.)\nComplexity: (8 out of 10)\nTone: (Phased solution to allow patient to pay fo optimal treatment, Creative solutions to help his budget, Custom smile built to look exactly how he wanted, Confidence restored)\nDuration: (6 visits, 12 months total Treatment time)\nCost_Bracket: ($68k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 23,
+    "images": [
+      "slide_023_img_1.jpg",
+      "slide_023_img_2.jpg",
+      "slide_023_img_3.jpg",
+      "slide_023_img_4.jpg"
+    ],
+    "image_count": 4,
+    "text_content": [],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 24,
+    "images": [
+      "slide_024_img_1.jpg",
+      "slide_024_img_2.jpg",
+      "slide_024_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 25,
+    "images": [
+      "slide_025_img_1.jpg",
+      "slide_025_img_2.jpg",
+      "slide_025_img_3.jpg",
+      "slide_025_img_4.png",
+      "slide_025_img_5.png",
+      "slide_025_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Stained Bonding done 3 weeks old, damaged confidence",
+    "solution": "2 absolute no-prep veneers - Invisible match to her adjacent natural teeth",
+    "complexity": 9,
+    "tone": [
+      "Smile Redesign",
+      "Smile Rescue",
+      "Custom color match to replace natural teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 4 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 4,
+    "cost_bracket": "$18k All-in rescue project fee",
+    "cost_numeric": 18000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "bad_previous_work",
+      "confidence",
+      "trauma"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Stained Bonding done 3 weeks old, damaged confidence )\nSolution: (2 absolute no-prep veneers - Invisible match to her adjacent natural teeth)\nComplexity: (9 out of 10)\nTone: (Smile Redesign, Smile Rescue, Custom color match to replace natural teeth, Invisible dentistry )\nDuration: (3 visits, 4 weeks total Treatment time)\nCost_Bracket: ($18k All-in rescue project fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 26,
+    "images": [
+      "slide_026_img_1.jpg",
+      "slide_026_img_2.jpg",
+      "slide_026_img_3.jpg",
+      "slide_026_img_4.png",
+      "slide_026_img_5.png",
+      "slide_026_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Only thought 1-tooth dentistry existed. Didn\u2019t know discoloration could be resolve until someone she knew can to see us and had her smile redesigned and she loves it.\u000b\u000bSolution: (Full Mouth Rejuvenation - replace mismatch dentistry and rese the smile clock back to an earlier time for her. Clean, fresh and she says everyone tells her all the time how lucky she is to hav ebeen born with perfect teeth, she sad she agrees with them. She says she feels so free not worrying one seconds about her smile anymore.",
+    "solution": "Full Mouth Rejuvenation - replace mismatch dentistry and rese the smile clock back to an earlier time for her. Clean, fresh and she says everyone tells her all the time how lucky she is to hav ebeen born with perfect teeth, she sad she agrees with them. She says she feels so free not worrying one seconds about her smile anymore.",
+    "complexity": 6,
+    "tone": [
+      "Building a smile that tooth inspiration for her natural teeth and designed the final solution to look like she was born with it",
+      "the brightness was enhanced based on her desire for a bit brighter than her trial smile she after 1 week.  Custom smile built to look exactly how he wanted",
+      "Confidence restored"
+    ],
+    "duration": "3 visits, 6 week total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$63k All-in project  case fee",
+    "cost_numeric": 63000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Only thought 1-tooth dentistry existed. Didn\u2019t know discoloration could be resolve until someone she knew can to see us and had her smile redesigned and she loves it.\u000b\u000bSolution: (Full Mouth Rejuvenation - replace mismatch dentistry and rese the smile clock back to an earlier time for her. Clean, fresh and she says everyone tells her all the time how lucky she is to hav ebeen born with perfect teeth, she sad she agrees with them. She says she feels so free not worrying one seconds about her smile anymore.)\nComplexity: (6 out of 10)\nTone: (Building a smile that tooth inspiration for her natural teeth and designed the final solution to look like she was born with it, the brightness was enhanced based on her desire for a bit brighter than her trial smile she after 1 week.  Custom smile built to look exactly how he wanted, Confidence restored)\nDuration: (3 visits, 6 week total Treatment time)\nCost_Bracket: ($63k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 27,
+    "images": [
+      "slide_027_img_1.jpg",
+      "slide_027_img_2.jpg",
+      "slide_027_img_3.jpg",
+      "slide_027_img_4.png",
+      "slide_027_img_5.png",
+      "slide_027_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 28,
+    "images": [
+      "slide_028_img_1.jpg",
+      "slide_028_img_2.jpg",
+      "slide_028_img_3.png",
+      "slide_028_img_4.png",
+      "slide_028_img_5.png",
+      "slide_028_img_6.jpg"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 29,
+    "images": [
+      "slide_029_img_1.jpg",
+      "slide_029_img_2.jpg",
+      "slide_029_img_3.jpg",
+      "slide_029_img_4.png",
+      "slide_029_img_5.png",
+      "slide_029_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry",
+    "solution": "Gum Lift + 10 No-prep veneers",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design to make her not feel like she looks 12yo"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "gum_lift"
+    ],
+    "concerns": [
+      "gummy_smile",
+      "small_teeth"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry )\nSolution: (Gum Lift + 10 No-prep veneers )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design to make her not feel like she looks 12yo )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 30,
+    "images": [
+      "slide_030_img_1.jpg",
+      "slide_030_img_2.jpg",
+      "slide_030_img_3.jpg",
+      "slide_030_img_4.png",
+      "slide_030_img_5.png",
+      "slide_030_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "smile enhancement , No Prep veneers, getting rid of pain, embarrassment",
+    "solution": "8 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to match her face perfectly"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , No Prep veneers, getting rid of pain, embarrassment )\nSolution: (8 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to match her face perfectly )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 31,
+    "images": [
+      "slide_031_img_1.jpg",
+      "slide_031_img_2.jpg",
+      "slide_031_img_3.jpg",
+      "slide_031_img_4.png",
+      "slide_031_img_5.png",
+      "slide_031_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "smile enhancement , No Prep veneers, getting rid of broken/stained composite, lack of confidence",
+    "solution": "4 No-prep veneers",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "worn_teeth",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , No Prep veneers, getting rid of broken/stained composite, lack of confidence  )\nSolution: (4 No-prep veneers )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 32,
+    "images": [
+      "slide_032_img_1.jpg",
+      "slide_032_img_2.jpg",
+      "slide_032_img_3.jpg",
+      "slide_032_img_4.png",
+      "slide_032_img_5.png",
+      "slide_032_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "smile enhancement , No Prep veneers, workplace accident, trauma, pan, lack of confidence",
+    "solution": "4 No-prep veneers",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "confidence",
+      "trauma"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , No Prep veneers, workplace accident, trauma, pan, lack of confidence  )\nSolution: (4 No-prep veneers )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 33,
+    "images": [
+      "slide_033_img_1.jpg",
+      "slide_033_img_2.jpg",
+      "slide_033_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "smile enhancement , 2 No Prep veneers, bonding that continuedot get bigger each time it was replaced,  lack of confidence",
+    "solution": "2 No-prep veneers + whiteing",
+    "complexity": 7,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , 2 No Prep veneers, bonding that continuedot get bigger each time it was replaced,  lack of confidence  )\nSolution: (2 No-prep veneers + whiteing )\nComplexity: (7 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 34,
+    "images": [
+      "slide_034_img_1.jpg",
+      "slide_034_img_2.jpg",
+      "slide_034_img_3.jpg",
+      "slide_034_img_4.png",
+      "slide_034_img_5.png",
+      "slide_034_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 35,
+    "images": [
+      "slide_035_img_1.jpg",
+      "slide_035_img_2.jpg",
+      "slide_035_img_3.jpg",
+      "slide_035_img_4.png",
+      "slide_035_img_5.png",
+      "slide_035_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "smile enhancement , No Prep veneers, getting rid of stained/ bad composite binding, embarrassment",
+    "solution": "8 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to match her face perfectly"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , No Prep veneers, getting rid of stained/ bad composite binding, embarrassment )\nSolution: (8 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to match her face perfectly )  - 20 year follow-up after full face photo\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 36,
+    "images": [
+      "slide_036_img_1.jpg",
+      "slide_036_img_2.jpg",
+      "slide_036_img_3.png",
+      "slide_036_img_4.png",
+      "slide_036_img_5.jpg",
+      "slide_036_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "smile enhancement , No Prep veneers, getting rid of stained/ bad composite binding, embarrassment",
+    "solution": "10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to rebuild her confidence"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , No Prep veneers, getting rid of stained/ bad composite binding, embarrassment )\nSolution: (10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to rebuild her confidence  )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 37,
+    "images": [
+      "slide_037_img_1.jpg",
+      "slide_037_img_2.jpg",
+      "slide_037_img_3.jpg",
+      "slide_037_img_4.png",
+      "slide_037_img_5.png",
+      "slide_037_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers + Implant restoration",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "Ultra conservative smile upgrade"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "minimal_prep_veneers",
+      "invisalign",
+      "implants"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers + Implant restoration )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design, Ultra conservative smile upgrade)\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 38,
+    "images": [
+      "slide_038_img_1.jpg",
+      "slide_038_img_2.jpg",
+      "slide_038_img_3.jpg",
+      "slide_038_img_4.png",
+      "slide_038_img_5.png",
+      "slide_038_img_6.png",
+      "slide_038_img_7.jpg"
+    ],
+    "image_count": 7,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry",
+    "solution": "Gum Lift + 10 No-prep veneers",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design to make her smile more like her younger sisters tooth size"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "gum_lift"
+    ],
+    "concerns": [
+      "gummy_smile",
+      "small_teeth"
+    ],
+    "gender": "female",
+    "age_context": "young",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry )\nSolution: (Gum Lift + 10 No-prep veneers )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design to make her smile more like her younger sisters tooth size  )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 39,
+    "images": [
+      "slide_039_img_1.jpg",
+      "slide_039_img_2.jpg",
+      "slide_039_img_3.jpg",
+      "slide_039_img_4.png",
+      "slide_039_img_5.png",
+      "slide_039_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry",
+    "solution": "Gum Lift + 10 No-prep veneers",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design to make her smile more like her younger sisters tooth size"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "gum_lift"
+    ],
+    "concerns": [
+      "gummy_smile",
+      "small_teeth"
+    ],
+    "gender": "female",
+    "age_context": "young",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry )\nSolution: (Gum Lift + 10 No-prep veneers )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design to make her smile more like her younger sisters tooth size  )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 40,
+    "images": [
+      "slide_040_img_1.jpg",
+      "slide_040_img_2.png"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Uneven smile, bite doesn\u2019t feel right, uneven gum height, discolored teeth, afraid, TV personality , feels smile holds her back form faster career growth",
+    "solution": "Invisalign then 28 ultra minimal prep veneers",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "smile of her dreams"
+    ],
+    "duration": "5 visits,  5 months total Treatment time",
+    "visits": 5,
+    "treatment_weeks": 20,
+    "cost_bracket": "$63k All-in project  case fee",
+    "cost_numeric": 63000.0,
+    "treatments": [
+      "minimal_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "discoloration",
+      "gummy_smile",
+      "bite_issues"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven smile, bite doesn\u2019t feel right, uneven gum height, discolored teeth, afraid, TV personality , feels smile holds her back form faster career growth)\nSolution: (Invisalign then 28 ultra minimal prep veneers )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, smile of her dreams)\nDuration: (5 visits,  5 months total Treatment time)\nCost_Bracket: ($63k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 41,
+    "images": [
+      "slide_041_img_1.jpg",
+      "slide_041_img_2.jpg",
+      "slide_041_img_3.jpg",
+      "slide_041_img_4.png",
+      "slide_041_img_5.png",
+      "slide_041_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "Veneers broken when they were seated done by another dentist, smile anxiety, Laser veneer removal allowed her to get the veneers removed without fear,  No Prep veneers",
+    "solution": "Laser Veneer removal technique + 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "New Techniques her friend told her about\nDuration: (3 visits",
+      "6 weeks total Treatment time"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "laser_veneer_removal"
+    ],
+    "concerns": [
+      "worn_teeth",
+      "bad_previous_work",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Veneers broken when they were seated done by another dentist, smile anxiety, Laser veneer removal allowed her to get the veneers removed without fear,  No Prep veneers )\nSolution: (Laser Veneer removal technique + 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, New Techniques her friend told her about\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 42,
+    "images": [
+      "slide_042_img_1.jpg",
+      "slide_042_img_2.jpg",
+      "slide_042_img_3.jpg",
+      "slide_042_img_4.png",
+      "slide_042_img_5.png",
+      "slide_042_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Discolored teeth, smile enhancement, embarrassed about her smile on camera or public appearances, ultra minimal-Prep veneers",
+    "solution": "26 porcelain restorations, 2 implant restorations",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to look like her natural smile"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$63k All-in project  case fee",
+    "cost_numeric": 63000.0,
+    "treatments": [
+      "minimal_prep_veneers",
+      "implants"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Discolored teeth, smile enhancement, embarrassed about her smile on camera or public appearances, ultra minimal-Prep veneers )\nSolution: (26 porcelain restorations, 2 implant restorations )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, designed to look like her natural smile )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($63k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 43,
+    "images": [
+      "slide_043_img_1.jpg",
+      "slide_043_img_2.jpg",
+      "slide_043_img_3.jpg",
+      "slide_043_img_4.png",
+      "slide_043_img_5.png",
+      "slide_043_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "gray band in her teeth made her self-conscious",
+    "solution": "28 ultra conservative porcelain restorations",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built jto look like her natural teeth but better"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$65k All-in project  case fee",
+    "cost_numeric": 65000.0,
+    "treatments": [
+      "minimal_prep_veneers"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., gray band in her teeth made her self-conscious )\nSolution: (28 ultra conservative porcelain restorations  )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, built jto look like her natural teeth but better )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($65k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 44,
+    "images": [
+      "slide_044_img_1.jpg",
+      "slide_044_img_2.jpg",
+      "slide_044_img_3.jpg",
+      "slide_044_img_4.png",
+      "slide_044_img_5.png",
+      "slide_044_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "gray band in her teeth made her self-conscious",
+    "solution": "28 ultra conservative porcelain restorations",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built jto look like her natural teeth but better"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$65k All-in project  case fee",
+    "cost_numeric": 65000.0,
+    "treatments": [
+      "minimal_prep_veneers"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., gray band in her teeth made her self-conscious )\nSolution: (28 ultra conservative porcelain restorations  )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, built jto look like her natural teeth but better )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($65k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 45,
+    "images": [
+      "slide_045_img_1.jpg",
+      "slide_045_img_2.jpg",
+      "slide_045_img_3.jpg",
+      "slide_045_img_4.png",
+      "slide_045_img_5.png"
+    ],
+    "image_count": 5,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": true,
+    "notes_raw": "Every Smile Project has 3 phases \nBefore - planning the end results start here\nTrial Smile - this is the test run of our planned design that you live with\nAfter - finished end result, tested and verified by the patient, approved and copied so we all know exactly what to expect.",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 46,
+    "images": [
+      "slide_046_img_1.jpg",
+      "slide_046_img_2.jpg",
+      "slide_046_img_3.jpg",
+      "slide_046_img_4.png",
+      "slide_046_img_5.png",
+      "slide_046_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "Bad bonding , smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign",
+      "bonding"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Bad bonding , smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 47,
+    "images": [
+      "slide_047_img_1.jpg",
+      "slide_047_img_2.jpg",
+      "slide_047_img_3.jpg",
+      "slide_047_img_4.png",
+      "slide_047_img_5.png",
+      "slide_047_img_6.png",
+      "slide_047_img_7.jpg"
+    ],
+    "image_count": 7,
+    "text_content": [],
+    "condition": "failing front tooth, discolored teeth, he wanted ultra bright hollywood smile so he looked as young as he felt",
+    "solution": "Full Mouth Rejuvenation - 27 teeth + 1 Impant restoration",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built for his personality"
+    ],
+    "duration": "4 visits, 16 weeks total Treatment time",
+    "visits": 4,
+    "treatment_weeks": 16,
+    "cost_bracket": "$64k All-in project  case fee",
+    "cost_numeric": 64000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "discoloration"
+    ],
+    "gender": "male",
+    "age_context": "young",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., failing front tooth, discolored teeth, he wanted ultra bright hollywood smile so he looked as young as he felt )\nSolution: (Full Mouth Rejuvenation - 27 teeth + 1 Impant restoration )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, built for his personality )\nDuration: (4 visits, 16 weeks total Treatment time)\nCost_Bracket: ($64k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 48,
+    "images": [
+      "slide_048_img_1.jpg",
+      "slide_048_img_2.jpg",
+      "slide_048_img_3.jpg",
+      "slide_048_img_4.png",
+      "slide_048_img_5.png",
+      "slide_048_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Chronic drinking sugar energy drinks, decay, told all teeth need to be extracted by 2 different offices in Charlotte, Full dentures were Treatment planned by other dentla offices, he brought in the Tx plans to show us, came to see me because I had laser technology and hoped I could save some thing so he did not have to get full dentures at 26yo",
+    "solution": "Full Mouth Rebuild - decay removed, laser used to adjust tissue level and temporaries smile design used to make sure no teeth needed Root canals, all survived, 28 porcelain restorations",
+    "complexity": 8,
+    "tone": [
+      "we imaged a different result than the other offices - that and his hope for another solution asved his form a life of dentures starting at 26yo. Custom smile built to look exactly how he wanted",
+      "Confidence restored"
+    ],
+    "duration": "3 visits, 8 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 8,
+    "cost_bracket": "$58k All-in project  case fee",
+    "cost_numeric": 58000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "confidence",
+      "decay"
+    ],
+    "gender": "male",
+    "age_context": "young_adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g.,Chronic drinking sugar energy drinks, decay, told all teeth need to be extracted by 2 different offices in Charlotte, Full dentures were Treatment planned by other dentla offices, he brought in the Tx plans to show us, came to see me because I had laser technology and hoped I could save some thing so he did not have to get full dentures at 26yo)\nSolution: (Full Mouth Rebuild - decay removed, laser used to adjust tissue level and temporaries smile design used to make sure no teeth needed Root canals, all survived, 28 porcelain restorations)\nComplexity: (8 out of 10)\nTone: (we imaged a different result than the other offices - that and his hope for another solution asved his form a life of dentures starting at 26yo. Custom smile built to look exactly how he wanted, Confidence restored)\nDuration: (3 visits, 8 weeks total Treatment time)\nCost_Bracket: ($58k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 49,
+    "images": [
+      "slide_049_img_1.jpg",
+      "slide_049_img_2.jpg",
+      "slide_049_img_3.jpg",
+      "slide_049_img_4.png",
+      "slide_049_img_5.png",
+      "slide_049_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient",
+      "Actual Patient"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks ttotal Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks ttotal Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 50,
+    "images": [
+      "slide_050_img_1.jpg",
+      "slide_050_img_2.jpg",
+      "slide_050_img_3.jpg",
+      "slide_050_img_4.png",
+      "slide_050_img_5.png",
+      "slide_050_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient",
+      "Actual Patient"
+    ],
+    "condition": "Fellow Dental Professional (Orthodontist",
+    "solution": "Invisalign then 28 Absolute Zero Prep onlay veneers. We rebuilt what had worn away with innovative additive techniques with no need for more tooth removal.  Additive Only Case",
+    "complexity": 9,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "No-pre",
+      "Innovation",
+      "Full mouth treatment without cutting down teeth"
+    ],
+    "duration": "3 visits, 6 weeks ttotal Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$72k All-in project  case fee",
+    "cost_numeric": 72000.0,
+    "treatments": [
+      "full_mouth_rejuvenation",
+      "invisalign"
+    ],
+    "concerns": [
+      "worn_teeth"
+    ],
+    "gender": "male",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Fellow Dental Professional (Orthodontist), unhappy with flat teeth and worn look, felt it was hurting his practice and wanted options. )\nSolution: (Invisalign then 28 Absolute Zero Prep onlay veneers. We rebuilt what had worn away with innovative additive techniques with no need for more tooth removal.  Additive Only Case )\nComplexity: (9 out of 10)\nTone: (Transformational, Custom smile design, No-pre, Innovation, Full mouth treatment without cutting down teeth)\nDuration: (3 visits, 6 weeks ttotal Treatment time)\nCost_Bracket: ($72k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 51,
+    "images": [
+      "slide_051_img_1.jpg",
+      "slide_051_img_2.jpg",
+      "slide_051_img_3.jpg",
+      "slide_051_img_4.png",
+      "slide_051_img_5.png",
+      "slide_051_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Worn teeth, teeth breaking, painful teeth, embarrassed with his smile.",
+    "solution": "Full Mouth Rejuvenation - 28 conservative porcelain additive overlay restorations.  Rebuilt the worn surface and corrected his bite",
+    "complexity": 8,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "4 visits, 12 weeks total Treatment time",
+    "visits": 4,
+    "treatment_weeks": 12,
+    "cost_bracket": "$65k All-in project  case fee",
+    "cost_numeric": 65000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "worn_teeth",
+      "sensitivity",
+      "confidence",
+      "bite_issues"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn teeth, teeth breaking, painful teeth, embarrassed with his smile. )\nSolution: Full Mouth Rejuvenation - 28 conservative porcelain additive overlay restorations.  Rebuilt the worn surface and corrected his bite\nComplexity: (8 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (4 visits, 12 weeks total Treatment time)\nCost_Bracket: ($65k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 52,
+    "images": [
+      "slide_052_img_1.jpg",
+      "slide_052_img_2.jpg",
+      "slide_052_img_3.jpg",
+      "slide_052_img_4.png",
+      "slide_052_img_5.png",
+      "slide_052_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks ttotal Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks ttotal Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 53,
+    "images": [
+      "slide_053_img_1.jpg",
+      "slide_053_img_2.jpg",
+      "slide_053_img_3.png",
+      "slide_053_img_4.png"
+    ],
+    "image_count": 4,
+    "text_content": [],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks ttotal Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks ttotal Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 54,
+    "images": [
+      "slide_054_img_1.jpg",
+      "slide_054_img_2.jpg",
+      "slide_054_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "smile enhancement , 2 No Prep veneers, bonding that continued to get bigger each time it was replaced,  lack of confidence",
+    "solution": "2 No-prep veneers + whitening",
+    "complexity": 7,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding",
+      "whitening"
+    ],
+    "concerns": [
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , 2 No Prep veneers, bonding that continued to get bigger each time it was replaced,  lack of confidence  )\nSolution: (2 No-prep veneers + whitening )\nComplexity: (7 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 55,
+    "images": [
+      "slide_055_img_1.jpg",
+      "slide_055_img_2.jpg",
+      "slide_055_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "smile enhancement , 4 No Prep veneers, replace \u201cedge composite bonding that was stained and distracting,  lack of confidence",
+    "solution": "Invisalign + 4 No-prep veneers + whitening",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign",
+      "bonding",
+      "whitening"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , 4 No Prep veneers, replace \u201cedge composite bonding that was stained and distracting,  lack of confidence  )\nSolution: (Invisalign + 4 No-prep veneers + whitening )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 56,
+    "images": [
+      "slide_056_img_1.jpg",
+      "slide_056_img_2.jpg",
+      "slide_056_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "smile enhancement , 4 No Prep veneers, replace \u201cedge composite bonding that was stained and distracting,  lack of confidence",
+    "solution": "Invisalign + 4 No-prep veneers + whitening",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign",
+      "bonding",
+      "whitening"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , 4 No Prep veneers, replace \u201cedge composite bonding that was stained and distracting,  lack of confidence  )\nSolution: (Invisalign + 4 No-prep veneers + whitening )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 57,
+    "images": [
+      "slide_057_img_1.jpg",
+      "slide_057_img_2.jpg",
+      "slide_057_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "smile enhancement , 4 No Prep veneers, replace \u201cedge composite bonding that was stained and distracting,  lack of confidence",
+    "solution": "Invisalign + 4 No-prep veneers + whitening",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign",
+      "bonding",
+      "whitening"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , 4 No Prep veneers, replace \u201cedge composite bonding that was stained and distracting,  lack of confidence  )\nSolution: (Invisalign + 4 No-prep veneers + whitening )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 58,
+    "images": [
+      "slide_058_img_1.jpg",
+      "slide_058_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "smile enhancement , 2 No Prep veneers, spaces, overlapped teeth,  lack of confidence",
+    "solution": "2 No-prep veneers + whitening",
+    "complexity": 7,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to blend with her adjacent teeth",
+      "Invisible dentistry"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$15k All-in project  case fee",
+    "cost_numeric": 15000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "whitening"
+    ],
+    "concerns": [
+      "spacing",
+      "crowding",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , 2 No Prep veneers, spaces, overlapped teeth,  lack of confidence  )\nSolution: (2 No-prep veneers + whitening )\nComplexity: (7 out of 10)\nTone: (Transformational, Custom smile design, designed to blend with her adjacent teeth, Invisible dentistry )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($15k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 59,
+    "images": [
+      "slide_059_img_1.jpg",
+      "slide_059_img_2.jpg",
+      "slide_059_img_3.jpg",
+      "slide_059_img_4.png",
+      "slide_059_img_5.png",
+      "slide_059_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 60,
+    "images": [
+      "slide_060_img_1.jpg",
+      "slide_060_img_2.jpg",
+      "slide_060_img_3.jpg",
+      "slide_060_img_4.png",
+      "slide_060_img_5.png",
+      "slide_060_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 61,
+    "images": [
+      "slide_061_img_1.jpg",
+      "slide_061_img_2.jpg",
+      "slide_061_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "Worn teeth, teeth breaking, painful teeth, embarrassed with his smile.",
+    "solution": "Full Mouth Rejuvenation - 28 conservative porcelain additive overlay restorations.  Rebuilt the worn surface and corrected his bite",
+    "complexity": 8,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "4 visits, 12 weeks total Treatment time",
+    "visits": 4,
+    "treatment_weeks": 12,
+    "cost_bracket": "$65k All-in project  case fee",
+    "cost_numeric": 65000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "worn_teeth",
+      "sensitivity",
+      "confidence",
+      "bite_issues"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn teeth, teeth breaking, painful teeth, embarrassed with his smile. )\nSolution: Full Mouth Rejuvenation - 28 conservative porcelain additive overlay restorations.  Rebuilt the worn surface and corrected his bite\nComplexity: (8 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (4 visits, 12 weeks total Treatment time)\nCost_Bracket: ($65k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 62,
+    "images": [
+      "slide_062_img_1.jpg",
+      "slide_062_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "Worn teeth, teeth breaking, painful teeth, embarrassed with his smile.",
+    "solution": "Full Mouth Rejuvenation - 28 conservative porcelain additive overlay restorations.  Rebuilt the worn surface and corrected his bite",
+    "complexity": 8,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "4 visits, 12 weeks total Treatment time",
+    "visits": 4,
+    "treatment_weeks": 12,
+    "cost_bracket": "$65k All-in project  case fee",
+    "cost_numeric": 65000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "worn_teeth",
+      "sensitivity",
+      "confidence",
+      "bite_issues"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn teeth, teeth breaking, painful teeth, embarrassed with his smile. )\nSolution: Full Mouth Rejuvenation - 28 conservative porcelain additive overlay restorations.  Rebuilt the worn surface and corrected his bite\nComplexity: (8 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (4 visits, 12 weeks total Treatment time)\nCost_Bracket: ($65k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 63,
+    "images": [
+      "slide_063_img_1.jpg",
+      "slide_063_img_2.jpg",
+      "slide_063_img_3.jpg",
+      "slide_063_img_4.png",
+      "slide_063_img_5.png",
+      "slide_063_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 64,
+    "images": [
+      "slide_064_img_1.jpg",
+      "slide_064_img_2.jpg",
+      "slide_064_img_3.jpg",
+      "slide_064_img_4.png",
+      "slide_064_img_5.png"
+    ],
+    "image_count": 5,
+    "text_content": [
+      "Actual Patient - Before",
+      "Prototypes",
+      "After"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 65,
+    "images": [
+      "slide_065_img_1.jpg",
+      "slide_065_img_2.jpg",
+      "slide_065_img_3.jpg",
+      "slide_065_img_4.jpg",
+      "slide_065_img_5.jpg"
+    ],
+    "image_count": 5,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 66,
+    "images": [
+      "slide_066_img_1.jpg",
+      "slide_066_img_2.jpg",
+      "slide_066_img_3.jpg",
+      "slide_066_img_4.png",
+      "slide_066_img_5.png",
+      "slide_066_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry",
+    "solution": "Gum Lift + 10 No-prep veneers",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design to make her not feel like she looks 12yo"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "gum_lift"
+    ],
+    "concerns": [
+      "gummy_smile",
+      "small_teeth"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (small teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry )\nSolution: (Gum Lift + 10 No-prep veneers )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design to make her not feel like she looks 12yo )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 67,
+    "images": [
+      "slide_067_img_1.jpg",
+      "slide_067_img_2.jpg",
+      "slide_067_img_3.jpg",
+      "slide_067_img_4.png",
+      "slide_067_img_5.png",
+      "slide_067_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Uneven gum height, triangle shaped teeth, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 24  No-prep veneers",
+    "complexity": 6,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, triangle shaped teeth, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 24  No-prep veneers )\nComplexity: (6 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 68,
+    "images": [
+      "slide_068_img_1.jpg",
+      "slide_068_img_2.jpg",
+      "slide_068_img_3.jpg",
+      "slide_068_img_4.png",
+      "slide_068_img_5.png",
+      "slide_068_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "damage front tooth, smile enhancement , smile design",
+    "solution": "28 teeth Full Mouth Rejuvenation. Font tooth was damages and needed a custom solution  to match. The patient wanted a very specfic family trait built into her smile - 100%  unique smile design bilt just for her.",
+    "complexity": 8,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 8 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 8,
+    "cost_bracket": "$54k All-in project  case fee",
+    "cost_numeric": 54000.0,
+    "treatments": [
+      "full_mouth_rejuvenation"
+    ],
+    "concerns": [
+      "trauma"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., damage front tooth, smile enhancement , smile design )\nSolution: 28 teeth Full Mouth Rejuvenation. Font tooth was damages and needed a custom solution  to match. The patient wanted a very specfic family trait built into her smile - 100%  unique smile design bilt just for her.\nComplexity: (8 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 8 weeks total Treatment time)\nCost_Bracket: ($54k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 69,
+    "images": [
+      "slide_069_img_1.jpg",
+      "slide_069_img_2.jpg",
+      "slide_069_img_3.jpg",
+      "slide_069_img_4.png",
+      "slide_069_img_5.png",
+      "slide_069_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "White spots, Icon, Conservative Tx,",
+    "solution": "Icon Tx - 14 teeth",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Conservative Treatment option",
+      "no-prep r"
+    ],
+    "duration": "1 visits, 1.5 hr total Treatment time",
+    "visits": 1,
+    "treatment_weeks": null,
+    "cost_bracket": "$4500  All-in project  case fee",
+    "cost_numeric": 4500.0,
+    "treatments": [
+      "no_prep_veneers",
+      "icon"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., White spots, Icon, Conservative Tx,  )\nSolution: (Icon Tx - 14 teeth  )\nComplexity: (4 out of 10)\nTone: (Transformational, Conservative Treatment option, no-prep r )\nDuration: (1 visits, 1.5 hr total Treatment time)\nCost_Bracket: ($4500  All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 70,
+    "images": [
+      "slide_070_img_1.jpg",
+      "slide_070_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [],
+    "condition": "White spots, Icon, Conservative Tx,",
+    "solution": "Icon Tx - 2 teeth",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Conservative Treatment option",
+      "no-prep r"
+    ],
+    "duration": "1 visits, 1 hr total Treatment time",
+    "visits": 1,
+    "treatment_weeks": null,
+    "cost_bracket": "$1500  All-in project  case fee",
+    "cost_numeric": 1500.0,
+    "treatments": [
+      "no_prep_veneers",
+      "icon"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., White spots, Icon, Conservative Tx,  )\nSolution: (Icon Tx - 2 teeth  )\nComplexity: (4 out of 10)\nTone: (Transformational, Conservative Treatment option, no-prep r )\nDuration: (1 visits, 1 hr total Treatment time)\nCost_Bracket: ($1500  All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 71,
+    "images": [
+      "slide_071_img_1.jpg",
+      "slide_071_img_2.jpg",
+      "slide_071_img_3.jpg",
+      "slide_071_img_4.png",
+      "slide_071_img_5.png",
+      "slide_071_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [
+      "Actual Patient",
+      "Actual Patient"
+    ],
+    "condition": "stained, discolored teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry",
+    "solution": "Gum Lift + 10 No-prep veneers",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "gum_lift"
+    ],
+    "concerns": [
+      "discoloration",
+      "gummy_smile"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (stained, discolored teeth, excess gum display,  smile enhancement , No Prep veneers, invisible dentistry )\nSolution: (Gum Lift + 10 No-prep veneers )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design  )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 72,
+    "images": [
+      "slide_072_img_1.jpg",
+      "slide_072_img_2.jpg",
+      "slide_072_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": true,
+    "notes_raw": "3 step Smiel Deign Process",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 73,
+    "images": [
+      "slide_073_img_1.jpg",
+      "slide_073_img_2.jpg",
+      "slide_073_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "stained teeth, Composite Bonding gone wrong, smile enhancement , No Prep veneers",
+    "solution": "28 teeth,Full Mouth Rejuvenation",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$65k All-in project  case fee",
+    "cost_numeric": 65000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "full_mouth_rejuvenation",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "bad_previous_work"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., stained teeth, Composite Bonding gone wrong, smile enhancement , No Prep veneers )\nSolution: (28 teeth,Full Mouth Rejuvenation  )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($65k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 74,
+    "images": [
+      "slide_074_img_1.jpg",
+      "slide_074_img_2.jpg",
+      "slide_074_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [],
+    "condition": "missing teeth, too young for implants, smile enhancement, 3D printed Maryland Bridge Zoom Whitening",
+    "solution": "3D printed Solution + Zoom Whitening",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 2 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 2,
+    "cost_bracket": "$3500k All-in project  case fee",
+    "cost_numeric": 3500.0,
+    "treatments": [
+      "whitening",
+      "maryland_bridge"
+    ],
+    "concerns": [
+      "missing_teeth"
+    ],
+    "gender": "female",
+    "age_context": "young",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., missing teeth, too young for implants, smile enhancement, 3D printed Maryland Bridge Zoom Whitening )\nSolution: (3D printed Solution + Zoom Whitening  )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 2 weeks total Treatment time)\nCost_Bracket: ($3500k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 75,
+    "images": [
+      "slide_075_img_1.jpg",
+      "slide_075_img_2.jpg",
+      "slide_075_img_3.jpg",
+      "slide_075_img_4.png",
+      "slide_075_img_5.png",
+      "slide_075_img_6.png"
+    ],
+    "image_count": 6,
+    "text_content": [],
+    "condition": "smile enhancement , No Prep veneers, getting rid of stained/ bad composite binding, embarrassment",
+    "solution": "8 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "designed to match her face perfectly"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$30k All-in project  case fee",
+    "cost_numeric": 30000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "bonding"
+    ],
+    "concerns": [
+      "discoloration",
+      "confidence"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (smile enhancement , No Prep veneers, getting rid of stained/ bad composite binding, embarrassment )\nSolution: (8 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, designed to match her face perfectly )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($30k All-in project  case fee)",
+    "slide_type": "before_after_case"
+  },
+  {
+    "slide_number": 76,
+    "images": [
+      "slide_076_img_1.jpg",
+      "slide_076_img_2.jpg",
+      "slide_076_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [
+      "Actual Patient"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks ttotal Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks ttotal Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 77,
+    "images": [
+      "slide_077_img_1.jpg",
+      "slide_077_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nImprove Smile",
+      "Solution\n\nImplant Bridges - Upper & Lower"
+    ],
+    "condition": "Periodontal Disease, multi-tooth failure, not able to eat solid food.",
+    "solution": "Dual Arch Implant support bridges - Restore facial aesthetics and quality of life",
+    "complexity": 9,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 8 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 8,
+    "cost_bracket": "$76k All-in project  case fee",
+    "cost_numeric": 76000.0,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (Periodontal Disease, multi-tooth failure, not able to eat solid food.  )\nSolution: (Dual Arch Implant support bridges - Restore facial aesthetics and quality of life )\nComplexity: (9 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 8 weeks total Treatment time)\nCost_Bracket: ($76k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 78,
+    "images": [
+      "slide_078_img_1.jpg",
+      "slide_078_img_2.jpg",
+      "slide_078_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [
+      "BEFORE",
+      "2.  TEST DRIVE",
+      "3.  AFTER",
+      "THREE STEP PROCESS"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": true,
+    "notes_raw": "Every Smile Project has 3 phases \nBefore - planning the end results start here\nTrial Smile - this is the test run of our planned design that you live with\nAfter - finished end result, tested and verified by the patient, approved and copied so we all know exactly what to expect.",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 79,
+    "images": [
+      "slide_079_img_1.jpg",
+      "slide_079_img_2.jpg",
+      "slide_079_img_3.jpg"
+    ],
+    "image_count": 3,
+    "text_content": [
+      "BEFORE",
+      "2.  TEST DRIVE",
+      "3.  AFTER",
+      "THREE STEP PROCESS"
+    ],
+    "condition": "",
+    "solution": "",
+    "complexity": null,
+    "tone": [],
+    "duration": "",
+    "visits": null,
+    "treatment_weeks": null,
+    "cost_bracket": "",
+    "cost_numeric": null,
+    "treatments": [
+      "general"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": true,
+    "notes_raw": "Every Smile Project has 3 phases \nBefore - planning the end results start here\nTrial Smile - this is the test run of our planned design that you live with\nAfter - finished end result, tested and verified by the patient, approved and copied so we all know exactly what to expect.",
+    "slide_type": "multi_image_case"
+  },
+  {
+    "slide_number": 80,
+    "images": [
+      "slide_080_img_1.jpg",
+      "slide_080_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n\nCrowded + Uneven smile",
+      "Solution\n\nInvisalign + Whitening"
+    ],
+    "condition": "Uneven smile, crowded teeth  smile enhancement, Invisalign",
+    "solution": "Invisalign t + Zoom Whitening",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "conservative Treatment"
+    ],
+    "duration": "3 visits, 24 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 24,
+    "cost_bracket": "$7500k All-in project  case fee",
+    "cost_numeric": 7500.0,
+    "treatments": [
+      "invisalign",
+      "whitening"
+    ],
+    "concerns": [
+      "crowding"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "condition: (e.g., Uneven smile, crowded teeth  smile enhancement, Invisalign  )\nSolution: (Invisalign t + Zoom Whitening  )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, conservative Treatment )\nDuration: (3 visits, 24 weeks total Treatment time)\nCost_Bracket: ($7500k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 81,
+    "images": [
+      "slide_081_img_1.jpg",
+      "slide_081_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nSevere Wear, breakage, sensitivity",
+      "Solution\n\n28 Veneers + gum lift"
+    ],
+    "condition": "Worn teeth,  smile enhancement , No Prep veneers",
+    "solution": "28 additive porcelain restorations (veneers and Onlay veneers",
+    "complexity": 5,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "made to look natural"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$53k All-in project  case fee",
+    "cost_numeric": 53000.0,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "worn_teeth"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn teeth,  smile enhancement , No Prep veneers )\nSolution: (28 additive porcelain restorations (veneers and Onlay veneers )\nComplexity: (5 out of 10)\nTone: (Transformational, Custom smile design, made to look natural  )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($53k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 82,
+    "images": [
+      "slide_082_img_1.jpg",
+      "slide_082_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nAcid Erosion",
+      "Solution\n\nPrototype Phase - Rebuilding"
+    ],
+    "condition": "Worn Dentition - damaged teeth with multiple suggestions to extract, Full Arch Implant Bridge solution (AOX",
+    "solution": "Transitional Bonding used to rebuild lost tooth structure and reestablish Form and Function + Upgrade Smile Quickly -100% no prep case!",
+    "complexity": 9,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "providing a pathway to save teeth and avoid dentures or AOX solution"
+    ],
+    "duration": "2 visits, 1 week total Treatment time",
+    "visits": 2,
+    "treatment_weeks": 1,
+    "cost_bracket": "$9500k All-in Prototype project Phase - case fee",
+    "cost_numeric": 9500.0,
+    "treatments": [
+      "no_prep_veneers",
+      "implants",
+      "bonding"
+    ],
+    "concerns": [
+      "worn_teeth",
+      "missing_teeth",
+      "trauma"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn Dentition - damaged teeth with multiple suggestions to extract, Full Arch Implant Bridge solution (AOX) \nSolution: Transitional Bonding used to rebuild lost tooth structure and reestablish Form and Function + Upgrade Smile Quickly -100% no prep case! \nComplexity: (9.5 out of 10)\nTone: (Transformational, Custom smile design, providing a pathway to save teeth and avoid dentures or AOX solution  )\nDuration: (2 visits, 1 week total Treatment time)\nCost_Bracket: ($9500k All-in Prototype project Phase - case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 83,
+    "images": [
+      "slide_083_img_1.jpg",
+      "slide_083_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nAcid Erosion",
+      "Solution\n\nPrototype Phase - Rebuilding"
+    ],
+    "condition": "Worn Dentition - damaged teeth with multiple suggestions to extract, Full Arch Impant Bridge solution (AOX",
+    "solution": "Transitional Bonding used to rebuild lost tooth structure and reestablish Form and Function + Upgrade Smile Quickly -100% no pre case!",
+    "complexity": 9,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "providing a pathway to save teeth and avoid dentures or AOX solution"
+    ],
+    "duration": "2 visits, 1 week total Treatment time",
+    "visits": 2,
+    "treatment_weeks": 1,
+    "cost_bracket": "$9500k All-in Prototype project Phase - case fee",
+    "cost_numeric": 9500.0,
+    "treatments": [
+      "implants",
+      "bonding"
+    ],
+    "concerns": [
+      "worn_teeth",
+      "missing_teeth",
+      "trauma"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Worn Dentition - damaged teeth with multiple suggestions to extract, Full Arch Impant Bridge solution (AOX) \nSolution: Transitional Bonding used to rebuild lost tooth structure and reestablish Form and Function + Upgrade Smile Quickly -100% no pre case! \nComplexity: (9.5 out of 10)\nTone: (Transformational, Custom smile design, providing a pathway to save teeth and avoid dentures or AOX solution  )\nDuration: (2 visits, 1 week total Treatment time)\nCost_Bracket: ($9500k All-in Prototype project Phase - case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 84,
+    "images": [
+      "slide_084_img_1.jpg",
+      "slide_084_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n\nGummy Smile, Stained bonding",
+      "Solution\n\n4 Veneers + Laser Gum Sculpting"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "Invisalign then 10 No-prep veneers",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks ttotal Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$35k All-in project  case fee",
+    "cost_numeric": 35000.0,
+    "treatments": [
+      "no_prep_veneers",
+      "invisalign"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (Invisalign then 10 No-prep veneers )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks ttotal Treatment time)\nCost_Bracket: ($35k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 85,
+    "images": [
+      "slide_085_img_1.jpg",
+      "slide_085_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nSmall teeth",
+      "Solution\n\n2 No-prep Veneers"
+    ],
+    "condition": "Uneven gum height, smile enhancement , No Prep veneers",
+    "solution": "2 no=prep veneers",
+    "complexity": 3,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "built just for her"
+    ],
+    "duration": "3 visits, 6 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 6,
+    "cost_bracket": "$7k All-in project  case fee",
+    "cost_numeric": 7000.0,
+    "treatments": [
+      "no_prep_veneers"
+    ],
+    "concerns": [
+      "gummy_smile"
+    ],
+    "gender": "female",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven gum height, smile enhancement , No Prep veneers )\nSolution: (2 no=prep veneers )\nComplexity: (3 out of 10)\nTone: (Transformational, Custom smile design, built just for her )\nDuration: (3 visits, 6 weeks total Treatment time)\nCost_Bracket: ($7k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 86,
+    "images": [
+      "slide_086_img_1.jpg",
+      "slide_086_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n\nSpace between Teeth",
+      "Solution\n\nInvisalign"
+    ],
+    "condition": "Uneven smile, crowded teeth  smile enhancement, Invisalign",
+    "solution": "Invisalign t + Zoom Whitening",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "conservative Treatment"
+    ],
+    "duration": "3 visits, 24 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 24,
+    "cost_bracket": "$7500k All-in project  case fee",
+    "cost_numeric": 7500.0,
+    "treatments": [
+      "invisalign",
+      "whitening"
+    ],
+    "concerns": [
+      "crowding"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "condition: (e.g., Uneven smile, crowded teeth  smile enhancement, Invisalign  )\nSolution: (Invisalign t + Zoom Whitening  )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, conservative Treatment )\nDuration: (3 visits, 24 weeks total Treatment time)\nCost_Bracket: ($7500k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 87,
+    "images": [
+      "slide_087_img_1.jpg",
+      "slide_087_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nCrowding, uneven smile",
+      "Solution\n\nInvisalign"
+    ],
+    "condition": "Uneven smile, unhappy with his general dentist not having any solutions",
+    "solution": "Invisalign + whitening - next step is conservative Veneers that provide the color solution for the long-term",
+    "complexity": 4,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "minimally invasive treatment"
+    ],
+    "duration": "3 visits, 26 weeks total Treatment time",
+    "visits": 3,
+    "treatment_weeks": 26,
+    "cost_bracket": "$7500k All-in project  case fee",
+    "cost_numeric": 7500.0,
+    "treatments": [
+      "invisalign",
+      "whitening"
+    ],
+    "concerns": [
+      "general_enhancement"
+    ],
+    "gender": "male",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Uneven smile, unhappy with his general dentist not having any solutions )\nSolution: (Invisalign + whitening - next step is conservative Veneers that provide the color solution for the long-term )\nComplexity: (4 out of 10)\nTone: (Transformational, Custom smile design, minimally invasive treatment )\nDuration: (3 visits, 26 weeks total Treatment time)\nCost_Bracket: ($7500k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 88,
+    "images": [
+      "slide_088_img_1.jpg",
+      "slide_088_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nFailing teeth, loose and painful",
+      "Solution\n\nFull Upper Arch Implant Restoration"
+    ],
+    "condition": "Failing teeth - upper arch",
+    "solution": "AOX - Full Arch Implant supported Solution -",
+    "complexity": 8,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "digital planning workflow"
+    ],
+    "duration": "4 visits, 24 weeks total Treatment time",
+    "visits": 4,
+    "treatment_weeks": 24,
+    "cost_bracket": "$48k All-in project  case fee",
+    "cost_numeric": 48000.0,
+    "treatments": [
+      "implants"
+    ],
+    "concerns": [
+      "missing_teeth"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Failing teeth - upper arch )\nSolution: (AOX - Full Arch Implant supported Solution -)\nComplexity: (8 out of 10)\nTone: (Transformational, Custom smile design, digital planning workflow )\nDuration: (4 visits, 24 weeks total Treatment time)\nCost_Bracket: ($48k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  },
+  {
+    "slide_number": 89,
+    "images": [
+      "slide_089_img_1.jpg",
+      "slide_089_img_2.jpg"
+    ],
+    "image_count": 2,
+    "text_content": [
+      "Concern\n \nFailing teeth, loose and painful",
+      "Solution\n\nFull Upper Arch Implant Restoration"
+    ],
+    "condition": "Failing teeth - upper arch",
+    "solution": "AOX - Full Arch Implant supported Solution -",
+    "complexity": 7,
+    "tone": [
+      "Transformational",
+      "Custom smile design",
+      "digital planning workflow"
+    ],
+    "duration": "4 visits, 24 weeks total Treatment time",
+    "visits": 4,
+    "treatment_weeks": 24,
+    "cost_bracket": "$38k All-in project  case fee",
+    "cost_numeric": 38000.0,
+    "treatments": [
+      "implants"
+    ],
+    "concerns": [
+      "missing_teeth"
+    ],
+    "gender": "unknown",
+    "age_context": "adult",
+    "is_celebrity_case": false,
+    "is_process_slide": false,
+    "notes_raw": "Condition: (e.g., Failing teeth - upper arch )\nSolution: (AOX - Full Arch Implant supported Solution -)\nComplexity: (7 out of 10)\nTone: (Transformational, Custom smile design, digital planning workflow )\nDuration: (4 visits, 24 weeks total Treatment time)\nCost_Bracket: ($38k All-in project  case fee)",
+    "slide_type": "before_after_pair"
+  }
+]

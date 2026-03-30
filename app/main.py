@@ -1,5 +1,6 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Any
 import os
@@ -9,7 +10,15 @@ import uuid
 import asyncio
 import concurrent.futures
 from datetime import datetime, timezone
+from pathlib import Path
 from dotenv import load_dotenv
+from app.slide_sorter import (
+    get_catalog_stats,
+    search_slides,
+    get_slide_detail,
+    match_guest_to_slides,
+    get_slides_for_vc_presentation,
+)
 
 load_dotenv()
 
@@ -23,6 +32,11 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+# Mount slide images as static files
+_slide_images_dir = Path(__file__).parent / "vc_slides" / "slide_images"
+if _slide_images_dir.exists():
+    app.mount("/vc/images", StaticFiles(directory=str(_slide_images_dir)), name="slide_images")
 
 # --- Configuration ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -1759,3 +1773,89 @@ async def dashboard_full():
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+# --- VC Slide Sorter API ---
+
+
+class SlideMatchRequest(BaseModel):
+    description: str
+    limit: int = 5
+
+
+class VCPresentationRequest(BaseModel):
+    concerns: list[str]
+    treatments: Optional[list[str]] = None
+    include_process: bool = True
+    include_intro: bool = True
+    limit: int = 8
+
+
+@app.get("/vc/slides/stats")
+async def vc_slide_stats():
+    """Get high-level stats about the VC slide catalog."""
+    return get_catalog_stats()
+
+
+@app.get("/vc/slides/search")
+async def vc_slide_search(
+    treatments: Optional[str] = Query(None, description="Comma-separated treatment types"),
+    concerns: Optional[str] = Query(None, description="Comma-separated concern types"),
+    min_complexity: Optional[int] = Query(None, ge=1, le=10),
+    max_complexity: Optional[int] = Query(None, ge=1, le=10),
+    min_cost: Optional[float] = Query(None, ge=0),
+    max_cost: Optional[float] = Query(None, ge=0),
+    gender: Optional[str] = Query(None),
+    celebrity_only: bool = Query(False),
+    slide_type: Optional[str] = Query(None),
+    limit: int = Query(10, ge=1, le=50),
+):
+    """Search slides by treatment type, concern, complexity, cost, etc."""
+    treatment_list = [t.strip() for t in treatments.split(",")] if treatments else None
+    concern_list = [c.strip() for c in concerns.split(",")] if concerns else None
+
+    results = search_slides(
+        treatments=treatment_list,
+        concerns=concern_list,
+        min_complexity=min_complexity,
+        max_complexity=max_complexity,
+        min_cost=min_cost,
+        max_cost=max_cost,
+        gender=gender,
+        celebrity_only=celebrity_only,
+        slide_type=slide_type,
+        limit=limit,
+    )
+    return {"total": len(results), "slides": results}
+
+
+@app.get("/vc/slides/{slide_number}")
+async def vc_slide_detail(slide_number: int):
+    """Get full details for a specific slide."""
+    slide = get_slide_detail(slide_number)
+    if not slide:
+        return {"error": f"Slide {slide_number} not found"}
+    return slide
+
+
+@app.post("/vc/slides/match")
+async def vc_slide_match(req: SlideMatchRequest):
+    """Smart match -- describe guest concerns in natural language, get relevant slides."""
+    results = match_guest_to_slides(
+        guest_description=req.description,
+        limit=req.limit,
+    )
+    return {"query": req.description, "total": len(results), "slides": results}
+
+
+@app.post("/vc/presentation")
+async def vc_build_presentation(req: VCPresentationRequest):
+    """Build a curated VC presentation deck for a specific guest."""
+    presentation = get_slides_for_vc_presentation(
+        guest_concerns=req.concerns,
+        guest_treatments=req.treatments,
+        include_process=req.include_process,
+        include_intro=req.include_intro,
+        limit=req.limit,
+    )
+    return presentation
