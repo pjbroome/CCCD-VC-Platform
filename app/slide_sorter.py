@@ -338,3 +338,90 @@ def get_slides_for_vc_presentation(
     )
 
     return presentation
+
+
+# --- Management Functions (for Slide Manager UI) ---
+
+def get_all_slides() -> list[dict]:
+    """Return all slides with full metadata for the manager UI."""
+    _load_catalog()
+    return _catalog
+
+
+def update_slide(slide_number: int, updates: dict) -> Optional[dict]:
+    """Update a slide's metadata (condition, solution, treatments, concerns, etc.)."""
+    _load_catalog()
+    for slide in _catalog:
+        if slide["slide_number"] == slide_number:
+            for key, value in updates.items():
+                if key != "slide_number":
+                    slide[key] = value
+            _save_catalog()
+            return slide
+    return None
+
+
+def reorder_slides(slide_order: list[int]) -> list[dict]:
+    """Reorder the catalog based on a list of slide numbers."""
+    _load_catalog()
+    order_map = {num: idx for idx, num in enumerate(slide_order)}
+    _catalog.sort(key=lambda s: order_map.get(s["slide_number"], 9999))
+    _save_catalog()
+    return _catalog
+
+
+def _save_catalog():
+    """Persist the catalog back to disk."""
+    with open(_CATALOG_PATH, "w") as f:
+        json.dump(_catalog, f, indent=2)
+
+
+# --- Recording Decks ---
+_DECKS_PATH = Path(__file__).parent / "vc_slides" / "recording_decks.json"
+_decks: list[dict] = []
+
+
+def _load_decks():
+    global _decks
+    if _DECKS_PATH.exists():
+        with open(_DECKS_PATH) as f:
+            _decks = json.load(f)
+    else:
+        _decks = []
+
+
+def _save_decks():
+    with open(_DECKS_PATH, "w") as f:
+        json.dump(_decks, f, indent=2)
+
+
+def save_recording_deck(name: str, slide_numbers: list[int]) -> dict:
+    """Save a named recording deck (ordered list of slide numbers)."""
+    _load_decks()
+    import datetime
+    deck = {
+        "id": len(_decks) + 1,
+        "name": name,
+        "slide_numbers": slide_numbers,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    _decks.append(deck)
+    _save_decks()
+    return deck
+
+
+def get_recording_decks() -> list[dict]:
+    """Return all saved recording decks."""
+    _load_decks()
+    return _decks
+
+
+def delete_recording_deck(deck_id: int) -> bool:
+    """Delete a recording deck by ID."""
+    _load_decks()
+    for i, deck in enumerate(_decks):
+        if deck["id"] == deck_id:
+            _decks.pop(i)
+            _save_decks()
+            return True
+    return False

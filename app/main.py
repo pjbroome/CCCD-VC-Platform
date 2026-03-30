@@ -14,10 +14,16 @@ from pathlib import Path
 from dotenv import load_dotenv
 from app.slide_sorter import (
     get_catalog_stats,
+    get_all_slides,
     search_slides,
     get_slide_detail,
+    update_slide,
+    reorder_slides,
     match_guest_to_slides,
     get_slides_for_vc_presentation,
+    save_recording_deck,
+    get_recording_decks,
+    delete_recording_deck,
 )
 
 load_dotenv()
@@ -1859,3 +1865,77 @@ async def vc_build_presentation(req: VCPresentationRequest):
         limit=req.limit,
     )
     return presentation
+
+
+# --- Slide Manager Endpoints (for VC Slide Manager UI) ---
+
+class SlideUpdateRequest(BaseModel):
+    condition: Optional[str] = None
+    solution: Optional[str] = None
+    treatments: Optional[list[str]] = None
+    concerns: Optional[list[str]] = None
+    complexity: Optional[int] = None
+    cost_bracket: Optional[str] = None
+    cost_numeric: Optional[float] = None
+    gender: Optional[str] = None
+    is_celebrity_case: Optional[bool] = None
+    slide_type: Optional[str] = None
+    custom_label: Optional[str] = None
+
+
+class ReorderRequest(BaseModel):
+    slide_order: list[int]
+
+
+class RecordingDeckRequest(BaseModel):
+    name: str
+    slide_numbers: list[int]
+
+
+@app.get("/slides")
+async def list_all_slides():
+    """Get all slides with full metadata for the manager UI."""
+    slides = get_all_slides()
+    return {"total": len(slides), "slides": slides}
+
+
+@app.put("/slides/{slide_number}")
+async def update_slide_endpoint(slide_number: int, req: SlideUpdateRequest):
+    """Update a slide's metadata (rename, reclassify, etc.)."""
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not updates:
+        return {"error": "No updates provided"}
+    result = update_slide(slide_number, updates)
+    if not result:
+        return {"error": f"Slide {slide_number} not found"}
+    return result
+
+
+@app.put("/slides/reorder")
+async def reorder_slides_endpoint(req: ReorderRequest):
+    """Reorder slides based on a list of slide numbers."""
+    result = reorder_slides(req.slide_order)
+    return {"total": len(result), "message": "Slides reordered successfully"}
+
+
+@app.get("/recording-decks")
+async def list_recording_decks():
+    """List all saved recording decks."""
+    decks = get_recording_decks()
+    return {"total": len(decks), "decks": decks}
+
+
+@app.post("/recording-decks")
+async def create_recording_deck(req: RecordingDeckRequest):
+    """Save a named recording deck (ordered list of slide numbers)."""
+    deck = save_recording_deck(req.name, req.slide_numbers)
+    return deck
+
+
+@app.delete("/recording-decks/{deck_id}")
+async def remove_recording_deck(deck_id: int):
+    """Delete a recording deck by ID."""
+    success = delete_recording_deck(deck_id)
+    if not success:
+        return {"error": f"Deck {deck_id} not found"}
+    return {"message": f"Deck {deck_id} deleted"}
