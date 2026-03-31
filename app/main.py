@@ -24,6 +24,16 @@ from app.slide_sorter import (
     save_recording_deck,
     get_recording_decks,
     delete_recording_deck,
+    create_vc_request,
+    get_vc_requests,
+    get_vc_request,
+    update_vc_request,
+    delete_vc_request,
+    create_consultation,
+    get_consultations,
+    get_consultation,
+    update_consultation,
+    record_watch,
 )
 
 load_dotenv()
@@ -1939,3 +1949,147 @@ async def remove_recording_deck(deck_id: int):
     if not success:
         return {"error": f"Deck {deck_id} not found"}
     return {"message": f"Deck {deck_id} deleted"}
+
+
+# --- VC Request (Patient Intake CRM) Endpoints ---
+
+class VCRequestCreate(BaseModel):
+    patient_name: str
+    email: str = ""
+    phone: str = ""
+    message: str = ""
+    concerns: list[str] = []
+    photos: list[str] = []
+
+
+class VCRequestUpdate(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    patient_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class ConsultationCreate(BaseModel):
+    request_id: Optional[int] = None
+    patient_name: str = ""
+    email: str = ""
+    phone: str = ""
+    concerns: list[str] = []
+    photos: list[str] = []
+    slide_numbers: list[int] = []
+    presentation_name: str = ""
+    script: str = ""
+    video_url: str = ""
+    summary_slide_data: Optional[dict] = None
+    notes: str = ""
+
+
+class ConsultationUpdate(BaseModel):
+    status: Optional[str] = None
+    video_url: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@app.post("/vc/requests")
+async def create_vc_request_endpoint(req: VCRequestCreate):
+    """Submit a new VC request from patient intake."""
+    data = req.model_dump()
+    result = create_vc_request(data)
+    return result
+
+
+@app.get("/vc/requests")
+async def list_vc_requests(status: Optional[str] = None):
+    """List all VC requests, optionally filtered by status."""
+    requests = get_vc_requests(status)
+    return {"total": len(requests), "requests": requests}
+
+
+@app.get("/vc/requests/{request_id}")
+async def get_vc_request_endpoint(request_id: int):
+    """Get full details of a VC request."""
+    result = get_vc_request(request_id)
+    if not result:
+        return {"error": f"Request {request_id} not found"}
+    return result
+
+
+@app.put("/vc/requests/{request_id}")
+async def update_vc_request_endpoint(request_id: int, req: VCRequestUpdate):
+    """Update a VC request (status, notes, etc.)."""
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    result = update_vc_request(request_id, updates)
+    if not result:
+        return {"error": f"Request {request_id} not found"}
+    return result
+
+
+@app.delete("/vc/requests/{request_id}")
+async def delete_vc_request_endpoint(request_id: int):
+    """Delete a VC request."""
+    success = delete_vc_request(request_id)
+    if not success:
+        return {"error": f"Request {request_id} not found"}
+    return {"message": f"Request {request_id} deleted"}
+
+
+# --- VC Consultation (Archive) Endpoints ---
+
+@app.post("/vc/consultations")
+async def create_consultation_endpoint(req: ConsultationCreate):
+    """Save a completed consultation to the archive."""
+    data = req.model_dump()
+    result = create_consultation(data)
+    return result
+
+
+@app.get("/vc/consultations")
+async def list_consultations(status: Optional[str] = None):
+    """List all consultations, optionally filtered by status."""
+    consults = get_consultations(status)
+    return {"total": len(consults), "consultations": consults}
+
+
+@app.get("/vc/consultations/{consultation_id}")
+async def get_consultation_endpoint(consultation_id: int):
+    """Get full details of a consultation."""
+    result = get_consultation(consultation_id)
+    if not result:
+        return {"error": f"Consultation {consultation_id} not found"}
+    return result
+
+
+@app.put("/vc/consultations/{consultation_id}")
+async def update_consultation_endpoint(consultation_id: int, req: ConsultationUpdate):
+    """Update a consultation."""
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    result = update_consultation(consultation_id, updates)
+    if not result:
+        return {"error": f"Consultation {consultation_id} not found"}
+    return result
+
+
+@app.post("/vc/consultations/{consultation_id}/watch")
+async def record_watch_endpoint(consultation_id: int):
+    """Record that a patient watched their consultation video."""
+    result = record_watch(consultation_id)
+    if not result:
+        return {"error": f"Consultation {consultation_id} not found"}
+    return result
+
+
+@app.post("/vc/consultations/{consultation_id}/resend")
+async def resend_consultation(consultation_id: int):
+    """Mark a consultation as resent and update follow-up dates."""
+    import datetime
+    consult = get_consultation(consultation_id)
+    if not consult:
+        return {"error": f"Consultation {consultation_id} not found"}
+    follow_ups = consult.get("follow_up_dates", [])
+    follow_ups.append(datetime.datetime.now(datetime.timezone.utc).isoformat())
+    result = update_consultation(consultation_id, {
+        "status": "follow_up_sent",
+        "follow_up_dates": follow_ups,
+    })
+    return result

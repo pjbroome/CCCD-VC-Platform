@@ -425,3 +425,193 @@ def delete_recording_deck(deck_id: int) -> bool:
             _save_decks()
             return True
     return False
+
+
+# --- VC Requests (Patient Intake CRM) ---
+_REQUESTS_PATH = Path(__file__).parent / "vc_slides" / "vc_requests.json"
+_requests: list[dict] = []
+
+
+def _load_requests():
+    global _requests
+    if _REQUESTS_PATH.exists():
+        with open(_REQUESTS_PATH) as f:
+            _requests = json.load(f)
+    else:
+        _requests = []
+
+
+def _save_requests():
+    with open(_REQUESTS_PATH, "w") as f:
+        json.dump(_requests, f, indent=2)
+
+
+def create_vc_request(data: dict) -> dict:
+    """Create a new VC request from patient intake."""
+    import datetime
+    _load_requests()
+    request = {
+        "id": max((r["id"] for r in _requests), default=0) + 1,
+        "patient_name": data.get("patient_name", ""),
+        "email": data.get("email", ""),
+        "phone": data.get("phone", ""),
+        "message": data.get("message", ""),
+        "concerns": data.get("concerns", []),
+        "photos": data.get("photos", []),
+        "status": "pending",  # pending, in_progress, sent, archived
+        "submitted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "notes": "",
+        "consultation_id": None,
+    }
+    _requests.append(request)
+    _save_requests()
+    return request
+
+
+def get_vc_requests(status: Optional[str] = None) -> list[dict]:
+    """Get all VC requests, optionally filtered by status."""
+    _load_requests()
+    if status:
+        return [r for r in _requests if r["status"] == status]
+    return _requests
+
+
+def get_vc_request(request_id: int) -> Optional[dict]:
+    """Get a single VC request by ID."""
+    _load_requests()
+    for r in _requests:
+        if r["id"] == request_id:
+            return r
+    return None
+
+
+def update_vc_request(request_id: int, updates: dict) -> Optional[dict]:
+    """Update a VC request (status, notes, etc.)."""
+    import datetime
+    _load_requests()
+    for r in _requests:
+        if r["id"] == request_id:
+            for key, value in updates.items():
+                if key != "id":
+                    r[key] = value
+            r["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            _save_requests()
+            return r
+    return None
+
+
+def delete_vc_request(request_id: int) -> bool:
+    """Delete a VC request."""
+    _load_requests()
+    for i, r in enumerate(_requests):
+        if r["id"] == request_id:
+            _requests.pop(i)
+            _save_requests()
+            return True
+    return False
+
+
+# --- VC Consultations (Archive) ---
+_CONSULTATIONS_PATH = Path(__file__).parent / "vc_slides" / "vc_consultations.json"
+_consultations: list[dict] = []
+
+
+def _load_consultations():
+    global _consultations
+    if _CONSULTATIONS_PATH.exists():
+        with open(_CONSULTATIONS_PATH) as f:
+            _consultations = json.load(f)
+    else:
+        _consultations = []
+
+
+def _save_consultations():
+    with open(_CONSULTATIONS_PATH, "w") as f:
+        json.dump(_consultations, f, indent=2)
+
+
+def create_consultation(data: dict) -> dict:
+    """Save a completed consultation to the archive."""
+    import datetime
+    _load_consultations()
+    consultation = {
+        "id": max((c["id"] for c in _consultations), default=0) + 1,
+        "request_id": data.get("request_id"),
+        "patient_name": data.get("patient_name", ""),
+        "email": data.get("email", ""),
+        "phone": data.get("phone", ""),
+        "concerns": data.get("concerns", []),
+        "photos": data.get("photos", []),
+        "slide_numbers": data.get("slide_numbers", []),
+        "presentation_name": data.get("presentation_name", ""),
+        "script": data.get("script", ""),
+        "video_url": data.get("video_url", ""),
+        "summary_slide_data": data.get("summary_slide_data"),
+        "status": "sent",  # sent, watched, follow_up_sent
+        "watch_count": 0,
+        "last_watched_at": None,
+        "sent_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "follow_up_dates": [],
+        "notes": data.get("notes", ""),
+    }
+    _consultations.append(consultation)
+    _save_consultations()
+
+    # Update the linked VC request status
+    if data.get("request_id"):
+        update_vc_request(data["request_id"], {
+            "status": "sent",
+            "consultation_id": consultation["id"],
+        })
+
+    return consultation
+
+
+def get_consultations(status: Optional[str] = None) -> list[dict]:
+    """Get all consultations, optionally filtered by status."""
+    _load_consultations()
+    if status:
+        return [c for c in _consultations if c["status"] == status]
+    return _consultations
+
+
+def get_consultation(consultation_id: int) -> Optional[dict]:
+    """Get a single consultation by ID."""
+    _load_consultations()
+    for c in _consultations:
+        if c["id"] == consultation_id:
+            return c
+    return None
+
+
+def update_consultation(consultation_id: int, updates: dict) -> Optional[dict]:
+    """Update a consultation (watch status, resend, etc.)."""
+    import datetime
+    _load_consultations()
+    for c in _consultations:
+        if c["id"] == consultation_id:
+            for key, value in updates.items():
+                if key != "id":
+                    c[key] = value
+            c["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            _save_consultations()
+            return c
+    return None
+
+
+def record_watch(consultation_id: int) -> Optional[dict]:
+    """Record that a patient watched their consultation video."""
+    import datetime
+    _load_consultations()
+    for c in _consultations:
+        if c["id"] == consultation_id:
+            c["watch_count"] = c.get("watch_count", 0) + 1
+            c["last_watched_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            c["status"] = "watched"
+            c["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            _save_consultations()
+            return c
+    return None
