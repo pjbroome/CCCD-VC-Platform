@@ -1980,14 +1980,22 @@ class ConsultationCreate(BaseModel):
     slide_numbers: list[int] = []
     presentation_name: str = ""
     script: str = ""
+    script_status: str = "draft"  # draft, approved, rejected
     video_url: str = ""
+    clone_video_url: str = ""  # AI Clone generated video
+    video_source: str = "doctor"  # doctor, clone
     summary_slide_data: Optional[dict] = None
+    training_video_ids: list[str] = []  # Smile Virtual video refs clone learned from
     notes: str = ""
 
 
 class ConsultationUpdate(BaseModel):
     status: Optional[str] = None
     video_url: Optional[str] = None
+    clone_video_url: Optional[str] = None
+    video_source: Optional[str] = None
+    script: Optional[str] = None
+    script_status: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -2093,3 +2101,91 @@ async def resend_consultation(consultation_id: int):
         "follow_up_dates": follow_ups,
     })
     return result
+
+
+# --- AI Clone Agent Hook Endpoints ---
+
+class ScriptGenerateRequest(BaseModel):
+    """Request body for AI Clone script generation."""
+    model: str = "default"  # which clone model to use
+    style: str = "warm"  # warm, clinical, educational
+    additional_context: str = ""
+
+
+@app.post("/vc/consultations/{consultation_id}/generate-script")
+async def generate_script(consultation_id: int, req: ScriptGenerateRequest):
+    """AI Clone agent hook: generate a video script from patient data + slides.
+    
+    The AI Clone agent will call this endpoint to produce a draft script.
+    Dr. Broome reviews and approves/rejects via the HITL step.
+    Currently returns a placeholder — the clone agent plugs in here.
+    """
+    consult = get_consultation(consultation_id)
+    if not consult:
+        return {"error": f"Consultation {consultation_id} not found"}
+    # Mark consultation as having a script in progress
+    update_consultation(consultation_id, {
+        "status": "script_ready",
+        "script_status": "draft",
+    })
+    return {
+        "consultation_id": consultation_id,
+        "status": "script_ready",
+        "message": "AI Clone script generation hook — agent not yet connected. Plug clone agent here.",
+        "patient_name": consult.get("patient_name"),
+        "concerns": consult.get("concerns"),
+        "slide_numbers": consult.get("slide_numbers"),
+        "model": req.model,
+        "style": req.style,
+    }
+
+
+@app.post("/vc/consultations/{consultation_id}/approve-script")
+async def approve_script(consultation_id: int):
+    """HITL step: Dr. Broome approves the AI-generated script."""
+    consult = get_consultation(consultation_id)
+    if not consult:
+        return {"error": f"Consultation {consultation_id} not found"}
+    result = update_consultation(consultation_id, {
+        "script_status": "approved",
+    })
+    return {"message": "Script approved", "consultation": result}
+
+
+@app.post("/vc/consultations/{consultation_id}/reject-script")
+async def reject_script(consultation_id: int):
+    """HITL step: Dr. Broome rejects the AI-generated script for revision."""
+    consult = get_consultation(consultation_id)
+    if not consult:
+        return {"error": f"Consultation {consultation_id} not found"}
+    result = update_consultation(consultation_id, {
+        "script_status": "rejected",
+        "status": "draft",
+    })
+    return {"message": "Script rejected — ready for revision", "consultation": result}
+
+
+@app.post("/vc/consultations/{consultation_id}/clone-video")
+async def generate_clone_video(consultation_id: int):
+    """AI Clone agent hook: generate video from approved script + slides.
+    
+    The AI Clone agent will call this endpoint to produce the clone video.
+    Currently returns a placeholder — the clone agent plugs in here.
+    """
+    consult = get_consultation(consultation_id)
+    if not consult:
+        return {"error": f"Consultation {consultation_id} not found"}
+    if consult.get("script_status") != "approved":
+        return {"error": "Script must be approved before generating clone video"}
+    update_consultation(consultation_id, {
+        "status": "recording",
+        "video_source": "clone",
+    })
+    return {
+        "consultation_id": consultation_id,
+        "status": "recording",
+        "message": "AI Clone video generation hook — agent not yet connected. Plug clone agent here.",
+        "script": consult.get("script"),
+        "slide_numbers": consult.get("slide_numbers"),
+        "training_video_ids": consult.get("training_video_ids", []),
+    }

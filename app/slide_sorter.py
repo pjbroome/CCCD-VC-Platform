@@ -546,9 +546,13 @@ def create_consultation(data: dict) -> dict:
         "slide_numbers": data.get("slide_numbers", []),
         "presentation_name": data.get("presentation_name", ""),
         "script": data.get("script", ""),
+        "script_status": data.get("script_status", "draft"),  # draft, approved, rejected
         "video_url": data.get("video_url", ""),
+        "clone_video_url": data.get("clone_video_url", ""),  # AI Clone generated video
+        "video_source": data.get("video_source", "doctor"),  # doctor, clone
         "summary_slide_data": data.get("summary_slide_data"),
-        "status": "sent",  # sent, watched, follow_up_sent
+        "training_video_ids": data.get("training_video_ids", []),  # Smile Virtual videos clone learned from
+        "status": "sent",  # draft, script_ready, recording, sent, watched, follow_up_sent
         "watch_count": 0,
         "last_watched_at": None,
         "sent_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
