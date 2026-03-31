@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Check, X, Edit2, Save, Trash2, Film, Eye, Star, Image, Plus, GripVertical, ZoomIn, ZoomOut, ChevronDown, ChevronUp, Layers, Play, Video, VideoOff, Maximize2, Minimize2, Move, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FileText, Tag, FolderOpen, ClipboardList, Phone, Mail, DollarSign, Calendar, Users, Archive, Send, RefreshCw, Clock, Camera, MessageSquare, ExternalLink, UserPlus, LayoutDashboard, Settings, PanelLeftClose, PanelLeft } from 'lucide-react'
-import { DndContext, closestCenter, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
+import { Search, Check, X, Edit2, Save, Trash2, Film, Eye, Star, Image, Plus, GripVertical, ZoomIn, ZoomOut, ChevronDown, ChevronUp, Layers, Play, Video, VideoOff, Maximize2, Minimize2, Move, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FileText, Tag, FolderOpen, ClipboardList, Phone, Mail, DollarSign, Calendar, Users, Archive, Send, RefreshCw, Clock, Camera, MessageSquare, ExternalLink, UserPlus, LayoutDashboard, Settings, PanelLeftClose, PanelLeft, Undo2, Upload, ImagePlus } from 'lucide-react'
+import { DndContext, closestCenter, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable } from '@dnd-kit/core'
 import { SortableContext, useSortable, rectSortingStrategy, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import './App.css'
@@ -87,7 +87,7 @@ interface Consultation {
   notes: string
 }
 
-type ViewMode = 'grid' | 'sorter' | 'deck' | 'present' | 'presentations' | 'dashboard' | 'consult' | 'archive'
+type ViewMode = 'grid' | 'sorter' | 'deck' | 'present' | 'presentations' | 'dashboard' | 'consult' | 'archive' | 'settings'
 
 const SIZE_PRESETS = [
   { cols: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8', label: 'XS' },
@@ -289,6 +289,23 @@ function CountdownOverlay({ onDone }: { onDone: () => void }) {
   )
 }
 
+/* -- Droppable zone component for dock/delete targets -- */
+function DroppableZone({ id, children, className }: { id: string, children: React.ReactNode, className?: string }) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return <div ref={setNodeRef} className={className + (isOver ? ' ring-2 ring-amber-400 bg-amber-900/40' : '')}>{children}</div>
+}
+
+function DeleteDropZone({ id, side }: { id: string, side: 'left' | 'right' }) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div ref={setNodeRef} className={'fixed top-0 z-50 h-full transition-all duration-200 flex items-center justify-center ' +
+      (side === 'left' ? 'left-0 w-16' : 'right-0 w-16') + ' ' +
+      (isOver ? 'bg-red-600/40 backdrop-blur-sm' : 'bg-transparent pointer-events-auto')}>
+      {isOver && <Trash2 size={32} className="text-red-400 animate-pulse" />}
+    </div>
+  )
+}
+
 /* ====== MAIN APP ====== */
 function App() {
   const [slides, setSlides] = useState<Slide[]>([])
@@ -313,6 +330,35 @@ function App() {
   const [sorterCollapsed, setSorterCollapsed] = useState<Record<string, boolean>>({})
   const [editingCategory, setEditingCategory] = useState<{ type: 'treatment' | 'concern', oldName: string, newName: string } | null>(null)
   const [newCategory, setNewCategory] = useState<{ type: 'treatment' | 'concern', name: string } | null>(null)
+
+  // Undo stack for accidental deletions/removals
+  const [undoStack, setUndoStack] = useState<Array<{ type: string, description: string, restore: () => void }>>([])
+  const [showUndoToast, setShowUndoToast] = useState(false)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pushUndo = useCallback((action: { type: string, description: string, restore: () => void }) => {
+    setUndoStack(prev => [...prev.slice(-19), action])
+    setShowUndoToast(true)
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    undoTimerRef.current = setTimeout(() => setShowUndoToast(false), 5000)
+  }, [])
+  const performUndo = useCallback(() => {
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev
+      const last = prev[prev.length - 1]
+      last.restore()
+      return prev.slice(0, -1)
+    })
+    setShowUndoToast(false)
+  }, [])
+
+  // Import slides state
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFiles, setImportFiles] = useState<File[]>([])
+  const [importing, setImporting] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
+
+  // Sorter drag source tracking
+  const [sorterDragSource, setSorterDragSource] = useState<string | null>(null)
 
   // Sidebar state (Kleon-style)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -551,8 +597,13 @@ function App() {
     } catch (err) { console.error('Failed to save edit:', err) }
   }
   const removeSlide = (slideNum: number) => {
+    const removedSlide = slides.find(s => s.slide_number === slideNum)
+    const prevSlides = [...slides]
     setSlides(prev => prev.filter(s => s.slide_number !== slideNum))
     setConfirmRemove(null)
+    if (removedSlide) {
+      pushUndo({ type: 'remove_slide', description: `Removed slide #${slideNum}`, restore: () => setSlides(prevSlides) })
+    }
   }
 
   /* -- Grid drag & drop -- */
@@ -665,16 +716,93 @@ function App() {
       return next
     })
   }
-  const handleDockDragEnd = (event: DragEndEvent) => {
+  /* -- Unified sorter drag handler (cross-container: rows ↔ dock ↔ delete) -- */
+  const handleUnifiedSorterDragStart = (event: DragStartEvent) => {
+    setDragActiveId(event.active.id as number)
+    const slideNum = event.active.id as number
+    if (dockSlides.includes(slideNum)) {
+      setSorterDragSource('dock')
+    } else {
+      setSorterDragSource('row')
+    }
+  }
+  const handleUnifiedSorterDragEnd = (event: DragEndEvent) => {
     setDragActiveId(null)
     const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = dockSlides.indexOf(active.id as number)
-    const newIndex = dockSlides.indexOf(over.id as number)
-    if (oldIndex === -1 || newIndex === -1) return
-    const reordered = arrayMove(dockSlides, oldIndex, newIndex)
-    setDockSlides(reordered)
-    localStorage.setItem('vc_dock_slides', JSON.stringify(reordered))
+    const slideNum = active.id as number
+
+    // Dropped on delete zone (sides)
+    if (over && (String(over.id) === 'delete-left' || String(over.id) === 'delete-right')) {
+      const prevDock = [...dockSlides]
+      const prevSlidesSnap = [...slides]
+      if (dockSlides.includes(slideNum)) {
+        removeFromDock(slideNum)
+        pushUndo({ type: 'delete_from_dock', description: `Removed slide #${slideNum} from dock`, restore: () => {
+          setDockSlides(prevDock); localStorage.setItem('vc_dock_slides', JSON.stringify(prevDock))
+        }})
+      } else {
+        setSlides(prev => prev.filter(s => s.slide_number !== slideNum))
+        pushUndo({ type: 'delete_slide', description: `Deleted slide #${slideNum}`, restore: () => setSlides(prevSlidesSnap) })
+      }
+      setSorterDragSource(null)
+      return
+    }
+
+    // Dropped on dock zone
+    if (over && String(over.id) === 'dock-drop-zone') {
+      if (!dockSlides.includes(slideNum)) {
+        addToDock(slideNum)
+      }
+      setSorterDragSource(null)
+      return
+    }
+
+    // Dropped on a row zone (row-drop-{category}) — remove from dock back to row
+    if (over && String(over.id).startsWith('row-drop-')) {
+      if (dockSlides.includes(slideNum)) {
+        removeFromDock(slideNum)
+      }
+      setSorterDragSource(null)
+      return
+    }
+
+    // Reorder within dock
+    if (sorterDragSource === 'dock' && over && dockSlides.includes(over.id as number)) {
+      const oldIndex = dockSlides.indexOf(slideNum)
+      const newIndex = dockSlides.indexOf(over.id as number)
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const reordered = arrayMove(dockSlides, oldIndex, newIndex)
+        setDockSlides(reordered)
+        localStorage.setItem('vc_dock_slides', JSON.stringify(reordered))
+      }
+    }
+
+    setSorterDragSource(null)
+  }
+
+  /* -- Import slides -- */
+  const handleImportFiles = async () => {
+    if (importFiles.length === 0) return
+    setImporting(true)
+    try {
+      for (const file of importFiles) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(API + '/slides/import', { method: 'POST', body: formData })
+        if (!res.ok) {
+          console.error('Import failed for', file.name, await res.text())
+        }
+      }
+      await fetchSlides()
+      await fetchStats()
+      setImportFiles([])
+      setShowImportModal(false)
+    } catch (err) {
+      console.error('Import error:', err)
+      alert('Import failed. The backend may not support image uploads yet. Images can be added by placing them in the slide images directory on the server.')
+    } finally {
+      setImporting(false)
+    }
   }
 
   /* -- Row title helpers -- */
@@ -2242,6 +2370,7 @@ function App() {
     presentations: 'Saved Presentations',
     dashboard: 'VC Dashboard',
     archive: 'Consultation Archive',
+    settings: 'Settings',
   }
 
   const viewSubtitles: Record<string, string> = {
@@ -2251,6 +2380,7 @@ function App() {
     presentations: `${savedPresentations.length} saved presentations`,
     dashboard: `${vcRequests.length} requests · ${pendingCount} pending`,
     archive: `${consultations.length} consultations sent`,
+    settings: 'App configuration & data management',
   }
 
   /* ====== NORMAL MODE with Kleon Sidebar ====== */
@@ -2330,9 +2460,11 @@ function App() {
               <span className="text-sm font-medium">Present{selectedSlides.size > 0 ? ` (${selectedSlides.size})` : ''}</span>
             )}
           </button>
-          {/* Settings placeholder */}
-          <button className={'w-full flex items-center gap-3 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-all ' +
-            (sidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5')}
+          {/* Settings */}
+          <button onClick={() => setViewMode('settings')}
+            className={'w-full flex items-center gap-3 rounded-xl transition-all ' +
+            (sidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5') + ' ' +
+            (viewMode === 'settings' ? 'bg-blue-600/20 text-blue-400 shadow-sm shadow-blue-500/10' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50')}
             title={sidebarCollapsed ? 'Settings' : undefined}>
             <Settings size={18} />
             {!sidebarCollapsed && <span className="text-sm">Settings</span>}
@@ -2357,6 +2489,18 @@ function App() {
                 <span className="text-xs text-gray-500 w-6">{SIZE_PRESETS[slideSize].label}</span>
               </div>
             )}
+            {(viewMode === 'grid' || viewMode === 'sorter') && (
+              <button onClick={() => setShowImportModal(true)}
+                className="px-3 py-1.5 rounded-xl text-sm font-medium bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-500/20 flex items-center gap-1.5">
+                <Upload size={14} /> Import
+              </button>
+            )}
+            {undoStack.length > 0 && (
+              <button onClick={performUndo}
+                className="px-3 py-1.5 rounded-xl text-sm font-medium bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 border border-amber-500/20 flex items-center gap-1.5">
+                <Undo2 size={14} /> Undo
+              </button>
+            )}
             {(viewMode === 'grid' || viewMode === 'sorter') && selectedSlides.size > 0 && (
               <button onClick={() => {
                 const list = filteredSlides.filter(s => selectedSlides.has(s.slide_number))
@@ -2372,6 +2516,184 @@ function App() {
         {/* View-specific content */}
         {viewMode === 'dashboard' && renderDashboardContent()}
         {viewMode === 'archive' && renderArchiveContent()}
+
+        {/* SETTINGS VIEW */}
+        {viewMode === 'settings' && (
+          <div className="flex-1 p-6 overflow-auto">
+            <div className="max-w-3xl mx-auto space-y-6">
+              {/* App Info */}
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Settings size={18} className="text-blue-400" /> App Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><span className="text-gray-500">App Name</span><p className="text-white font-medium">VC Slide Manager</p></div>
+                  <div><span className="text-gray-500">Version</span><p className="text-white font-medium">2.0.0</p></div>
+                  <div><span className="text-gray-500">API Endpoint</span><p className="text-white font-medium text-xs break-all">{API}</p></div>
+                  <div><span className="text-gray-500">Total Slides</span><p className="text-white font-medium">{slides.length}</p></div>
+                  <div><span className="text-gray-500">Saved Decks</span><p className="text-white font-medium">{decks.length}</p></div>
+                  <div><span className="text-gray-500">Presentations</span><p className="text-white font-medium">{savedPresentations.length}</p></div>
+                </div>
+              </div>
+
+              {/* Data Management */}
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Archive size={18} className="text-purple-400" /> Data Management</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Export Slide Data</p>
+                      <p className="text-xs text-gray-500">Download all slide metadata as JSON</p>
+                    </div>
+                    <button onClick={() => {
+                      const blob = new Blob([JSON.stringify(slides, null, 2)], { type: 'application/json' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a'); a.href = url; a.download = 'vc-slides-export.json'; a.click()
+                      URL.revokeObjectURL(url)
+                    }} className="px-3 py-1.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/20 rounded-lg text-sm flex items-center gap-1">
+                      <ExternalLink size={14} /> Export JSON
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Export Dock Configuration</p>
+                      <p className="text-xs text-gray-500">Save current dock slide order</p>
+                    </div>
+                    <button onClick={() => {
+                      const blob = new Blob([JSON.stringify({ dockSlides, customRowTitles }, null, 2)], { type: 'application/json' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a'); a.href = url; a.download = 'vc-dock-config.json'; a.click()
+                      URL.revokeObjectURL(url)
+                    }} className="px-3 py-1.5 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-500/20 rounded-lg text-sm flex items-center gap-1">
+                      <ExternalLink size={14} /> Export Config
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Import Slides</p>
+                      <p className="text-xs text-gray-500">Upload new slide images (JPG, PNG, WebP, GIF)</p>
+                    </div>
+                    <button onClick={() => setShowImportModal(true)}
+                      className="px-3 py-1.5 bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-500/20 rounded-lg text-sm flex items-center gap-1">
+                      <Upload size={14} /> Import
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Clear Local Cache</p>
+                      <p className="text-xs text-gray-500">Reset dock, row titles, and local preferences</p>
+                    </div>
+                    <button onClick={() => {
+                      if (confirm('Clear all local data (dock, row titles, preferences)?')) {
+                        localStorage.removeItem('vc_dock_slides')
+                        localStorage.removeItem('vc_row_titles')
+                        localStorage.removeItem('vc_sidebar_collapsed')
+                        setDockSlides([])
+                        setCustomRowTitles({})
+                        setSidebarCollapsed(false)
+                      }
+                    }} className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/20 rounded-lg text-sm flex items-center gap-1">
+                      <Trash2 size={14} /> Clear
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Refresh All Data</p>
+                      <p className="text-xs text-gray-500">Reload slides, decks, and stats from API</p>
+                    </div>
+                    <button onClick={() => { fetchSlides(); fetchDecks(); fetchStats(); fetchPresentations(); fetchPresCats() }}
+                      className="px-3 py-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 border border-amber-500/20 rounded-lg text-sm flex items-center gap-1">
+                      <RefreshCw size={14} /> Refresh
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Management */}
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Tag size={18} className="text-green-400" /> Category Management</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-400 mb-2">Treatments ({stats ? Object.keys(stats.treatment_types).length : 0})</h4>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {stats && Object.entries(stats.treatment_types).map(([t, count]) => (
+                        <div key={t} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-gray-800/60 group">
+                          <span className="text-gray-300">{formatTreatment(t)} <span className="text-gray-600">({count})</span></span>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                            <button onClick={() => setEditingCategory({ type: 'treatment', oldName: t, newName: t })} className="text-blue-400 hover:text-blue-300"><Edit2 size={10} /></button>
+                            <button onClick={() => removeCategory('treatment', t)} className="text-red-400 hover:text-red-300"><Trash2 size={10} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-purple-400 mb-2">Concerns ({stats ? Object.keys(stats.concern_types).length : 0})</h4>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {stats && Object.entries(stats.concern_types).map(([c, count]) => (
+                        <div key={c} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-gray-800/60 group">
+                          <span className="text-gray-300">{formatConcern(c)} <span className="text-gray-600">({count})</span></span>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                            <button onClick={() => setEditingCategory({ type: 'concern', oldName: c, newName: c })} className="text-purple-400 hover:text-purple-300"><Edit2 size={10} /></button>
+                            <button onClick={() => removeCategory('concern', c)} className="text-red-400 hover:text-red-300"><Trash2 size={10} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keyboard Shortcuts */}
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><LayoutDashboard size={18} className="text-amber-400" /> Quick Reference</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between p-2 bg-gray-800/40 rounded">
+                    <span className="text-gray-400">Drag slide to dock</span>
+                    <span className="text-gray-300">Adds to quick-selection area</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800/40 rounded">
+                    <span className="text-gray-400">Drag slide to sides</span>
+                    <span className="text-gray-300">Deletes from dock</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800/40 rounded">
+                    <span className="text-gray-400">Drag dock slide to row</span>
+                    <span className="text-gray-300">Removes from dock</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800/40 rounded">
+                    <span className="text-gray-400">Undo button</span>
+                    <span className="text-gray-300">Restores last deletion (up to 20)</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800/40 rounded">
+                    <span className="text-gray-400">Supported image formats</span>
+                    <span className="text-gray-300">JPG, PNG, WebP, GIF (max 5MB)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* API Status */}
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><ExternalLink size={18} className="text-cyan-400" /> API Configuration</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Backend API</p>
+                      <p className="text-xs text-gray-500 break-all">{API}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                      <span className="text-xs text-green-400">Connected</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white font-medium">Available Endpoints</p>
+                      <p className="text-xs text-gray-500">GET /slides, POST /slides, PUT /slides/:id, GET /stats</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {(viewMode === 'grid' || viewMode === 'sorter' || viewMode === 'deck' || viewMode === 'presentations') && (
         <div className="flex flex-1">
@@ -2394,6 +2716,14 @@ function App() {
               <option value="">All Treatments</option>
               {stats && Object.entries(stats.treatment_types).map(([t, count]) => <option key={t} value={t}>{formatTreatment(t)} ({count})</option>)}
             </select>
+            {filterTreatment && (
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => setEditingCategory({ type: 'treatment', oldName: filterTreatment, newName: filterTreatment })}
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-0.5"><Edit2 size={10} /> Edit</button>
+                <button onClick={() => { removeCategory('treatment', filterTreatment); setFilterTreatment('') }}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-0.5"><Trash2 size={10} /> Delete</button>
+              </div>
+            )}
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-gray-400 mb-1">Concern</label>
@@ -2402,6 +2732,14 @@ function App() {
               <option value="">All Concerns</option>
               {stats && Object.entries(stats.concern_types).map(([c, count]) => <option key={c} value={c}>{formatConcern(c)} ({count})</option>)}
             </select>
+            {filterConcern && (
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => setEditingCategory({ type: 'concern', oldName: filterConcern, newName: filterConcern })}
+                  className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-0.5"><Edit2 size={10} /> Edit</button>
+                <button onClick={() => { removeCategory('concern', filterConcern); setFilterConcern('') }}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-0.5"><Trash2 size={10} /> Delete</button>
+              </div>
+            )}
           </div>
           <div className="mb-4">
             <button onClick={selectAll} className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300">
@@ -2494,6 +2832,7 @@ function App() {
             </details>
           </div>
           <div className="mt-4 text-xs text-gray-500"><p>Showing {filteredSlides.length} of {slides.length}</p></div>
+          <div className="mt-2 text-xs text-gray-600 italic"><p>Supported image types: JPG, PNG, WebP, GIF (max 5MB)</p></div>
         </aside>
         )}
 
@@ -2522,52 +2861,49 @@ function App() {
             </DndContext>
           )}
 
-          {/* LIST SORTER VIEW */}
+          {/* LIST SORTER VIEW — Unified DnD for cross-container drag (dock ↔ rows ↔ delete) */}
           {viewMode === 'sorter' && (() => {
             const groups = buildGroupedSlides()
-            const handleListDragEnd = (category: string, event: DragEndEvent) => {
-              setDragActiveId(null)
-              const { active, over } = event
-              if (!over || active.id === over.id) return
-              const catSlides = groups[category]
-              if (!catSlides) return
-              const oldIndex = catSlides.findIndex(s => s.slide_number === active.id)
-              const newIndex = catSlides.findIndex(s => s.slide_number === over.id)
-              if (oldIndex === -1 || newIndex === -1) return
-              const reordered = arrayMove(catSlides, oldIndex, newIndex)
-              const catNums = new Set(catSlides.map(s => s.slide_number))
-              setSlides(prev => {
-                const result = [...prev]
-                const positions = result.map((s, i) => catNums.has(s.slide_number) ? i : -1).filter(i => i !== -1)
-                positions.forEach((pos, i) => { const targetSlide = reordered[i]; if (targetSlide) result[pos] = targetSlide })
-                return result
-              })
-              setFilteredSlides(prev => {
-                const result = [...prev]
-                const positions = result.map((s, i) => catNums.has(s.slide_number) ? i : -1).filter(i => i !== -1)
-                positions.forEach((pos, i) => { const targetSlide = reordered[i]; if (targetSlide) result[pos] = targetSlide })
-                return result
-              })
-            }
+            const allSortableIds = [
+              ...dockSlides,
+              ...Object.values(groups).flatMap(slides => slides.map(s => s.slide_number))
+            ]
             const dockSlideObjects = dockSlides.map(n => slides.find(s => s.slide_number === n)).filter(Boolean) as Slide[]
             return (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleUnifiedSorterDragStart} onDragEnd={handleUnifiedSorterDragEnd}>
+              <SortableContext items={allSortableIds} strategy={rectSortingStrategy}>
               <div className="space-y-4">
+                {/* Delete drop zones on sides */}
+                {dragActiveId && (
+                  <>
+                    <DeleteDropZone id="delete-left" side="left" />
+                    <DeleteDropZone id="delete-right" side="right" />
+                  </>
+                )}
+
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-lg font-bold">List Sorter &mdash; By Condition / Concern</h2>
                   <div className="flex gap-2">
+                    {undoStack.length > 0 && (
+                      <button onClick={performUndo}
+                        className="text-xs bg-amber-800/50 hover:bg-amber-700/50 px-2 py-1 rounded text-amber-300 flex items-center gap-1">
+                        <Undo2 size={12} /> Undo ({undoStack.length})
+                      </button>
+                    )}
                     <button onClick={() => { const all: Record<string, boolean> = {}; Object.keys(groups).forEach(k => { all[k] = true }); setSorterCollapsed(all) }}
                       className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Collapse All</button>
                     <button onClick={() => setSorterCollapsed({})} className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Expand All</button>
                   </div>
                 </div>
 
-                {/* DOCK — locked at top, quick-selection area */}
-                <div className="bg-gradient-to-r from-amber-900/30 to-blue-900/30 border-2 border-amber-500/40 rounded-lg overflow-hidden sticky top-0 z-10">
+                {/* DOCK — droppable zone, drag slides here from any row */}
+                <DroppableZone id="dock-drop-zone" className="bg-gradient-to-r from-amber-900/30 to-blue-900/30 border-2 border-amber-500/40 rounded-lg overflow-hidden sticky top-0 z-10">
                   <div className="flex items-center justify-between px-4 py-2 bg-amber-900/30 border-b border-amber-500/30">
                     <div className="flex items-center gap-2">
                       <Layers size={16} className="text-amber-400" />
                       <h3 className="text-sm font-bold text-amber-300">Dock</h3>
                       <span className="text-xs text-amber-400/70 bg-amber-900/40 px-2 py-0.5 rounded">{dockSlideObjects.length} slides</span>
+                      <span className="text-xs text-amber-500/50 italic">Drag slides here from any row</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {dockSlideObjects.length > 0 && (
@@ -2576,7 +2912,11 @@ function App() {
                             className="text-xs bg-amber-700/50 hover:bg-amber-600/50 px-2 py-0.5 rounded text-amber-200">Select All</button>
                           <button onClick={() => enterPresentation(dockSlideObjects)}
                             className="text-xs bg-green-700/50 hover:bg-green-600/50 px-2 py-0.5 rounded text-green-200 flex items-center gap-1"><Play size={10} /> Present</button>
-                          <button onClick={() => { setDockSlides([]); localStorage.setItem('vc_dock_slides', '[]') }}
+                          <button onClick={() => {
+                            const prevDock = [...dockSlides]
+                            setDockSlides([]); localStorage.setItem('vc_dock_slides', '[]')
+                            pushUndo({ type: 'clear_dock', description: 'Cleared dock', restore: () => { setDockSlides(prevDock); localStorage.setItem('vc_dock_slides', JSON.stringify(prevDock)) } })
+                          }}
                             className="text-xs bg-red-700/30 hover:bg-red-600/30 px-2 py-0.5 rounded text-red-300">Clear</button>
                         </>
                       )}
@@ -2584,40 +2924,28 @@ function App() {
                   </div>
                   {dockSlideObjects.length === 0 ? (
                     <div className="p-4 text-center text-amber-400/50 text-sm">
-                      Drag slides here or click <Plus size={12} className="inline" /> on any slide to add to your quick-selection dock
+                      Drag slides here from any row below, or click <Plus size={12} className="inline" /> on any slide. Drag to the sides to delete.
                     </div>
                   ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDockDragEnd}>
-                      <SortableContext items={dockSlides} strategy={rectSortingStrategy}>
-                        <div className="flex gap-3 p-3 overflow-x-auto">
-                          {dockSlideObjects.map(slide => (
-                            <div key={slide.slide_number} className="relative group flex-shrink-0">
-                              <SortableListCard slide={slide} selectedSlides={selectedSlides}
-                                toggleSlideSelection={toggleSlideSelection} startEdit={startEdit} setConfirmRemove={n => setConfirmRemove(n)}
-                                getSlideLabel={getSlideLabel} getSlideImage={getSlideImage} formatTreatment={formatTreatment} />
-                              <button onClick={e => { e.stopPropagation(); removeFromDock(slide.slide_number) }}
-                                className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Remove from dock">
-                                <X size={10} />
-                              </button>
-                            </div>
-                          ))}
+                    <div className="flex gap-3 p-3 overflow-x-auto">
+                      {dockSlideObjects.map(slide => (
+                        <div key={slide.slide_number} className="relative group flex-shrink-0">
+                          <SortableListCard slide={slide} selectedSlides={selectedSlides}
+                            toggleSlideSelection={toggleSlideSelection} startEdit={startEdit} setConfirmRemove={n => setConfirmRemove(n)}
+                            getSlideLabel={getSlideLabel} getSlideImage={getSlideImage} formatTreatment={formatTreatment} />
+                          <button onClick={e => { e.stopPropagation(); removeFromDock(slide.slide_number) }}
+                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Remove from dock">
+                            <X size={10} />
+                          </button>
                         </div>
-                      </SortableContext>
-                      <DragOverlay>
-                        {dragActiveSlide && (
-                          <div className="bg-gray-900 rounded-lg border border-amber-500 overflow-hidden shadow-2xl opacity-90 w-48">
-                            <img src={getFullSlideUrl(dragActiveSlide)} alt="" className="w-full object-contain" />
-                            <div className="px-2 py-1 text-xs text-white">#{dragActiveSlide.slide_number} {getSlideLabel(dragActiveSlide)}</div>
-                          </div>
-                        )}
-                      </DragOverlay>
-                    </DndContext>
+                      ))}
+                    </div>
                   )}
-                </div>
+                </DroppableZone>
 
-                {/* Category rows */}
+                {/* Category rows — each is a droppable zone, drag dock slides back here */}
                 {Object.entries(groups).map(([category, categorySlides]) => (
-                  <div key={category} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+                  <DroppableZone key={category} id={'row-drop-' + category} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-2 bg-gray-800/60 cursor-pointer"
                       onClick={() => setSorterCollapsed(prev => ({ ...prev, [category]: !prev[category] }))}>
                       <div className="flex items-center gap-2">
@@ -2646,37 +2974,35 @@ function App() {
                       </div>
                     </div>
                     {!sorterCollapsed[category] && (
-                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={(e) => handleListDragEnd(category, e)}>
-                        <SortableContext items={categorySlides.map(s => s.slide_number)} strategy={rectSortingStrategy}>
-                          <div className="flex gap-3 p-3 overflow-x-auto">
-                            {categorySlides.map(slide => (
-                              <div key={slide.slide_number} className="relative group flex-shrink-0">
-                                <SortableListCard slide={slide} selectedSlides={selectedSlides}
-                                  toggleSlideSelection={toggleSlideSelection} startEdit={startEdit} setConfirmRemove={n => setConfirmRemove(n)}
-                                  getSlideLabel={getSlideLabel} getSlideImage={getSlideImage} formatTreatment={formatTreatment} />
-                                {!dockSlides.includes(slide.slide_number) && (
-                                  <button onClick={e => { e.stopPropagation(); addToDock(slide.slide_number) }}
-                                    className="absolute -top-1.5 -right-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Add to Dock">
-                                    <Plus size={10} />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                      <div className="flex gap-3 p-3 overflow-x-auto">
+                        {categorySlides.map(slide => (
+                          <div key={slide.slide_number} className="relative group flex-shrink-0">
+                            <SortableListCard slide={slide} selectedSlides={selectedSlides}
+                              toggleSlideSelection={toggleSlideSelection} startEdit={startEdit} setConfirmRemove={n => setConfirmRemove(n)}
+                              getSlideLabel={getSlideLabel} getSlideImage={getSlideImage} formatTreatment={formatTreatment} />
+                            {!dockSlides.includes(slide.slide_number) && (
+                              <button onClick={e => { e.stopPropagation(); addToDock(slide.slide_number) }}
+                                className="absolute -top-1.5 -right-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Add to Dock">
+                                <Plus size={10} />
+                              </button>
+                            )}
                           </div>
-                        </SortableContext>
-                        <DragOverlay>
-                          {dragActiveSlide && (
-                            <div className="bg-gray-900 rounded-lg border border-blue-500 overflow-hidden shadow-2xl opacity-90 w-48">
-                              <img src={getFullSlideUrl(dragActiveSlide)} alt="" className="w-full object-contain" />
-                              <div className="px-2 py-1 text-xs text-white">#{dragActiveSlide.slide_number} {getSlideLabel(dragActiveSlide)}</div>
-                            </div>
-                          )}
-                        </DragOverlay>
-                      </DndContext>
+                        ))}
+                      </div>
                     )}
-                  </div>
+                  </DroppableZone>
                 ))}
               </div>
+              </SortableContext>
+              <DragOverlay>
+                {dragActiveSlide && (
+                  <div className="bg-gray-900 rounded-lg border border-amber-500 overflow-hidden shadow-2xl opacity-90 w-48">
+                    <img src={getFullSlideUrl(dragActiveSlide)} alt="" className="w-full object-contain" />
+                    <div className="px-2 py-1 text-xs text-white">#{dragActiveSlide.slide_number} {getSlideLabel(dragActiveSlide)}</div>
+                  </div>
+                )}
+              </DragOverlay>
+              </DndContext>
             )
           })()}
 
@@ -3002,6 +3328,51 @@ function App() {
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setEditingPresCat(null)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">Cancel</button>
               <button onClick={renamePresCat} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-medium">Rename</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Undo toast notification */}
+      {showUndoToast && undoStack.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-amber-500/40 rounded-xl px-5 py-3 shadow-2xl flex items-center gap-3 animate-pulse">
+          <span className="text-sm text-gray-300">{undoStack[undoStack.length - 1].description}</span>
+          <button onClick={performUndo} className="px-3 py-1 bg-amber-600 hover:bg-amber-500 rounded-lg text-sm font-medium text-white flex items-center gap-1">
+            <Undo2 size={14} /> Undo
+          </button>
+          <button onClick={() => setShowUndoToast(false)} className="text-gray-500 hover:text-gray-300"><X size={14} /></button>
+        </div>
+      )}
+
+      {/* Import slides modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => { setShowImportModal(false); setImportFiles([]) }}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><ImagePlus size={20} className="text-purple-400" /> Import Slides</h3>
+            <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-purple-500/50 transition-colors cursor-pointer"
+              onClick={() => importInputRef.current?.click()}>
+              <Upload size={32} className="text-gray-500 mx-auto mb-3" />
+              <p className="text-sm text-gray-400 mb-1">Click to select images or drag & drop</p>
+              <p className="text-xs text-gray-600">Supported: JPG, PNG, WebP, GIF (max 5MB each)</p>
+              <input ref={importInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden" onChange={e => { if (e.target.files) setImportFiles(Array.from(e.target.files)) }} />
+            </div>
+            {importFiles.length > 0 && (
+              <div className="mt-3 space-y-1 max-h-32 overflow-y-auto">
+                {importFiles.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-gray-300 bg-gray-800 rounded px-2 py-1">
+                    <span className="truncate">{f.name}</span>
+                    <span className="text-gray-500 ml-2">{(f.size / 1024).toFixed(0)}KB</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => { setShowImportModal(false); setImportFiles([]) }} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">Cancel</button>
+              <button onClick={handleImportFiles} disabled={importFiles.length === 0 || importing}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 rounded text-sm font-medium flex items-center gap-1">
+                {importing ? <><RefreshCw size={14} className="animate-spin" /> Importing...</> : <><Upload size={14} /> Import ({importFiles.length})</>}
+              </button>
             </div>
           </div>
         </div>
