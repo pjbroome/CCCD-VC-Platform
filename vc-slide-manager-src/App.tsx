@@ -2897,15 +2897,15 @@ function App() {
                 </div>
 
                 {/* DOCK — droppable zone, drag slides here from any row */}
-                <DroppableZone id="dock-drop-zone" className="bg-gradient-to-r from-amber-900/30 to-blue-900/30 border-2 border-amber-500/40 rounded-lg overflow-hidden sticky top-0 z-10">
-                  <div className="flex items-center justify-between px-4 py-2 bg-amber-900/30 border-b border-amber-500/30">
-                    <div className="flex items-center gap-2">
-                      <Layers size={16} className="text-amber-400" />
-                      <h3 className="text-sm font-bold text-amber-300">Dock</h3>
-                      <span className="text-xs text-amber-400/70 bg-amber-900/40 px-2 py-0.5 rounded">{dockSlideObjects.length} slides</span>
-                      <span className="text-xs text-amber-500/50 italic">Drag slides here from any row</span>
+                <DroppableZone id="dock-drop-zone" className="bg-gradient-to-r from-amber-900/30 to-blue-900/30 border-2 border-amber-500/40 rounded-lg sticky top-0 z-10">
+                  <div className="flex items-center justify-between px-4 py-2 bg-amber-900/30 border-b border-amber-500/30 flex-wrap gap-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Layers size={16} className="text-amber-400 flex-shrink-0" />
+                      <h3 className="text-sm font-bold text-amber-300 flex-shrink-0">Dock</h3>
+                      <span className="text-xs text-amber-400/70 bg-amber-900/40 px-2 py-0.5 rounded flex-shrink-0">{dockSlideObjects.length} slides</span>
+                      <span className="text-xs text-amber-500/50 italic hidden sm:inline">Drag slides here from any row</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {dockSlideObjects.length > 0 && (
                         <>
                           <button onClick={() => { dockSlideObjects.forEach(s => { if (!selectedSlides.has(s.slide_number)) toggleSlideSelection(s.slide_number) }) }}
