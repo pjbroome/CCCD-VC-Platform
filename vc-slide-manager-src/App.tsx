@@ -2474,17 +2474,20 @@ function App() {
 
         {/* Bottom section */}
         <div className="border-t border-gray-800/60 px-2 py-3 space-y-1">
-          {/* Present button */}
+          {/* Present button — only enabled when slides are selected */}
           <button onClick={() => {
-            const list = selectedSlides.size > 0 ? filteredSlides.filter(s => selectedSlides.has(s.slide_number)) : filteredSlides
+            if (selectedSlides.size === 0) return
+            const list = filteredSlides.filter(s => selectedSlides.has(s.slide_number))
             enterPresentation(list)
           }}
-            className={'w-full flex items-center gap-3 rounded-xl bg-green-600/20 text-green-400 hover:bg-green-600/30 transition-all ' +
-              (sidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5')}
-            title={sidebarCollapsed ? 'Present' : undefined}>
+            disabled={selectedSlides.size === 0}
+            className={'w-full flex items-center gap-3 rounded-xl transition-all ' +
+              (sidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5') + ' ' +
+              (selectedSlides.size > 0 ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30' : 'bg-gray-800/30 text-gray-600 cursor-not-allowed')}
+            title={sidebarCollapsed ? 'Present' : (selectedSlides.size === 0 ? 'Select slides first' : undefined)}>
             <Play size={18} />
             {!sidebarCollapsed && (
-              <span className="text-sm font-medium">Present{selectedSlides.size > 0 ? ` (${selectedSlides.size})` : ''}</span>
+              <span className="text-sm font-medium">{selectedSlides.size > 0 ? `Present (${selectedSlides.size})` : 'Select slides to present'}</span>
             )}
           </button>
           {/* Settings */}
@@ -2928,7 +2931,7 @@ function App() {
                 </div>
               </div>
               <DndContext sensors={sensors} collisionDetection={containerFirstCollision} onDragStart={handleUnifiedSorterDragStart} onDragEnd={handleUnifiedSorterDragEnd}>
-              <SortableContext items={allSortableIds} strategy={rectSortingStrategy}>
+              <SortableContext items={allSortableIds}>
               <div className="space-y-4">
                 {/* Delete drop zones on sides */}
                 {dragActiveId && (
@@ -2983,6 +2986,8 @@ function App() {
                         <span className="text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded">{categorySlides.length} slides</span>
                       </div>
                       <div className="flex items-center gap-1">
+                        <button onClick={e => { e.stopPropagation(); enterPresentation([...categorySlides]) }}
+                          className="text-xs bg-green-700/50 hover:bg-green-600/50 px-2 py-0.5 rounded text-green-300 flex items-center gap-0.5" title="Send this row to Presentation view as a template"><Play size={10} /> Present Row</button>
                         <button onClick={e => { e.stopPropagation(); categorySlides.forEach(s => { if (!selectedSlides.has(s.slide_number)) toggleSlideSelection(s.slide_number) }) }}
                           className="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded text-gray-300">Select Row</button>
                         <button onClick={e => { e.stopPropagation(); setEditingRowTitle({ category, newName: getRowTitle(category) }) }}
