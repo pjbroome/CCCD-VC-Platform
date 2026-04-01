@@ -1,11 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Check, X, Edit2, Save, Trash2, Film, Eye, Star, Image, Plus, GripVertical, ZoomIn, ZoomOut, ChevronDown, ChevronUp, Layers, Play, Video, VideoOff, Maximize2, Minimize2, Move, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FileText, Tag, FolderOpen, ClipboardList, Phone, Mail, DollarSign, Calendar, Users, Archive, Send, RefreshCw, Clock, Camera, MessageSquare, ExternalLink, UserPlus, LayoutDashboard, Settings, PanelLeftClose, PanelLeft, Undo2, Upload, ImagePlus } from 'lucide-react'
-import { DndContext, closestCenter, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable } from '@dnd-kit/core'
+import { DndContext, closestCenter, pointerWithin, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable } from '@dnd-kit/core'
+import type { CollisionDetection } from '@dnd-kit/core'
 import { SortableContext, useSortable, rectSortingStrategy, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import './App.css'
 
 const API = import.meta.env.VITE_API_URL || 'https://app-aegidish.fly.dev'
+
+/* Custom collision detection: prioritize container droppables (dock, rows, delete zones)
+   over individual sortable items so cross-container drag works reliably */
+const containerFirstCollision: CollisionDetection = (args) => {
+  const pw = pointerWithin(args)
+  const containerHit = pw.find(
+    c => typeof c.id === 'string' && (c.id === 'dock-drop-zone' || c.id.startsWith('row-drop-') || c.id === 'delete-left' || c.id === 'delete-right')
+  )
+  if (containerHit) return [containerHit]
+  return closestCenter(args)
+}
 
 interface Slide {
   slide_number: number
@@ -766,8 +778,14 @@ function App() {
       return
     }
 
-    // Reorder within dock
-    if (sorterDragSource === 'dock' && over && dockSlides.includes(over.id as number)) {
+    // Dropped on a dock slide — if source is a row, add to dock; if source is dock, reorder
+    if (over && typeof over.id === 'number' && dockSlides.includes(over.id)) {
+      if (sorterDragSource === 'row' && !dockSlides.includes(slideNum)) {
+        addToDock(slideNum)
+        setSorterDragSource(null)
+        return
+      }
+      // Reorder within dock
       const oldIndex = dockSlides.indexOf(slideNum)
       const newIndex = dockSlides.indexOf(over.id as number)
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
@@ -775,6 +793,15 @@ function App() {
         setDockSlides(reordered)
         localStorage.setItem('vc_dock_slides', JSON.stringify(reordered))
       }
+      setSorterDragSource(null)
+      return
+    }
+
+    // Dropped on a row slide — if source is dock, remove from dock
+    if (over && typeof over.id === 'number' && sorterDragSource === 'dock' && !dockSlides.includes(over.id)) {
+      removeFromDock(slideNum)
+      setSorterDragSource(null)
+      return
     }
 
     setSorterDragSource(null)
@@ -2900,7 +2927,7 @@ function App() {
                   <button onClick={() => setSorterCollapsed({})} className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Expand All</button>
                 </div>
               </div>
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleUnifiedSorterDragStart} onDragEnd={handleUnifiedSorterDragEnd}>
+              <DndContext sensors={sensors} collisionDetection={containerFirstCollision} onDragStart={handleUnifiedSorterDragStart} onDragEnd={handleUnifiedSorterDragEnd}>
               <SortableContext items={allSortableIds} strategy={rectSortingStrategy}>
               <div className="space-y-4">
                 {/* Delete drop zones on sides */}
