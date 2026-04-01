@@ -2473,7 +2473,7 @@ function App() {
       </aside>
 
       {/* ====== MAIN CONTENT AREA ====== */}
-      <div className={'flex-1 flex flex-col min-h-screen transition-all duration-300 ' + (sidebarCollapsed ? 'ml-[68px]' : 'ml-[240px]')}>
+      <div className={'flex-1 flex flex-col min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 ' + (sidebarCollapsed ? 'ml-[68px]' : 'ml-[240px]')}>
         {/* Header bar (Kleon-style glassmorphism) */}
         <header className="sticky top-0 z-30 flex items-center justify-between h-14 border-b border-gray-800/60 bg-gray-950/70 backdrop-blur-xl px-6">
           <div>
@@ -2836,7 +2836,7 @@ function App() {
         </aside>
         )}
 
-        <main className="flex-1 p-4 overflow-auto">
+        <main className="flex-1 p-4 overflow-y-auto overflow-x-hidden min-w-0">
           {/* GRID VIEW */}
           {viewMode === 'grid' && (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -2870,6 +2870,36 @@ function App() {
             ]
             const dockSlideObjects = dockSlides.map(n => slides.find(s => s.slide_number === n)).filter(Boolean) as Slide[]
             return (
+              <>
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 className="text-lg font-bold">List Sorter &mdash; By Condition / Concern</h2>
+                <div className="flex gap-2 flex-wrap">
+                  {dockSlideObjects.length > 0 && (
+                    <>
+                      <span className="text-xs text-amber-400/70 bg-amber-900/40 px-2 py-1 rounded flex items-center gap-1"><Layers size={12} className="text-amber-400" /> Dock: {dockSlideObjects.length}</span>
+                      <button onClick={() => { dockSlideObjects.forEach(s => { if (!selectedSlides.has(s.slide_number)) toggleSlideSelection(s.slide_number) }) }}
+                        className="text-xs bg-amber-700/50 hover:bg-amber-600/50 px-2 py-1 rounded text-amber-200">Select All</button>
+                      <button onClick={() => enterPresentation(dockSlideObjects)}
+                        className="text-xs bg-green-700/50 hover:bg-green-600/50 px-2 py-1 rounded text-green-200 flex items-center gap-1"><Play size={10} /> Present</button>
+                      <button onClick={() => {
+                        const prevDock = [...dockSlides]
+                        setDockSlides([]); localStorage.setItem('vc_dock_slides', '[]')
+                        pushUndo({ type: 'clear_dock', description: 'Cleared dock', restore: () => { setDockSlides(prevDock); localStorage.setItem('vc_dock_slides', JSON.stringify(prevDock)) } })
+                      }}
+                        className="text-xs bg-red-700/30 hover:bg-red-600/30 px-2 py-1 rounded text-red-300">Clear Dock</button>
+                    </>
+                  )}
+                  {undoStack.length > 0 && (
+                    <button onClick={performUndo}
+                      className="text-xs bg-amber-800/50 hover:bg-amber-700/50 px-2 py-1 rounded text-amber-300 flex items-center gap-1">
+                      <Undo2 size={12} /> Undo ({undoStack.length})
+                    </button>
+                  )}
+                  <button onClick={() => { const all: Record<string, boolean> = {}; Object.keys(groups).forEach(k => { all[k] = true }); setSorterCollapsed(all) }}
+                    className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Collapse All</button>
+                  <button onClick={() => setSorterCollapsed({})} className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Expand All</button>
+                </div>
+              </div>
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleUnifiedSorterDragStart} onDragEnd={handleUnifiedSorterDragEnd}>
               <SortableContext items={allSortableIds} strategy={rectSortingStrategy}>
               <div className="space-y-4">
@@ -2881,47 +2911,8 @@ function App() {
                   </>
                 )}
 
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-bold">List Sorter &mdash; By Condition / Concern</h2>
-                  <div className="flex gap-2">
-                    {undoStack.length > 0 && (
-                      <button onClick={performUndo}
-                        className="text-xs bg-amber-800/50 hover:bg-amber-700/50 px-2 py-1 rounded text-amber-300 flex items-center gap-1">
-                        <Undo2 size={12} /> Undo ({undoStack.length})
-                      </button>
-                    )}
-                    <button onClick={() => { const all: Record<string, boolean> = {}; Object.keys(groups).forEach(k => { all[k] = true }); setSorterCollapsed(all) }}
-                      className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Collapse All</button>
-                    <button onClick={() => setSorterCollapsed({})} className="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-400">Expand All</button>
-                  </div>
-                </div>
-
                 {/* DOCK — droppable zone, drag slides here from any row */}
-                <DroppableZone id="dock-drop-zone" className="bg-gradient-to-r from-amber-900/30 to-blue-900/30 border-2 border-amber-500/40 rounded-lg sticky top-0 z-10">
-                  <div className="flex items-center justify-between px-4 py-2 bg-amber-900/30 border-b border-amber-500/30 flex-wrap gap-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Layers size={16} className="text-amber-400 flex-shrink-0" />
-                      <h3 className="text-sm font-bold text-amber-300 flex-shrink-0">Dock</h3>
-                      <span className="text-xs text-amber-400/70 bg-amber-900/40 px-2 py-0.5 rounded flex-shrink-0">{dockSlideObjects.length} slides</span>
-                      <span className="text-xs text-amber-500/50 italic hidden sm:inline">Drag slides here from any row</span>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {dockSlideObjects.length > 0 && (
-                        <>
-                          <button onClick={() => { dockSlideObjects.forEach(s => { if (!selectedSlides.has(s.slide_number)) toggleSlideSelection(s.slide_number) }) }}
-                            className="text-xs bg-amber-700/50 hover:bg-amber-600/50 px-2 py-0.5 rounded text-amber-200">Select All</button>
-                          <button onClick={() => enterPresentation(dockSlideObjects)}
-                            className="text-xs bg-green-700/50 hover:bg-green-600/50 px-2 py-0.5 rounded text-green-200 flex items-center gap-1"><Play size={10} /> Present</button>
-                          <button onClick={() => {
-                            const prevDock = [...dockSlides]
-                            setDockSlides([]); localStorage.setItem('vc_dock_slides', '[]')
-                            pushUndo({ type: 'clear_dock', description: 'Cleared dock', restore: () => { setDockSlides(prevDock); localStorage.setItem('vc_dock_slides', JSON.stringify(prevDock)) } })
-                          }}
-                            className="text-xs bg-red-700/30 hover:bg-red-600/30 px-2 py-0.5 rounded text-red-300">Clear</button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                <DroppableZone id="dock-drop-zone" className="bg-gradient-to-r from-amber-900/30 to-blue-900/30 border-2 border-amber-500/40 rounded-lg overflow-hidden sticky top-0 z-10">
                   {dockSlideObjects.length === 0 ? (
                     <div className="p-4 text-center text-amber-400/50 text-sm">
                       Drag slides here from any row below, or click <Plus size={12} className="inline" /> on any slide. Drag to the sides to delete.
@@ -3003,6 +2994,7 @@ function App() {
                 )}
               </DragOverlay>
               </DndContext>
+              </>
             )
           })()}
 
