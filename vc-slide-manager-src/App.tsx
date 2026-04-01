@@ -417,7 +417,7 @@ function App() {
   // Summary slide state
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false)
   const [summaryForm, setSummaryForm] = useState({
-    treatments: [{ name: '', details: '', visits: '', fee: '' }],
+    treatments: [{ name: 'New Patient Exam (NPE)', details: '', visits: '1 (1.5 hours reserved)', fee: '$500' }],
     treatmentHeader: 'Treatment Suggestions / Options',
     visitsHeader: 'Number of Visits',
     feeHeader: 'Fee for Tx Options',
@@ -1432,21 +1432,16 @@ function App() {
                         <div className="flex gap-2 items-start">
                           <span className="text-amber-400 font-bold text-sm mt-2 w-4 flex-shrink-0">{i + 1}.</span>
                           <div className="flex-1 space-y-1.5">
-                            <select value={treatmentOptions.includes(tx.name) ? tx.name : '__custom__'}
+                            <select value={treatmentOptions.includes(tx.name) ? tx.name : (tx.name || '')}
                               onChange={e => {
-                                if (e.target.value === '__custom__') return
                                 const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], name: e.target.value }
                                 setSummaryForm(prev => ({ ...prev, treatments: updated }))
                               }}
                               className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
                               <option value="">Select treatment...</option>
                               {treatmentOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                              {tx.name && !treatmentOptions.includes(tx.name) && <option value="__custom__">{tx.name} (custom)</option>}
+                              {tx.name && !treatmentOptions.includes(tx.name) && <option value={tx.name}>{tx.name} (custom)</option>}
                             </select>
-                            <input type="text" value={tx.name} onChange={e => {
-                              const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], name: e.target.value };
-                              setSummaryForm(prev => ({ ...prev, treatments: updated }))
-                            }} placeholder="Or type custom treatment" className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500" />
                             <textarea value={tx.details} onChange={e => {
                               const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], details: e.target.value };
                               setSummaryForm(prev => ({ ...prev, treatments: updated }))
@@ -1456,39 +1451,29 @@ function App() {
                             <div className="flex gap-2">
                               <div className="flex-1">
                                 <label className="text-xs text-gray-500 mb-0.5 block flex items-center gap-1"><Calendar size={10} className="text-emerald-400" /> Visits</label>
-                                <select value={visitsOptions.includes(tx.visits) ? tx.visits : (tx.visits ? '__custom__' : '')}
+                                <select value={visitsOptions.includes(tx.visits) ? tx.visits : (tx.visits || '')}
                                   onChange={e => {
-                                    if (e.target.value === '__custom__') return
                                     const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], visits: e.target.value }
                                     setSummaryForm(prev => ({ ...prev, treatments: updated }))
                                   }}
                                   className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500">
                                   <option value="">Select...</option>
                                   {visitsOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                  {tx.visits && !visitsOptions.includes(tx.visits) && <option value="__custom__">{tx.visits} (custom)</option>}
+                                  {tx.visits && !visitsOptions.includes(tx.visits) && <option value={tx.visits}>{tx.visits} (custom)</option>}
                                 </select>
-                                <input type="text" value={tx.visits} onChange={e => {
-                                  const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], visits: e.target.value }
-                                  setSummaryForm(prev => ({ ...prev, treatments: updated }))
-                                }} placeholder="Or type custom" className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 mt-0.5 focus:outline-none focus:border-emerald-500" />
                               </div>
                               <div className="flex-1">
                                 <label className="text-xs text-gray-500 mb-0.5 block flex items-center gap-1"><DollarSign size={10} className="text-amber-400" /> Fee</label>
-                                <select value={feeOptions.includes(tx.fee) ? tx.fee : (tx.fee ? '__custom__' : '')}
+                                <select value={feeOptions.includes(tx.fee) ? tx.fee : (tx.fee || '')}
                                   onChange={e => {
-                                    if (e.target.value === '__custom__') return
                                     const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], fee: e.target.value }
                                     setSummaryForm(prev => ({ ...prev, treatments: updated }))
                                   }}
                                   className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-500">
                                   <option value="">Select...</option>
                                   {feeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                  {tx.fee && !feeOptions.includes(tx.fee) && <option value="__custom__">{tx.fee} (custom)</option>}
+                                  {tx.fee && !feeOptions.includes(tx.fee) && <option value={tx.fee}>{tx.fee} (custom)</option>}
                                 </select>
-                                <input type="text" value={tx.fee} onChange={e => {
-                                  const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], fee: e.target.value }
-                                  setSummaryForm(prev => ({ ...prev, treatments: updated }))
-                                }} placeholder="Or type custom" className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 mt-0.5 focus:outline-none focus:border-amber-500" />
                               </div>
                             </div>
                           </div>
@@ -1932,27 +1917,21 @@ function App() {
                 {summaryForm.treatments.map((tx, i) => (
                   <div key={i} className="bg-gray-800/30 rounded-lg p-2 border border-gray-700/30 space-y-1">
                     <div className="flex gap-1">
-                      <select value={treatmentOptions.includes(tx.name) ? tx.name : '__custom__'}
+                      <select value={treatmentOptions.includes(tx.name) ? tx.name : (tx.name || '')}
                         onChange={e => {
-                          const val = e.target.value
-                          if (val === '__custom__') return
-                          const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], name: val }
+                          const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], name: e.target.value }
                           setSummaryForm(prev => ({ ...prev, treatments: updated }))
                         }}
                         className="flex-1 bg-gray-800 border border-gray-700 rounded px-1.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
                         <option value="">Select treatment...</option>
                         {treatmentOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        {tx.name && !treatmentOptions.includes(tx.name) && <option value="__custom__">{tx.name} (custom)</option>}
+                        {tx.name && !treatmentOptions.includes(tx.name) && <option value={tx.name}>{tx.name} (custom)</option>}
                       </select>
                       {summaryForm.treatments.length > 1 && (
                         <button onClick={() => setSummaryForm(prev => ({ ...prev, treatments: prev.treatments.filter((_, j) => j !== i) }))}
                           className="p-1 text-gray-500 hover:text-red-400"><X size={12} /></button>
                       )}
                     </div>
-                    <input type="text" value={tx.name} onChange={e => {
-                      const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], name: e.target.value }
-                      setSummaryForm(prev => ({ ...prev, treatments: updated }))
-                    }} placeholder="Or type custom treatment" className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-blue-500" />
                     <textarea value={tx.details} onChange={e => {
                       const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], details: e.target.value }
                       setSummaryForm(prev => ({ ...prev, treatments: updated }))
@@ -1961,39 +1940,29 @@ function App() {
                     <div className="flex gap-1.5">
                       <div className="flex-1">
                         <label className="text-xs text-gray-500 flex items-center gap-0.5"><Calendar size={8} className="text-emerald-400" /> Visits</label>
-                        <select value={visitsOptions.includes(tx.visits) ? tx.visits : (tx.visits ? '__custom__' : '')}
+                        <select value={visitsOptions.includes(tx.visits) ? tx.visits : (tx.visits || '')}
                           onChange={e => {
-                            if (e.target.value === '__custom__') return
                             const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], visits: e.target.value }
                             setSummaryForm(prev => ({ ...prev, treatments: updated }))
                           }}
                           className="w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                           <option value="">Select...</option>
                           {visitsOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                          {tx.visits && !visitsOptions.includes(tx.visits) && <option value="__custom__">{tx.visits}</option>}
+                          {tx.visits && !visitsOptions.includes(tx.visits) && <option value={tx.visits}>{tx.visits}</option>}
                         </select>
-                        <input type="text" value={tx.visits} onChange={e => {
-                          const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], visits: e.target.value }
-                          setSummaryForm(prev => ({ ...prev, treatments: updated }))
-                        }} placeholder="Custom" className="w-full bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 text-xs text-gray-300 mt-0.5 focus:outline-none focus:border-emerald-500" />
                       </div>
                       <div className="flex-1">
                         <label className="text-xs text-gray-500 flex items-center gap-0.5"><DollarSign size={8} className="text-amber-400" /> Fee</label>
-                        <select value={feeOptions.includes(tx.fee) ? tx.fee : (tx.fee ? '__custom__' : '')}
+                        <select value={feeOptions.includes(tx.fee) ? tx.fee : (tx.fee || '')}
                           onChange={e => {
-                            if (e.target.value === '__custom__') return
                             const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], fee: e.target.value }
                             setSummaryForm(prev => ({ ...prev, treatments: updated }))
                           }}
                           className="w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-amber-500">
                           <option value="">Select...</option>
                           {feeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                          {tx.fee && !feeOptions.includes(tx.fee) && <option value="__custom__">{tx.fee}</option>}
+                          {tx.fee && !feeOptions.includes(tx.fee) && <option value={tx.fee}>{tx.fee}</option>}
                         </select>
-                        <input type="text" value={tx.fee} onChange={e => {
-                          const updated = [...summaryForm.treatments]; updated[i] = { ...updated[i], fee: e.target.value }
-                          setSummaryForm(prev => ({ ...prev, treatments: updated }))
-                        }} placeholder="Custom" className="w-full bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 text-xs text-gray-300 mt-0.5 focus:outline-none focus:border-amber-500" />
                       </div>
                     </div>
                   </div>
