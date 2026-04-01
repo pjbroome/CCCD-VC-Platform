@@ -2770,20 +2770,11 @@ function App() {
               <div className="mt-1 space-y-0.5 max-h-48 overflow-y-auto">
                 {stats && Object.keys(stats.treatment_types).map(t => (
                   <div key={t} className="flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-gray-800 group">
-                    {editingCategory?.oldName === t && editingCategory?.type === 'treatment' ? (
-                      <input type="text" value={editingCategory.newName} onChange={e => setEditingCategory({ ...editingCategory, newName: e.target.value })}
-                        onBlur={() => renameCategory('treatment', t, editingCategory.newName)}
-                        onKeyDown={e => { if (e.key === 'Enter') renameCategory('treatment', t, editingCategory.newName); if (e.key === 'Escape') setEditingCategory(null) }}
-                        className="bg-gray-700 border border-gray-600 rounded px-1 py-0.5 text-xs text-white w-full" autoFocus />
-                    ) : (
-                      <>
-                        <span className="text-gray-300 truncate">{formatTreatment(t)}</span>
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
-                          <button onClick={() => setEditingCategory({ type: 'treatment', oldName: t, newName: t })} className="text-gray-500 hover:text-blue-400"><Edit2 size={10} /></button>
-                          <button onClick={() => removeCategory('treatment', t)} className="text-gray-500 hover:text-red-400"><Trash2 size={10} /></button>
-                        </div>
-                      </>
-                    )}
+                    <span className="text-gray-300 truncate">{formatTreatment(t)}</span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
+                      <button onClick={() => setEditingCategory({ type: 'treatment', oldName: t, newName: t })} className="text-gray-500 hover:text-blue-400"><Edit2 size={10} /></button>
+                      <button onClick={() => removeCategory('treatment', t)} className="text-gray-500 hover:text-red-400"><Trash2 size={10} /></button>
+                    </div>
                   </div>
                 ))}
                 {newCategory?.type === 'treatment' ? (
@@ -2802,20 +2793,11 @@ function App() {
               <div className="mt-1 space-y-0.5 max-h-48 overflow-y-auto">
                 {stats && Object.keys(stats.concern_types).map(c => (
                   <div key={c} className="flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-gray-800 group">
-                    {editingCategory?.oldName === c && editingCategory?.type === 'concern' ? (
-                      <input type="text" value={editingCategory.newName} onChange={e => setEditingCategory({ ...editingCategory, newName: e.target.value })}
-                        onBlur={() => renameCategory('concern', c, editingCategory.newName)}
-                        onKeyDown={e => { if (e.key === 'Enter') renameCategory('concern', c, editingCategory.newName); if (e.key === 'Escape') setEditingCategory(null) }}
-                        className="bg-gray-700 border border-gray-600 rounded px-1 py-0.5 text-xs text-white w-full" autoFocus />
-                    ) : (
-                      <>
-                        <span className="text-gray-300 truncate">{formatConcern(c)}</span>
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
-                          <button onClick={() => setEditingCategory({ type: 'concern', oldName: c, newName: c })} className="text-gray-500 hover:text-purple-400"><Edit2 size={10} /></button>
-                          <button onClick={() => removeCategory('concern', c)} className="text-gray-500 hover:text-red-400"><Trash2 size={10} /></button>
-                        </div>
-                      </>
-                    )}
+                    <span className="text-gray-300 truncate">{formatConcern(c)}</span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
+                      <button onClick={() => setEditingCategory({ type: 'concern', oldName: c, newName: c })} className="text-gray-500 hover:text-purple-400"><Edit2 size={10} /></button>
+                      <button onClick={() => removeCategory('concern', c)} className="text-gray-500 hover:text-red-400"><Trash2 size={10} /></button>
+                    </div>
                   </div>
                 ))}
                 {newCategory?.type === 'concern' ? (
