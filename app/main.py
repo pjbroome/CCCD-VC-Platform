@@ -60,6 +60,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "gemini-2.5-pro")
+SUTTON_FALLBACK_MODEL = os.environ.get("SUTTON_FALLBACK_MODEL", "gemini-2.5-flash")
 CRITIC_MODEL = os.environ.get("CRITIC_MODEL", "gemini-2.5-flash")
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "gemini")  # "anthropic" or "gemini"
 SUTTON_TEMPERATURE = float(os.environ.get("SUTTON_TEMPERATURE", "0.8"))
@@ -592,22 +593,34 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
 
     full_system = SUTTON_SYSTEM_PROMPT + rag_section
 
-    # Try Gemini first (primary), fall back to Anthropic
+    # Try Gemini first (primary), fall back to Flash on 503, then Anthropic
     if gemini_client and LLM_PROVIDER == "gemini":
+        from google.genai import types as genai_types
+        contents = [{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}]
+        config = genai_types.GenerateContentConfig(
+            temperature=SUTTON_TEMPERATURE,
+            max_output_tokens=1024,
+        )
+        # Try primary model (Pro)
         try:
-            from google.genai import types as genai_types
             response = gemini_client.models.generate_content(
-                model=SUTTON_MODEL,
-                contents=[{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}],
-                config=genai_types.GenerateContentConfig(
-                    temperature=SUTTON_TEMPERATURE,
-                    max_output_tokens=1024,
-                ),
+                model=SUTTON_MODEL, contents=contents, config=config,
             )
             reply = response.text if response.text else "Tell me more about what brought you to us today!"
             return _clean_corporate_filler(reply)
         except Exception as e:
-            print(f"Gemini error: {e}")
+            print(f"Gemini Pro error: {e}")
+            # On 503/overload, fall back to Flash
+            if "503" in str(e) or "UNAVAILABLE" in str(e) or "overloaded" in str(e).lower():
+                try:
+                    print(f"Falling back to {SUTTON_FALLBACK_MODEL}...")
+                    response = gemini_client.models.generate_content(
+                        model=SUTTON_FALLBACK_MODEL, contents=contents, config=config,
+                    )
+                    reply = response.text if response.text else "Tell me more about what brought you to us today!"
+                    return _clean_corporate_filler(reply)
+                except Exception as e2:
+                    print(f"Gemini fallback error: {e2}")
             # Fall through to Anthropic
 
     if anthropic_client:
