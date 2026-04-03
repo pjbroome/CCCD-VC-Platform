@@ -599,7 +599,7 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
         contents = [{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}]
         config = genai_types.GenerateContentConfig(
             temperature=SUTTON_TEMPERATURE,
-            max_output_tokens=1024,
+            max_output_tokens=8192,
         )
         # Try primary model (Pro)
         try:
