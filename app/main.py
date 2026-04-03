@@ -1,6 +1,7 @@
-from fastapi import FastAPI, BackgroundTasks, Query
+from fastapi import FastAPI, BackgroundTasks, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Any
 import os
@@ -555,15 +556,12 @@ def _clean_corporate_filler(text: str) -> str:
     return text
 
 
-def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "unknown") -> str:
-    if not anthropic_client and not gemini_client:
-        return "I appreciate you reaching out! I'm Sutton, your virtual concierge at Charlotte Center for Cosmetic Dentistry. How can I help you today?"
-
+def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "unknown"):
+    """Prepare the system prompt, user prompt, and config for Sutton.
+    Returns (full_system, user_prompt, contents, config) or None if no LLM client."""
     context = get_conversation_context(session_id)
 
     # RAG: Retrieve relevant training content for this specific query
-    # Note: RAG data files must be present at /tmp/rag_*.json paths
-    # On Fly.io, these are only available if copied in the Dockerfile
     rag_context = ""
     if RAG_ENABLED and os.path.exists("/tmp/rag_chunks_meta.json"):
         try:
@@ -583,7 +581,6 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     if rag_context:
         rag_instruction = " When the training content above is relevant, weave that knowledge naturally into your response."
 
-    # Detect if this is a continued conversation so Sutton doesn't re-introduce herself
     is_continued = context and context.strip() and "Sutton:" in context
     continuation_note = ""
     if is_continued:
@@ -593,14 +590,26 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
 
     full_system = SUTTON_SYSTEM_PROMPT + rag_section
 
+    from google.genai import types as genai_types
+    contents = [{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}]
+    config = genai_types.GenerateContentConfig(
+        temperature=SUTTON_TEMPERATURE,
+        max_output_tokens=8192,
+    )
+    return full_system, user_prompt, contents, config
+
+
+def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "unknown") -> str:
+    if not anthropic_client and not gemini_client:
+        return "I appreciate you reaching out! I'm Sutton, your virtual concierge at Charlotte Center for Cosmetic Dentistry. How can I help you today?"
+
+    prepared = _prepare_sutton_prompt(message, session_id, disc_profile)
+    full_system = prepared[0]
+    contents = prepared[2]
+    config = prepared[3]
+
     # Try Gemini first (primary), fall back to Flash on 503, then Anthropic
     if gemini_client and LLM_PROVIDER == "gemini":
-        from google.genai import types as genai_types
-        contents = [{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}]
-        config = genai_types.GenerateContentConfig(
-            temperature=SUTTON_TEMPERATURE,
-            max_output_tokens=8192,
-        )
         # Try primary model (Pro)
         try:
             response = gemini_client.models.generate_content(
@@ -880,6 +889,104 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         issues_detected=[],
         raw_reply=raw_reply,
         rationale="Coach scoring in background — results available via /conversation endpoint",
+    )
+
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """Stream Sutton's reply via Server-Sent Events for low perceived latency.
+    First tokens appear in ~2-3 seconds instead of waiting 13-30s for full response."""
+    session_id = request.session_id or str(uuid.uuid4())
+    add_to_conversation(session_id, "user", request.message)
+
+    async def event_generator():
+        full_reply = ""
+        try:
+            if not gemini_client:
+                fallback = "Tell me more about what brought you to us today!"
+                yield f"data: {json.dumps({'type': 'token', 'text': fallback})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'session_id': session_id, 'full_reply': fallback})}\n\n"
+                return
+
+            prepared = _prepare_sutton_prompt(
+                message=request.message,
+                session_id=session_id,
+                disc_profile=request.disc_profile or "unknown",
+            )
+            contents = prepared[2]
+            config = prepared[3]
+
+            # Send session_id immediately so client can track
+            yield f"data: {json.dumps({'type': 'start', 'session_id': session_id})}\n\n"
+
+            # Try streaming with primary model (Pro)
+            stream_model = SUTTON_MODEL
+            try:
+                stream = gemini_client.models.generate_content_stream(
+                    model=stream_model, contents=contents, config=config,
+                )
+                for chunk in stream:
+                    if chunk.text:
+                        full_reply += chunk.text
+                        yield f"data: {json.dumps({'type': 'token', 'text': chunk.text})}\n\n"
+            except Exception as e:
+                print(f"Gemini Pro stream error: {e}")
+                # On 503/overload, fall back to Flash streaming
+                if "503" in str(e) or "UNAVAILABLE" in str(e) or "overloaded" in str(e).lower():
+                    full_reply = ""  # Reset
+                    try:
+                        print(f"Streaming fallback to {SUTTON_FALLBACK_MODEL}...")
+                        yield f"data: {json.dumps({'type': 'fallback', 'model': SUTTON_FALLBACK_MODEL})}\n\n"
+                        stream = gemini_client.models.generate_content_stream(
+                            model=SUTTON_FALLBACK_MODEL, contents=contents, config=config,
+                        )
+                        for chunk in stream:
+                            if chunk.text:
+                                full_reply += chunk.text
+                                yield f"data: {json.dumps({'type': 'token', 'text': chunk.text})}\n\n"
+                    except Exception as e2:
+                        print(f"Gemini fallback stream error: {e2}")
+                        full_reply = "Tell me more about what brought you to us today!"
+                        yield f"data: {json.dumps({'type': 'token', 'text': full_reply})}\n\n"
+                else:
+                    full_reply = "Tell me more about what brought you to us today!"
+                    yield f"data: {json.dumps({'type': 'token', 'text': full_reply})}\n\n"
+
+            # Clean corporate filler from full reply
+            if full_reply:
+                full_reply = _clean_corporate_filler(full_reply)
+
+            # Save to conversation history
+            add_to_conversation(session_id, "assistant", full_reply)
+            now_iso = datetime.now(timezone.utc).isoformat()
+            save_chat_message(session_id, {
+                "id": f"user-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+                "role": "user",
+                "content": request.message,
+                "timestamp": now_iso,
+            })
+            save_chat_message(session_id, {
+                "id": f"assistant-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+                "role": "assistant",
+                "content": full_reply,
+                "timestamp": now_iso,
+                "guestMessage": request.message,
+            })
+
+            yield f"data: {json.dumps({'type': 'done', 'session_id': session_id, 'full_reply': full_reply})}\n\n"
+
+        except Exception as e:
+            print(f"Stream error: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
