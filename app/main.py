@@ -352,7 +352,7 @@ def load_training_content():
                 import re as _re
                 SUTTON_SYSTEM_PROMPT = _re.sub(
                     r'\n\n## TRAINING CONTENT UPDATES.*?(\n\n## |$)',
-                    content_block + '\1',
+                    content_block + r'\1',
                     SUTTON_SYSTEM_PROMPT,
                     flags=_re.DOTALL,
                 )
@@ -1399,19 +1399,19 @@ Output ONLY valid JSON:
 {{"sutton_rule": "string", "critic_rule": "string", "summary": "short 1-sentence summary of what was learned"}}"""
 
     try:
-        if anthropic_client:
-            response = anthropic_client.messages.create(
-                model=CRITIC_MODEL,
-                max_tokens=300,
-                messages=[{"role": "user", "content": distill_prompt}],
-            )
-            raw = response.content[0].text.strip()
-        elif gemini_client:
+        if gemini_client and LLM_PROVIDER == "gemini":
             response = gemini_client.models.generate_content(
                 model=SUTTON_MODEL,
                 contents=[{"role": "user", "parts": [{"text": distill_prompt}]}],
             )
             raw = response.text.strip()
+        elif anthropic_client:
+            response = anthropic_client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=300,
+                messages=[{"role": "user", "content": distill_prompt}],
+            )
+            raw = response.content[0].text.strip()
         else:
             raise Exception("No LLM client available")
 
