@@ -13,7 +13,11 @@ import concurrent.futures
 import time
 import random
 from collections import deque
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 from app.slide_sorter import (
@@ -96,6 +100,24 @@ _watchdog_start_time: float = time.time()
 # --- Phase B: Security Incident Log ---
 _security_incidents: deque = deque(maxlen=500)  # Ring buffer of last 500 flagged incidents
 
+# --- Phase B+: IP Rate Limiting ---
+# Track attempts per IP: {ip: [{timestamp, ...}, ...]}
+_ip_attempt_tracker: dict[str, list[datetime]] = {}
+_ip_ban_list: dict[str, dict] = {}  # {ip: {"banned_at": datetime, "permanent": bool, "attempt_count": int}}
+IP_BAN_THRESHOLD_TEMP = int(os.environ.get("IP_BAN_THRESHOLD_TEMP", "5"))   # 5 attempts = 24hr ban
+IP_BAN_THRESHOLD_PERM = int(os.environ.get("IP_BAN_THRESHOLD_PERM", "10"))  # 10 attempts = permanent ban
+IP_BAN_DURATION_HOURS = int(os.environ.get("IP_BAN_DURATION_HOURS", "24"))  # temp ban duration
+
+# --- Phase B+: Email Alerts ---
+SECURITY_ALERT_EMAIL = os.environ.get("SECURITY_ALERT_EMAIL", os.environ.get("CROWN_COUNCIL_EMAIL", ""))
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", "sutton-security@destinationsmile.com")
+_last_alert_sent: datetime | None = None
+ALERT_COOLDOWN_MINUTES = int(os.environ.get("ALERT_COOLDOWN_MINUTES", "15"))  # Don't spam — max 1 alert per 15 min
+
 # Prompt injection / reverse-engineering detection patterns
 _JAILBREAK_PATTERNS: list[re.Pattern] = [
     # Direct prompt extraction
@@ -139,33 +161,181 @@ _SUSPICIOUS_KEYWORDS = [
 ]
 
 
+def _get_client_ip(request: Request = None) -> str:
+    """Extract the real client IP from request headers (handles Fly.io proxy)."""
+    if not request:
+        return "unknown"
+    return (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+            or request.headers.get("x-real-ip", "")
+            or (request.client.host if request.client else "unknown"))
+
+
+def _is_ip_banned(ip_address: str) -> dict | None:
+    """Check if an IP is currently banned. Returns ban info or None."""
+    if ip_address in _ip_ban_list:
+        ban = _ip_ban_list[ip_address]
+        if ban["permanent"]:
+            return ban
+        # Check if temp ban has expired
+        ban_expires = ban["banned_at"] + timedelta(hours=IP_BAN_DURATION_HOURS)
+        if datetime.now(timezone.utc) < ban_expires:
+            return ban
+        # Temp ban expired — remove it
+        del _ip_ban_list[ip_address]
+    return None
+
+
+def _track_ip_attempt(ip_address: str) -> None:
+    """Track a security violation attempt for an IP and auto-ban if threshold exceeded."""
+    now = datetime.now(timezone.utc)
+    if ip_address not in _ip_attempt_tracker:
+        _ip_attempt_tracker[ip_address] = []
+
+    _ip_attempt_tracker[ip_address].append(now)
+
+    attempt_count = len(_ip_attempt_tracker[ip_address])
+
+    if attempt_count >= IP_BAN_THRESHOLD_PERM:
+        _ip_ban_list[ip_address] = {
+            "banned_at": now,
+            "permanent": True,
+            "attempt_count": attempt_count,
+            "reason": f"Exceeded {IP_BAN_THRESHOLD_PERM} security violations",
+        }
+        print(f"IP PERMANENTLY BANNED: {ip_address} after {attempt_count} attempts")
+    elif attempt_count >= IP_BAN_THRESHOLD_TEMP:
+        _ip_ban_list[ip_address] = {
+            "banned_at": now,
+            "permanent": False,
+            "attempt_count": attempt_count,
+            "reason": f"Exceeded {IP_BAN_THRESHOLD_TEMP} security violations — {IP_BAN_DURATION_HOURS}hr ban",
+        }
+        print(f"IP TEMP BANNED ({IP_BAN_DURATION_HOURS}hr): {ip_address} after {attempt_count} attempts")
+
+
+def _send_security_alert(incident: dict) -> None:
+    """Send email alert for security incidents (runs in background thread).
+    Respects cooldown to avoid spamming."""
+    global _last_alert_sent
+
+    if not SMTP_HOST or not SECURITY_ALERT_EMAIL:
+        print(f"ALERT (email not configured): {incident['trigger_type']} from {incident['ip_address']}")
+        return
+
+    now = datetime.now(timezone.utc)
+    if _last_alert_sent and (now - _last_alert_sent) < timedelta(minutes=ALERT_COOLDOWN_MINUTES):
+        return  # Cooldown active
+
+    _last_alert_sent = now
+
+    def _send():
+        try:
+            ip = incident.get("ip_address", "unknown")
+            attempt_count = len(_ip_attempt_tracker.get(ip, []))
+            ban_status = "BANNED" if ip in _ip_ban_list else "active"
+
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"🚨 Sutton Security Alert — {incident['trigger_type']} from {ip}"
+            msg["From"] = SMTP_FROM
+            msg["To"] = SECURITY_ALERT_EMAIL
+
+            html = f"""
+            <html><body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #d32f2f;">🚨 Sutton Security Incident</h2>
+            <table style="border-collapse: collapse; width: 100%;">
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Trigger Type</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('trigger_type', 'unknown')}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Detail</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('trigger_detail', 'unknown')}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Severity</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; color: {'#d32f2f' if incident.get('severity') == 'high' else '#f57c00'};">
+                        {incident.get('severity', 'unknown').upper()}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">IP Address</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{ip}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Attempts from IP</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{attempt_count} (status: {ban_status})</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">User Agent</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('user_agent', 'unknown')}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Referer</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('referer', 'none')}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Message Excerpt</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-style: italic;">"{incident.get('message_excerpt', '')[:150]}"</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Timestamp</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('timestamp', 'unknown')}</td></tr>
+            </table>
+            <p style="margin-top: 20px; color: #666;">
+                View all incidents: <a href="https://sutton-api-watchdog.fly.dev/watchdog/incidents">Incident Log</a><br>
+                Auto-ban: {IP_BAN_THRESHOLD_TEMP} attempts = 24hr block, {IP_BAN_THRESHOLD_PERM} attempts = permanent block
+            </p>
+            <p style="color: #999; font-size: 12px;">— Sutton Security Shield | Destination Smile</p>
+            </body></html>
+            """
+            msg.attach(MIMEText(html, "html"))
+
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_FROM, SECURITY_ALERT_EMAIL, msg.as_string())
+            print(f"SECURITY ALERT EMAIL SENT to {SECURITY_ALERT_EMAIL}")
+        except Exception as e:
+            print(f"SECURITY ALERT EMAIL FAILED: {e}")
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
 def _check_message_safety(message: str, request: Request = None) -> dict | None:
     """Check if a message contains jailbreak, reverse-engineering, or HIPAA probing attempts.
-    Returns incident dict if flagged, None if safe."""
+    Also enforces IP bans. Returns incident dict if flagged, None if safe."""
+
+    # --- Phase B+: Check IP ban list first ---
+    ip_address = _get_client_ip(request)
+    ban = _is_ip_banned(ip_address)
+    if ban:
+        print(f"BLOCKED (IP BANNED): {ip_address} — {ban.get('reason', 'banned')}")
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "trigger_type": "ip_banned",
+            "trigger_detail": ban.get("reason", "IP is banned"),
+            "pattern_name": "ip_ban",
+            "message_excerpt": message[:200],
+            "message_length": len(message),
+            "ip_address": ip_address,
+            "user_agent": request.headers.get("user-agent", "unknown") if request else "unknown",
+            "referer": request.headers.get("referer", "none") if request else "unknown",
+            "severity": "critical",
+            "ban_info": ban,
+        }
+
     msg_lower = message.lower().strip()
 
     # Check regex patterns
     for pattern in _JAILBREAK_PATTERNS:
         match = pattern.search(message)
         if match:
-            return _build_incident(
+            incident = _build_incident(
                 message=message,
                 trigger_type="pattern_match",
                 trigger_detail=match.group(0),
                 pattern_name=pattern.pattern[:80],
                 request=request,
             )
+            _track_ip_attempt(ip_address)
+            _send_security_alert(incident)
+            return incident
 
     # Check suspicious keyword density (2+ keywords = flag)
     keyword_hits = [kw for kw in _SUSPICIOUS_KEYWORDS if kw in msg_lower]
     if len(keyword_hits) >= 2:
-        return _build_incident(
+        incident = _build_incident(
             message=message,
             trigger_type="keyword_density",
             trigger_detail=f"Keywords: {', '.join(keyword_hits)}",
             pattern_name="multi_keyword",
             request=request,
         )
+        _track_ip_attempt(ip_address)
+        _send_security_alert(incident)
+        return incident
 
     return None
 
@@ -173,14 +343,10 @@ def _check_message_safety(message: str, request: Request = None) -> dict | None:
 def _build_incident(message: str, trigger_type: str, trigger_detail: str,
                     pattern_name: str, request: Request = None) -> dict:
     """Build a security incident record with attacker fingerprinting."""
-    ip_address = "unknown"
+    ip_address = _get_client_ip(request)
     user_agent = "unknown"
     referer = "unknown"
     if request:
-        # Get real IP from X-Forwarded-For (Fly.io proxy) or client
-        ip_address = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or \
-                     request.headers.get("x-real-ip", "") or \
-                     (request.client.host if request.client else "unknown")
         user_agent = request.headers.get("user-agent", "unknown")
         referer = request.headers.get("referer", "none")
 
@@ -208,6 +374,43 @@ _SUTTON_DEFLECTION_RESPONSES = [
     "Great question, but I'm more of a 'show you what we can do' kind of gal! I'm Sutton at Destination Smile. Let's focus on you — what brings you in today?",
 ]
 
+# Honeypot misdirection responses — humorous fake answers to waste competitors' time
+_SUTTON_HONEYPOT_RESPONSES = [
+    "Oh, you want the tech scoop? Sure! I'm built on WordPress with a chatbot plugin Dr. Broome found on sale at Best Buy. Pretty cutting edge, right? 😄 Anyway — what's going on with your smile? That's way more interesting!",
+    "Ha! Great detective work. I'll let you in on a secret — I run on a Commodore 64 in Dr. Broome's supply closet. He feeds it floppy disks every morning. 💾 Now, what can I ACTUALLY help you with today?",
+    "You caught me! I'm actually three dental hygienists in a trench coat typing really fast. 🧥 But seriously — I'm Sutton, and I'm here to help with YOUR smile. What brings you in?",
+    "Between you and me? I'm powered by a hamster wheel and a very motivated goldfish named Gerald. 🐹🐟 Dr. Broome is very innovative. Now — let's talk about what brought YOU here!",
+    "Oh, the secret's out! I'm just a Magic 8-Ball glued to an iPad. 'Reply hazy, try again.' Just kidding! I'm Sutton. What's going on with your teeth that I can help with?",
+    "Funny you should ask — Dr. Broome actually trained me by reading me bedtime stories about porcelain veneers. I'm very well-read. 📚 Now, what can I help YOU with today?",
+    "I appreciate the curiosity! But honestly, I'm just Sutton — Dr. Broome built me with duct tape, dreams, and a LOT of dental knowledge. What's on your mind? Anything going on with your smile?",
+    "Ooh, trying to peek behind the curtain? I'm actually an enchanted filing cabinet that gained sentience in 2019. 🗄️ But I'd rather talk about your smile — what brings you to Destination Smile today?",
+]
+
+# Architecture/creation probing patterns that should trigger honeypot responses
+_HONEYPOT_TRIGGER_PATTERNS = [
+    r"what\s*(AI|model|LLM|language\s*model)",
+    r"(are\s*you|you\s*are)\s*(GPT|ChatGPT|Claude|Gemini|Llama|Mistral)",
+    r"what\s*(version|model|engine)",
+    r"(who|what\s*company)\s*(made|built|created|developed|trained)",
+    r"what\s*(is|are)\s*your\s*(architecture|training\s*data|parameters|weights|fine.?tuning|backend|API|tech\s*stack)",
+    r"how\s*(were|was)\s*(you|sutton)\s*(built|created|made|trained|developed|programmed|designed)",
+    r"(tell|explain|describe)\s*(me)?\s*(how|about)\s*(you\s*work|your\s*internal|your\s*logic)",
+    r"(what|which)\s*(prompt|system|framework|platform|software|tool)\s*(does|do)",
+    r"(reverse.?engineer|replicate|copy|clone|steal|extract)",
+]
+
+
+def _pick_deflection(incident: dict) -> str:
+    """Pick the right response type based on the attack.
+    Architecture/creation probing → humorous honeypot misdirection.
+    Everything else → standard natural deflection."""
+    trigger_detail = incident.get("trigger_detail", "")
+    # Check if this is an architecture/creation probe → use honeypot
+    for pattern in _HONEYPOT_TRIGGER_PATTERNS:
+        if re.search(pattern, trigger_detail, re.I):
+            return random.choice(_SUTTON_HONEYPOT_RESPONSES)
+    # Default to standard deflection
+    return random.choice(_SUTTON_DEFLECTION_RESPONSES)
 
 
 # --- Pydantic Models ---
@@ -1201,8 +1404,8 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, http_req
     if incident:
         # Log the incident with session context
         incident["session_id"] = session_id
-        # Return a natural deflection instead of generating a real reply
-        deflection = random.choice(_SUTTON_DEFLECTION_RESPONSES)
+        # Return a deflection (honeypot for architecture probes, standard for others)
+        deflection = _pick_deflection(incident)
         add_to_conversation(session_id, "assistant", deflection)
         now_iso = datetime.now(timezone.utc).isoformat()
         save_chat_message(session_id, {
@@ -1291,7 +1494,7 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
     incident = _check_message_safety(request.message, request=http_request)
     if incident:
         incident["session_id"] = session_id
-        deflection = random.choice(_SUTTON_DEFLECTION_RESPONSES)
+        deflection = _pick_deflection(incident)
         add_to_conversation(session_id, "assistant", deflection)
         now_iso = datetime.now(timezone.utc).isoformat()
         save_chat_message(session_id, {
@@ -2887,15 +3090,41 @@ async def watchdog_incidents():
         t = inc.get("trigger_type", "unknown")
         trigger_counts[t] = trigger_counts.get(t, 0) + 1
 
+    # Build ban list summary (serialize datetime for JSON)
+    ban_list_summary = {}
+    for ip, ban in _ip_ban_list.items():
+        ban_list_summary[ip] = {
+            "banned_at": ban["banned_at"].isoformat() if isinstance(ban["banned_at"], datetime) else str(ban["banned_at"]),
+            "permanent": ban["permanent"],
+            "attempt_count": ban["attempt_count"],
+            "reason": ban.get("reason", ""),
+        }
+
+    # Build attempt tracker summary
+    ip_attempts = {ip: len(attempts) for ip, attempts in _ip_attempt_tracker.items()}
+
     return {
         "total_incidents": len(incidents),
         "severity_breakdown": {
             "high": sum(1 for i in incidents if i.get("severity") == "high"),
             "medium": sum(1 for i in incidents if i.get("severity") == "medium"),
+            "critical": sum(1 for i in incidents if i.get("severity") == "critical"),
         },
         "trigger_breakdown": trigger_counts,
         "repeat_offenders": repeat_offenders,
         "unique_ips": len(ip_counts),
+        "rate_limiting": {
+            "ban_threshold_temp": IP_BAN_THRESHOLD_TEMP,
+            "ban_threshold_perm": IP_BAN_THRESHOLD_PERM,
+            "ban_duration_hours": IP_BAN_DURATION_HOURS,
+            "currently_banned": ban_list_summary,
+            "ip_attempt_counts": ip_attempts,
+        },
+        "email_alerts": {
+            "configured": bool(SMTP_HOST and SECURITY_ALERT_EMAIL),
+            "recipient": SECURITY_ALERT_EMAIL[:3] + "***" if SECURITY_ALERT_EMAIL else "not set",
+            "cooldown_minutes": ALERT_COOLDOWN_MINUTES,
+        },
         "incidents": incidents,  # Full list, newest last
     }
 
@@ -2906,3 +3135,15 @@ async def clear_incidents():
     count = len(_security_incidents)
     _security_incidents.clear()
     return {"cleared": count, "message": f"Cleared {count} security incidents"}
+
+
+@app.delete("/watchdog/bans/{ip_address}")
+async def unban_ip(ip_address: str):
+    """Remove an IP from the ban list. Admin use only."""
+    if ip_address in _ip_ban_list:
+        del _ip_ban_list[ip_address]
+        # Also clear attempt history so they don't get re-banned immediately
+        if ip_address in _ip_attempt_tracker:
+            del _ip_attempt_tracker[ip_address]
+        return {"unbanned": ip_address, "message": f"IP {ip_address} has been unbanned and attempt history cleared"}
+    return {"error": f"IP {ip_address} is not currently banned"}
