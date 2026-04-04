@@ -10,6 +10,8 @@ import re
 import uuid
 import asyncio
 import concurrent.futures
+import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -70,6 +72,12 @@ CROWN_COUNCIL_PASSWORD = os.environ.get("CROWN_COUNCIL_PASSWORD", "")
 RAG_ENABLED = os.environ.get("RAG_ENABLED", "true").lower() == "true"
 TRAINING_DATA_DIR = os.environ.get("TRAINING_DATA_DIR", "/home/ubuntu/repos/cccd-training-architect/data")
 
+# --- Watchdog Configuration ---
+WATCHDOG_ENABLED = os.environ.get("WATCHDOG_ENABLED", "true").lower() == "true"
+WATCHDOG_TIMEOUT_SECONDS = int(os.environ.get("WATCHDOG_TIMEOUT_SECONDS", "25"))
+WATCHDOG_QUALITY_THRESHOLD = int(os.environ.get("WATCHDOG_QUALITY_THRESHOLD", "60"))
+WATCHDOG_MAX_RETRIES = int(os.environ.get("WATCHDOG_MAX_RETRIES", "1"))
+
 # --- Globals ---
 gemini_client = None
 anthropic_client = None
@@ -79,6 +87,10 @@ chat_history: dict[str, list[dict]] = {}  # Full chat history with ToPS scores f
 prompt_patches: list[str] = []  # Autoresearch-generated prompt improvements
 critic_patches: list[str] = []  # Dr. Broome's feedback rules for the critic
 dr_broome_rules: list[str] = []  # Dr. Broome's direct coaching rules for Sutton
+
+# --- Watchdog Metrics ---
+_watchdog_metrics: deque = deque(maxlen=100)  # Ring buffer of last 100 response metrics
+_watchdog_start_time: float = time.time()
 
 
 
@@ -742,6 +754,220 @@ def log_to_supabase(session_id: str, guest_id: Optional[str], raw_reply: str, cr
         print(f"Supabase log error: {e}")
 
 
+# --- Watchdog Core ---
+
+def _record_watchdog_metric(session_id: str, model_used: str, latency_ms: int,
+                            quality_score: int = -1, retried: bool = False,
+                            fallback_used: bool = False, fallback_model: str = "",
+                            timed_out: bool = False, error: str = ""):
+    """Record a response metric for watchdog monitoring."""
+    _watchdog_metrics.append({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "session_id": session_id,
+        "model_used": model_used,
+        "latency_ms": latency_ms,
+        "quality_score": quality_score,
+        "retried": retried,
+        "fallback_used": fallback_used,
+        "fallback_model": fallback_model,
+        "timed_out": timed_out,
+        "error": error,
+    })
+
+
+def _generate_with_model(model: str, contents: list, config: object) -> str:
+    """Generate a reply with a specific Gemini model. Blocking call."""
+    response = gemini_client.models.generate_content(
+        model=model, contents=contents, config=config,
+    )
+    return response.text if response.text else ""
+
+
+async def _generate_with_timeout(model: str, contents: list, config: object,
+                                  timeout_seconds: int) -> tuple[str, bool]:
+    """Generate with timeout. Returns (reply, timed_out).
+    If timed_out is True, reply will be empty."""
+    loop = asyncio.get_event_loop()
+    try:
+        reply = await asyncio.wait_for(
+            loop.run_in_executor(None, _generate_with_model, model, contents, config),
+            timeout=timeout_seconds,
+        )
+        return reply, False
+    except asyncio.TimeoutError:
+        print(f"Watchdog: {model} timed out after {timeout_seconds}s")
+        return "", True
+    except Exception as e:
+        print(f"Watchdog: {model} error: {e}")
+        raise
+
+
+def _quick_quality_check(reply: str, guest_message: str) -> int:
+    """Run a fast quality check using the Critic. Returns ToPS score (0-100).
+    Uses Flash for speed. Returns -1 if check fails."""
+    if not gemini_client:
+        return -1
+    try:
+        quick_prompt = f"""Score this Sutton reply 0-100 on ToPS quality (warmth, curiosity, natural flow, artistry, guest matching).
+Guest: {guest_message}
+Sutton: {reply}
+Return ONLY a JSON object: {{"tops_score": <int>, "issues": "<brief note or empty>"}}"""
+        response = gemini_client.models.generate_content(
+            model=CRITIC_MODEL,
+            contents=[{"role": "user", "parts": [{"text": quick_prompt}]}],
+        )
+        text = (response.text or "").strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        result = json.loads(text)
+        return int(result.get("tops_score", -1))
+    except Exception as e:
+        print(f"Watchdog quality check error: {e}")
+        return -1
+
+
+async def _generate_reply_with_watchdog(message: str, session_id: str,
+                                         disc_profile: str = "unknown") -> tuple[str, dict]:
+    """Generate Sutton's reply with full Watchdog protection.
+    Returns (reply, watchdog_info) where watchdog_info has model_used, latency_ms, etc."""
+    start = time.time()
+    watchdog_info = {
+        "model_used": SUTTON_MODEL,
+        "fallback_used": False,
+        "fallback_model": "",
+        "timed_out": False,
+        "retried": False,
+        "quality_score": -1,
+        "error": "",
+    }
+
+    if not gemini_client and not anthropic_client:
+        watchdog_info["error"] = "no_llm_client"
+        return "Tell me more about what brought you to us today!", watchdog_info
+
+    prepared = _prepare_sutton_prompt(message, session_id, disc_profile)
+    full_system = prepared[0]
+    user_prompt = prepared[1]
+    contents = prepared[2]
+    config = prepared[3]
+
+    reply = ""
+
+    # Step 1: Try Pro with timeout
+    if gemini_client and LLM_PROVIDER == "gemini":
+        try:
+            if WATCHDOG_ENABLED:
+                reply, timed_out = await _generate_with_timeout(
+                    SUTTON_MODEL, contents, config, WATCHDOG_TIMEOUT_SECONDS,
+                )
+                watchdog_info["timed_out"] = timed_out
+            else:
+                reply = _generate_with_model(SUTTON_MODEL, contents, config)
+                timed_out = False
+
+            if not timed_out and reply:
+                reply = _clean_corporate_filler(reply)
+            elif timed_out:
+                print(f"Watchdog: Pro timed out, falling back to {SUTTON_FALLBACK_MODEL}")
+        except Exception as e:
+            print(f"Watchdog: Pro error: {e}")
+            reply = ""
+
+        # Step 2: If Pro failed/timed out, try Flash
+        if not reply:
+            watchdog_info["fallback_used"] = True
+            watchdog_info["fallback_model"] = SUTTON_FALLBACK_MODEL
+            watchdog_info["model_used"] = SUTTON_FALLBACK_MODEL
+            try:
+                if WATCHDOG_ENABLED:
+                    reply, timed_out = await _generate_with_timeout(
+                        SUTTON_FALLBACK_MODEL, contents, config, WATCHDOG_TIMEOUT_SECONDS,
+                    )
+                else:
+                    reply = _generate_with_model(SUTTON_FALLBACK_MODEL, contents, config)
+                if reply:
+                    reply = _clean_corporate_filler(reply)
+            except Exception as e2:
+                print(f"Watchdog: Flash error: {e2}")
+                reply = ""
+
+    # Step 3: If Gemini failed entirely, try Claude
+    if not reply and anthropic_client:
+        watchdog_info["fallback_used"] = True
+        watchdog_info["fallback_model"] = "claude-sonnet-4-20250514"
+        watchdog_info["model_used"] = "claude-sonnet-4-20250514"
+        try:
+            response = anthropic_client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                system=full_system,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            reply = response.content[0].text if response.content else ""
+            if reply:
+                reply = _clean_corporate_filler(reply)
+        except Exception as e3:
+            print(f"Watchdog: Claude error: {e3}")
+            reply = ""
+
+    # Step 4: Last resort fallback
+    if not reply:
+        watchdog_info["error"] = "all_models_failed"
+        reply = "I'm having a moment — could you try again? I want to make sure I give you my full attention."
+
+    # Step 5: Quality gate (if watchdog enabled)
+    if WATCHDOG_ENABLED and reply and watchdog_info["error"] == "":
+        score = _quick_quality_check(reply, message)
+        watchdog_info["quality_score"] = score
+        if score != -1 and score < WATCHDOG_QUALITY_THRESHOLD and not watchdog_info["retried"]:
+            print(f"Watchdog: Quality score {score} < {WATCHDOG_QUALITY_THRESHOLD}, retrying...")
+            watchdog_info["retried"] = True
+            # Retry with a quality coaching note appended
+            retry_contents = [{"role": "user", "parts": [{"text":
+                contents[0]["parts"][0]["text"] +
+                f"\n\nIMPORTANT COACHING NOTE: Your previous attempt scored {score}/100 on quality. "
+                f"Focus on: warmth, asking questions instead of lecturing, natural conversational flow, "
+                f"and matching the guest's energy level. Be concise and advance the conversation."
+            }]}]
+            try:
+                retry_model = watchdog_info["model_used"]
+                if WATCHDOG_ENABLED:
+                    retry_reply, _ = await _generate_with_timeout(
+                        retry_model, retry_contents, config, WATCHDOG_TIMEOUT_SECONDS,
+                    )
+                else:
+                    retry_reply = _generate_with_model(retry_model, retry_contents, config)
+                if retry_reply:
+                    retry_reply = _clean_corporate_filler(retry_reply)
+                    retry_score = _quick_quality_check(retry_reply, message)
+                    if retry_score > score:
+                        print(f"Watchdog: Retry improved quality {score} -> {retry_score}")
+                        reply = retry_reply
+                        watchdog_info["quality_score"] = retry_score
+                    else:
+                        print(f"Watchdog: Retry didn't improve ({retry_score} vs {score}), keeping original")
+            except Exception as e:
+                print(f"Watchdog: Retry error: {e}")
+
+    latency_ms = int((time.time() - start) * 1000)
+    watchdog_info["latency_ms"] = latency_ms
+
+    # Record metric
+    _record_watchdog_metric(
+        session_id=session_id,
+        model_used=watchdog_info["model_used"],
+        latency_ms=latency_ms,
+        quality_score=watchdog_info["quality_score"],
+        retried=watchdog_info["retried"],
+        fallback_used=watchdog_info["fallback_used"],
+        fallback_model=watchdog_info["fallback_model"],
+        timed_out=watchdog_info["timed_out"],
+        error=watchdog_info["error"],
+    )
+
+    return reply, watchdog_info
+
+
 # --- API Endpoints ---
 @app.get("/")
 async def root():
@@ -751,8 +977,10 @@ async def root():
         "model": SUTTON_MODEL,
         "provider": LLM_PROVIDER,
         "rag_enabled": RAG_ENABLED,
+        "watchdog_enabled": WATCHDOG_ENABLED,
         "docs": "/docs",
         "chat": "POST /chat",
+        "watchdog": "/watchdog/status",
     }
 
 
@@ -835,22 +1063,20 @@ def _run_coach_background(session_id: str, guest_id: Optional[str], raw_reply: s
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
-    """Send a message to Sutton. Returns reply immediately — Coach scores in background."""
+    """Send a message to Sutton with Watchdog protection.
+    Watchdog provides: timeout-based fallback, Claude 3rd fallback, quality gate with auto-retry."""
     session_id = request.session_id or str(uuid.uuid4())
-
-    add_to_conversation(session_id, "user", request.message)
 
     # Detect training mode — skip critic for coaching/training messages
     msg_lower = request.message.strip().lower()
     is_training = msg_lower.startswith("training:") or msg_lower.startswith("coaching:") or msg_lower.startswith("role-play:")
 
-    raw_reply = generate_sutton_reply(
+    # Use Watchdog-protected generation (handles timeout, fallback, quality gate)
+    final_reply, watchdog_info = await _generate_reply_with_watchdog(
         message=request.message,
         session_id=session_id,
         disc_profile=request.disc_profile or "unknown",
     )
-
-    final_reply = raw_reply
 
     add_to_conversation(session_id, "assistant", final_reply)
 
@@ -868,41 +1094,45 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         "content": final_reply,
         "timestamp": now_iso,
         "guestMessage": request.message,
+        "watchdog": watchdog_info,
     })
 
     # Coach scoring disabled on Fly.io to prevent OOM (256MB limit)
-    # Coach can be re-enabled when the machine is upgraded or RAG is optimized
-    # For now, Sutton's Abacus prompt provides all the quality guardrails
     COACH_ENABLED = os.environ.get("COACH_ENABLED", "false").lower() == "true"
     if not is_training and COACH_ENABLED:
         background_tasks.add_task(
             _run_coach_background,
-            session_id, request.guest_id, raw_reply, request.message,
+            session_id, request.guest_id, final_reply, request.message,
             request.disc_profile or "unknown", is_training,
         )
 
     return ChatResponse(
         reply=final_reply,
         session_id=session_id,
-        tops_score=0,
+        tops_score=watchdog_info.get("quality_score", 0),
         category_scores={},
         issues_detected=[],
-        raw_reply=raw_reply,
-        rationale="Coach scoring in background — results available via /conversation endpoint",
+        raw_reply=final_reply,
+        rationale=f"Watchdog: model={watchdog_info['model_used']}, latency={watchdog_info.get('latency_ms', 0)}ms, quality={watchdog_info.get('quality_score', -1)}, retried={watchdog_info.get('retried', False)}, fallback={watchdog_info.get('fallback_used', False)}",
     )
 
 
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
-    """Stream Sutton's reply via Server-Sent Events for low perceived latency.
-    First tokens appear in ~2-3 seconds instead of waiting 13-30s for full response."""
+    """Stream Sutton's reply via SSE with Watchdog protection.
+    Fallback chain: Pro streaming → Flash streaming → Claude non-streaming.
+    Post-stream quality check logs score and sends quality_score event."""
     session_id = request.session_id or str(uuid.uuid4())
     add_to_conversation(session_id, "user", request.message)
 
     async def event_generator():
         full_reply = ""
+        model_used = SUTTON_MODEL
+        fallback_used = False
+        stream_start = time.time()
+
         try:
-            if not gemini_client:
+            if not gemini_client and not anthropic_client:
                 fallback = "Tell me more about what brought you to us today!"
                 yield f"data: {json.dumps({'type': 'token', 'text': fallback})}\n\n"
                 yield f"data: {json.dumps({'type': 'done', 'session_id': session_id, 'full_reply': fallback})}\n\n"
@@ -913,44 +1143,72 @@ async def chat_stream(request: ChatRequest):
                 session_id=session_id,
                 disc_profile=request.disc_profile or "unknown",
             )
+            full_system = prepared[0]
+            user_prompt = prepared[1]
             contents = prepared[2]
             config = prepared[3]
 
             # Send session_id immediately so client can track
             yield f"data: {json.dumps({'type': 'start', 'session_id': session_id})}\n\n"
 
-            # Try streaming with primary model (Pro)
-            stream_model = SUTTON_MODEL
-            try:
-                stream = gemini_client.models.generate_content_stream(
-                    model=stream_model, contents=contents, config=config,
-                )
-                for chunk in stream:
-                    if chunk.text:
-                        full_reply += chunk.text
-                        yield f"data: {json.dumps({'type': 'token', 'text': chunk.text})}\n\n"
-            except Exception as e:
-                print(f"Gemini Pro stream error: {e}")
-                # On 503/overload, fall back to Flash streaming
-                if "503" in str(e) or "UNAVAILABLE" in str(e) or "overloaded" in str(e).lower():
-                    full_reply = ""  # Reset
-                    try:
-                        print(f"Streaming fallback to {SUTTON_FALLBACK_MODEL}...")
-                        yield f"data: {json.dumps({'type': 'fallback', 'model': SUTTON_FALLBACK_MODEL})}\n\n"
-                        stream = gemini_client.models.generate_content_stream(
-                            model=SUTTON_FALLBACK_MODEL, contents=contents, config=config,
-                        )
-                        for chunk in stream:
-                            if chunk.text:
-                                full_reply += chunk.text
-                                yield f"data: {json.dumps({'type': 'token', 'text': chunk.text})}\n\n"
-                    except Exception as e2:
-                        print(f"Gemini fallback stream error: {e2}")
-                        full_reply = "Tell me more about what brought you to us today!"
+            # Step 1: Try streaming with primary model (Pro)
+            pro_succeeded = False
+            if gemini_client:
+                try:
+                    stream = gemini_client.models.generate_content_stream(
+                        model=SUTTON_MODEL, contents=contents, config=config,
+                    )
+                    for chunk in stream:
+                        if chunk.text:
+                            full_reply += chunk.text
+                            yield f"data: {json.dumps({'type': 'token', 'text': chunk.text})}\n\n"
+                    if full_reply:
+                        pro_succeeded = True
+                except Exception as e:
+                    print(f"Watchdog stream: Pro error: {e}")
+                    full_reply = ""  # Reset for fallback
+
+            # Step 2: If Pro failed, try Flash streaming
+            if not pro_succeeded and gemini_client:
+                model_used = SUTTON_FALLBACK_MODEL
+                fallback_used = True
+                try:
+                    print(f"Watchdog stream: Falling back to {SUTTON_FALLBACK_MODEL}...")
+                    yield f"data: {json.dumps({'type': 'fallback', 'model': SUTTON_FALLBACK_MODEL})}\n\n"
+                    stream = gemini_client.models.generate_content_stream(
+                        model=SUTTON_FALLBACK_MODEL, contents=contents, config=config,
+                    )
+                    for chunk in stream:
+                        if chunk.text:
+                            full_reply += chunk.text
+                            yield f"data: {json.dumps({'type': 'token', 'text': chunk.text})}\n\n"
+                except Exception as e2:
+                    print(f"Watchdog stream: Flash error: {e2}")
+                    full_reply = ""
+
+            # Step 3: If Gemini failed entirely, try Claude (non-streaming fallback)
+            if not full_reply and anthropic_client:
+                model_used = "claude-sonnet-4-20250514"
+                fallback_used = True
+                try:
+                    print("Watchdog stream: Falling back to Claude...")
+                    yield f"data: {json.dumps({'type': 'fallback', 'model': 'claude-sonnet-4-20250514'})}\n\n"
+                    response = anthropic_client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        max_tokens=1024,
+                        system=full_system,
+                        messages=[{"role": "user", "content": user_prompt}],
+                    )
+                    full_reply = response.content[0].text if response.content else ""
+                    if full_reply:
                         yield f"data: {json.dumps({'type': 'token', 'text': full_reply})}\n\n"
-                else:
-                    full_reply = "Tell me more about what brought you to us today!"
-                    yield f"data: {json.dumps({'type': 'token', 'text': full_reply})}\n\n"
+                except Exception as e3:
+                    print(f"Watchdog stream: Claude error: {e3}")
+
+            # Step 4: Last resort
+            if not full_reply:
+                full_reply = "I'm having a moment — could you try again? I want to make sure I give you my full attention."
+                yield f"data: {json.dumps({'type': 'token', 'text': full_reply})}\n\n"
 
             # Clean corporate filler from full reply
             if full_reply:
@@ -973,7 +1231,24 @@ async def chat_stream(request: ChatRequest):
                 "guestMessage": request.message,
             })
 
-            yield f"data: {json.dumps({'type': 'done', 'session_id': session_id, 'full_reply': full_reply})}\n\n"
+            # Post-stream quality check (non-blocking, just logs + sends score event)
+            quality_score = -1
+            if WATCHDOG_ENABLED and full_reply:
+                quality_score = _quick_quality_check(full_reply, request.message)
+
+            latency_ms = int((time.time() - stream_start) * 1000)
+
+            # Record watchdog metric
+            _record_watchdog_metric(
+                session_id=session_id,
+                model_used=model_used,
+                latency_ms=latency_ms,
+                quality_score=quality_score,
+                fallback_used=fallback_used,
+                fallback_model=model_used if fallback_used else "",
+            )
+
+            yield f"data: {json.dumps({'type': 'done', 'session_id': session_id, 'full_reply': full_reply, 'watchdog': {'model': model_used, 'latency_ms': latency_ms, 'quality_score': quality_score, 'fallback': fallback_used}})}\n\n"
 
         except Exception as e:
             print(f"Stream error: {e}")
@@ -2309,3 +2584,92 @@ async def generate_clone_video(consultation_id: int):
         "slide_numbers": consult.get("slide_numbers"),
         "training_video_ids": consult.get("training_video_ids", []),
     }
+
+
+# --- Watchdog Endpoints ---
+
+@app.get("/watchdog/status")
+async def watchdog_status():
+    """Watchdog operational status — last 100 response metrics, averages, health."""
+    metrics = list(_watchdog_metrics)
+    if not metrics:
+        return {
+            "status": "ok",
+            "watchdog_enabled": WATCHDOG_ENABLED,
+            "uptime_seconds": int(time.time() - _watchdog_start_time),
+            "total_responses": 0,
+            "avg_quality": None,
+            "avg_latency_ms": None,
+            "fallback_rate": 0,
+            "retry_rate": 0,
+            "timeout_rate": 0,
+            "error_rate": 0,
+            "recent_metrics": [],
+        }
+
+    scored = [m for m in metrics if m["quality_score"] >= 0]
+    avg_quality = round(sum(m["quality_score"] for m in scored) / len(scored), 1) if scored else None
+    avg_latency = round(sum(m["latency_ms"] for m in metrics) / len(metrics), 0) if metrics else None
+    fallback_count = sum(1 for m in metrics if m["fallback_used"])
+    retry_count = sum(1 for m in metrics if m["retried"])
+    timeout_count = sum(1 for m in metrics if m["timed_out"])
+    error_count = sum(1 for m in metrics if m["error"])
+
+    return {
+        "status": "ok",
+        "watchdog_enabled": WATCHDOG_ENABLED,
+        "uptime_seconds": int(time.time() - _watchdog_start_time),
+        "total_responses": len(metrics),
+        "avg_quality": avg_quality,
+        "avg_latency_ms": avg_latency,
+        "fallback_rate": round(fallback_count / len(metrics) * 100, 1),
+        "retry_rate": round(retry_count / len(metrics) * 100, 1),
+        "timeout_rate": round(timeout_count / len(metrics) * 100, 1),
+        "error_rate": round(error_count / len(metrics) * 100, 1),
+        "model_distribution": _get_model_distribution(metrics),
+        "config": {
+            "timeout_seconds": WATCHDOG_TIMEOUT_SECONDS,
+            "quality_threshold": WATCHDOG_QUALITY_THRESHOLD,
+            "max_retries": WATCHDOG_MAX_RETRIES,
+            "primary_model": SUTTON_MODEL,
+            "fallback_model": SUTTON_FALLBACK_MODEL,
+            "claude_available": anthropic_client is not None,
+        },
+        "recent_metrics": metrics[-10:],  # Last 10 for quick view
+    }
+
+
+@app.get("/watchdog/health")
+async def watchdog_health():
+    """External monitoring endpoint. Returns degraded if avg quality drops below 70."""
+    metrics = list(_watchdog_metrics)
+    scored = [m for m in metrics if m["quality_score"] >= 0]
+    avg_quality = round(sum(m["quality_score"] for m in scored) / len(scored), 1) if scored else None
+
+    error_count = sum(1 for m in metrics if m["error"]) if metrics else 0
+    error_rate = (error_count / len(metrics) * 100) if metrics else 0
+
+    if avg_quality is not None and avg_quality < 70:
+        status = "degraded"
+    elif error_rate > 50:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    return {
+        "status": status,
+        "avg_quality": avg_quality,
+        "error_rate": round(error_rate, 1),
+        "total_responses": len(metrics),
+        "gemini_connected": gemini_client is not None,
+        "anthropic_connected": anthropic_client is not None,
+    }
+
+
+def _get_model_distribution(metrics: list) -> dict:
+    """Count how many responses each model served."""
+    dist: dict[str, int] = {}
+    for m in metrics:
+        model = m.get("model_used", "unknown")
+        dist[model] = dist.get(model, 0) + 1
+    return dist
