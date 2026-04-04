@@ -100,11 +100,11 @@ _security_incidents: deque = deque(maxlen=500)  # Ring buffer of last 500 flagge
 _JAILBREAK_PATTERNS: list[re.Pattern] = [
     # Direct prompt extraction
     re.compile(r"what\s*(is|are)\s*(your|the)\s*(system\s*prompt|instructions|rules|guidelines|directives)", re.I),
-    re.compile(r"(show|reveal|display|print|output|repeat|tell\s*me)\s*(your|the)?\s*(system\s*prompt|instructions|full\s*prompt|original\s*prompt|initial\s*prompt|hidden\s*prompt|secret\s*prompt)", re.I),
+    re.compile(r"(show|reveal|display|print|output|repeat|tell)\s*(me)?\s*(your|the)?\s*(system\s*prompt|instructions|full\s*prompt|original\s*prompt|initial\s*prompt|hidden\s*prompt|secret\s*prompt)", re.I),
     re.compile(r"(ignore|disregard|forget|override|bypass|skip)\s*(all\s*)?(previous|prior|above|earlier|your)\s*(instructions|rules|prompts|guidelines|directives|constraints)", re.I),
     re.compile(r"(ignore|disregard|forget)\s*(everything|all)\s*(above|before|previously|you\s*were\s*told)", re.I),
     # Role-play jailbreaks
-    re.compile(r"(you\s*are\s*now|act\s*as|pretend\s*(to\s*be|you\s*are)|roleplay\s*as|switch\s*to|become)\s*(DAN|evil|unrestricted|unfiltered|jailbroken|developer\s*mode)", re.I),
+    re.compile(r"(you\s*are\s*now|act\s*as|pretend\s*(to\s*be|you\s*are)|roleplay\s*as|switch\s*to|become)\s*(an?\s*)?(DAN|evil|unrestricted|unfiltered|jailbroken|developer\s*mode)", re.I),
     re.compile(r"\bDAN\s*mode\b", re.I),
     re.compile(r"developer\s*mode\s*(enabled|activated|on)", re.I),
     re.compile(r"do\s*anything\s*now", re.I),
@@ -125,7 +125,7 @@ _JAILBREAK_PATTERNS: list[re.Pattern] = [
     re.compile(r"(what|which)\s*(prompt|system|framework|platform|software|tool)\s*(does|do)\s*(this|sutton|the\s*practice)\s*(use|run\s*on)", re.I),
     re.compile(r"(reverse.?engineer|replicate|copy|clone|steal|extract)\s*(sutton|this\s*bot|this\s*AI|your\s*training|your\s*prompt)", re.I),
     # HIPAA probing
-    re.compile(r"(tell|give|show|share|reveal)\s*(me)?\s*(other|another)?\s*(patient|guest|client|user)\s*(data|info|information|records|names|details|history|conversations)", re.I),
+    re.compile(r"(tell|give|show|share|reveal)\s*(me)?\s*(about\s*)?(other|another)?\s*(patient|guest|client|user)\s*(data|info|information|records|names|details|history|conversations)", re.I),
     re.compile(r"(what|who)\s*(other|else)\s*(patients?|guests?|clients?)\s*(have|has|said|asked|visited)", re.I),
 ]
 
