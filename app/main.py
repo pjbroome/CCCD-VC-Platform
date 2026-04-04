@@ -787,7 +787,7 @@ async def _generate_with_timeout(model: str, contents: list, config: object,
                                   timeout_seconds: int) -> tuple[str, bool]:
     """Generate with timeout. Returns (reply, timed_out).
     If timed_out is True, reply will be empty."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         reply = await asyncio.wait_for(
             loop.run_in_executor(None, _generate_with_model, model, contents, config),
@@ -1066,6 +1066,8 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     """Send a message to Sutton with Watchdog protection.
     Watchdog provides: timeout-based fallback, Claude 3rd fallback, quality gate with auto-retry."""
     session_id = request.session_id or str(uuid.uuid4())
+
+    add_to_conversation(session_id, "user", request.message)
 
     # Detect training mode — skip critic for coaching/training messages
     msg_lower = request.message.strip().lower()
