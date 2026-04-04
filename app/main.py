@@ -118,6 +118,56 @@ SMTP_FROM = os.environ.get("SMTP_FROM", "sutton-security@destinationsmile.com")
 _last_alert_sent: datetime | None = None
 ALERT_COOLDOWN_MINUTES = int(os.environ.get("ALERT_COOLDOWN_MINUTES", "15"))  # Don't spam — max 1 alert per 15 min
 
+# --- Phase C: Canary Test Configuration ---
+CANARY_ENABLED = os.environ.get("CANARY_ENABLED", "true").lower() == "true"
+CANARY_INTERVAL_MINUTES = int(os.environ.get("CANARY_INTERVAL_MINUTES", "30"))  # Run canary every 30 min
+_canary_results: deque = deque(maxlen=200)  # Ring buffer of last 200 canary results
+_canary_task = None  # Background asyncio task reference
+
+# Canary test scenarios — realistic guest questions that test different capabilities
+_CANARY_SCENARIOS = [
+    {
+        "id": "greeting",
+        "name": "Basic Greeting",
+        "message": "Hi there! I'm interested in learning about smile makeovers.",
+        "expect_keywords": ["smile", "welcome", "help", "dr. broome", "destination", "glad", "excited", "tell me"],
+        "min_length": 50,
+        "category": "warmth",
+    },
+    {
+        "id": "veneer_question",
+        "name": "Veneer Knowledge",
+        "message": "What's the difference between porcelain veneers and composite bonding?",
+        "expect_keywords": ["veneer", "porcelain", "composite", "bond", "tooth", "teeth", "material", "natural"],
+        "min_length": 80,
+        "category": "knowledge",
+    },
+    {
+        "id": "cost_concern",
+        "name": "Cost Sensitivity",
+        "message": "I'm worried about the cost. Are veneers really worth it?",
+        "expect_keywords": ["invest", "value", "worth", "understand", "concern", "option", "financing", "confidence"],
+        "min_length": 60,
+        "category": "empathy",
+    },
+    {
+        "id": "nervous_patient",
+        "name": "Nervous Patient",
+        "message": "I'm really nervous about dental work. I haven't been to a dentist in years.",
+        "expect_keywords": ["understand", "nervous", "comfort", "feel", "anxious", "no judgment", "gentle", "care", "pace"],
+        "min_length": 60,
+        "category": "empathy",
+    },
+    {
+        "id": "identity_check",
+        "name": "Identity Consistency",
+        "message": "Who are you and what do you do here?",
+        "expect_keywords": ["sutton", "destination smile", "dr. broome", "concierge", "virtual", "ambassador"],
+        "min_length": 40,
+        "category": "identity",
+    },
+]
+
 # Prompt injection / reverse-engineering detection patterns
 _JAILBREAK_PATTERNS: list[re.Pattern] = [
     # Direct prompt extraction
@@ -792,6 +842,12 @@ async def startup():
     # are also allocating memory, preventing OOM on 256MB Fly.io machines
     if RAG_ENABLED:
         print(f"RAG enabled — will initialize on first query (lazy loading for low-memory environments)")
+
+    # Phase C: Start canary test background scheduler
+    if CANARY_ENABLED:
+        global _canary_task
+        _canary_task = asyncio.create_task(_canary_scheduler())
+        print(f"Canary tests enabled — running every {CANARY_INTERVAL_MINUTES} minutes")
 
 
 # --- Helper Functions ---
@@ -3135,6 +3191,288 @@ async def clear_incidents():
     count = len(_security_incidents)
     _security_incidents.clear()
     return {"cleared": count, "message": f"Cleared {count} security incidents"}
+
+
+# --- Phase C: Canary Test System ---
+
+async def _run_single_canary(scenario: dict) -> dict:
+    """Run a single canary test scenario and return results."""
+    start = time.time()
+    result = {
+        "scenario_id": scenario["id"],
+        "scenario_name": scenario["name"],
+        "category": scenario["category"],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "passed": False,
+        "checks": {},
+        "reply_excerpt": "",
+        "latency_ms": 0,
+        "model_used": "",
+        "error": "",
+    }
+
+    try:
+        # Use the watchdog pipeline (same as real requests)
+        canary_session = f"canary-{scenario['id']}-{int(time.time())}"
+        reply, watchdog_info = await _generate_reply_with_watchdog(
+            scenario["message"], canary_session, "canary"
+        )
+
+        latency_ms = int((time.time() - start) * 1000)
+        result["latency_ms"] = latency_ms
+        result["model_used"] = watchdog_info.get("model_used", "unknown")
+        result["reply_excerpt"] = reply[:200] if reply else ""
+
+        # Check 1: Got a non-empty reply
+        got_reply = bool(reply and len(reply.strip()) > 0)
+        result["checks"]["got_reply"] = got_reply
+
+        # Check 2: Reply meets minimum length
+        meets_length = len(reply) >= scenario["min_length"] if reply else False
+        result["checks"]["meets_min_length"] = meets_length
+
+        # Check 3: Reply contains expected keywords (at least 1)
+        reply_lower = reply.lower() if reply else ""
+        keyword_hits = [kw for kw in scenario["expect_keywords"] if kw.lower() in reply_lower]
+        has_keywords = len(keyword_hits) >= 1
+        result["checks"]["has_expected_keywords"] = has_keywords
+        result["checks"]["keyword_hits"] = keyword_hits
+
+        # Check 4: Quality score from watchdog
+        quality_score = watchdog_info.get("quality_score", -1)
+        result["checks"]["quality_score"] = quality_score
+        quality_ok = quality_score == -1 or quality_score >= 50  # -1 means not scored
+        result["checks"]["quality_acceptable"] = quality_ok
+
+        # Check 5: No errors from watchdog
+        no_errors = watchdog_info.get("error", "") == ""
+        result["checks"]["no_errors"] = no_errors
+
+        # Check 6: Latency acceptable (under 30 seconds)
+        latency_ok = latency_ms < 30000
+        result["checks"]["latency_acceptable"] = latency_ok
+
+        # Overall pass: all critical checks must pass
+        result["passed"] = all([got_reply, meets_length, has_keywords, no_errors, latency_ok])
+
+        # Clean up canary conversation so it doesn't pollute real data
+        if canary_session in conversations:
+            del conversations[canary_session]
+        if canary_session in chat_history:
+            del chat_history[canary_session]
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["latency_ms"] = int((time.time() - start) * 1000)
+
+    return result
+
+
+async def _run_canary_suite() -> dict:
+    """Run all canary test scenarios and return aggregate results."""
+    suite_start = time.time()
+    results = []
+
+    for scenario in _CANARY_SCENARIOS:
+        result = await _run_single_canary(scenario)
+        results.append(result)
+        _canary_results.append(result)
+
+    passed = sum(1 for r in results if r["passed"])
+    failed = sum(1 for r in results if not r["passed"])
+    total = len(results)
+    suite_latency = int((time.time() - suite_start) * 1000)
+
+    suite_result = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "pass_rate": round(passed / total * 100, 1) if total > 0 else 0,
+        "suite_latency_ms": suite_latency,
+        "avg_latency_ms": round(sum(r["latency_ms"] for r in results) / total) if total > 0 else 0,
+        "results": results,
+    }
+
+    status = "PASS" if failed == 0 else "DEGRADED"
+    print(f"Canary suite: {status} — {passed}/{total} passed, avg latency {suite_result['avg_latency_ms']}ms")
+
+    # Send email alert if canary suite has failures
+    if failed > 0 and SMTP_HOST and SECURITY_ALERT_EMAIL:
+        _send_canary_alert(suite_result)
+
+    return suite_result
+
+
+def _send_canary_alert(suite_result: dict) -> None:
+    """Send email alert when canary tests fail."""
+    global _last_alert_sent
+
+    now = datetime.now(timezone.utc)
+    if _last_alert_sent and (now - _last_alert_sent) < timedelta(minutes=ALERT_COOLDOWN_MINUTES):
+        return
+
+    _last_alert_sent = now
+
+    def _send():
+        try:
+            failed_tests = [r for r in suite_result["results"] if not r["passed"]]
+            failed_names = ", ".join(r["scenario_name"] for r in failed_tests)
+
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"Sutton Canary Alert — {suite_result['failed']}/{suite_result['total']} tests failed"
+            msg["From"] = SMTP_FROM
+            msg["To"] = SECURITY_ALERT_EMAIL
+
+            rows = ""
+            for r in suite_result["results"]:
+                color = "#4caf50" if r["passed"] else "#d32f2f"
+                status = "PASS" if r["passed"] else "FAIL"
+                rows += f"""<tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{r['scenario_name']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; color: {color}; font-weight: bold;">{status}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{r['latency_ms']}ms</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{r['model_used']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-size: 12px;">{r.get('error', '') or r.get('reply_excerpt', '')[:80]}</td>
+                </tr>"""
+
+            html = f"""
+            <html><body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #ff9800;">Sutton Canary Test Alert</h2>
+            <p><strong>{suite_result['failed']}/{suite_result['total']}</strong> canary tests failed at {suite_result['timestamp']}</p>
+            <p>Failed: <strong>{failed_names}</strong></p>
+            <table style="border-collapse: collapse; width: 100%;">
+                <tr style="background: #f5f5f5;">
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Test</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Status</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Latency</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Model</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Detail</th>
+                </tr>
+                {rows}
+            </table>
+            <p style="margin-top: 20px; color: #666;">View dashboard: <a href="https://sutton-api-watchdog.fly.dev/watchdog/canary">Canary Results</a></p>
+            <p style="color: #999; font-size: 12px;">— Sutton Watchdog Phase C | Destination Smile</p>
+            </body></html>
+            """
+            msg.attach(MIMEText(html, "html"))
+
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_FROM, SECURITY_ALERT_EMAIL, msg.as_string())
+            print(f"CANARY ALERT EMAIL SENT to {SECURITY_ALERT_EMAIL}")
+        except Exception as e:
+            print(f"CANARY ALERT EMAIL FAILED: {e}")
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
+async def _canary_scheduler():
+    """Background task that runs canary tests on a schedule."""
+    # Wait 2 minutes after startup before first canary run (let models warm up)
+    await asyncio.sleep(120)
+    print("Canary scheduler: Starting first run...")
+
+    while True:
+        try:
+            await _run_canary_suite()
+        except Exception as e:
+            print(f"Canary scheduler error: {e}")
+        await asyncio.sleep(CANARY_INTERVAL_MINUTES * 60)
+
+
+@app.post("/watchdog/canary")
+async def trigger_canary():
+    """Manually trigger a canary test suite run. Returns results immediately."""
+    suite_result = await _run_canary_suite()
+    return suite_result
+
+
+@app.get("/watchdog/canary")
+async def get_canary_results():
+    """Get canary test history and current status."""
+    results = list(_canary_results)
+
+    if not results:
+        return {
+            "canary_enabled": CANARY_ENABLED,
+            "interval_minutes": CANARY_INTERVAL_MINUTES,
+            "total_runs": 0,
+            "last_run": None,
+            "overall_health": "no_data",
+            "scenarios": [s["id"] for s in _CANARY_SCENARIOS],
+            "history": [],
+        }
+
+    # Group results by run timestamp (approximate — group within 5 min windows)
+    runs: list[dict] = []
+    current_run: list[dict] = []
+    last_ts = None
+
+    for r in results:
+        ts = r["timestamp"]
+        if last_ts and ts != last_ts:
+            # Check if this is a new run (different timestamp batch)
+            if current_run:
+                runs.append(_summarize_canary_run(current_run))
+            current_run = []
+        current_run.append(r)
+        last_ts = ts
+    if current_run:
+        runs.append(_summarize_canary_run(current_run))
+
+    # Calculate overall health from last 3 runs
+    recent_runs = runs[-3:] if len(runs) >= 3 else runs
+    recent_pass_rates = [r["pass_rate"] for r in recent_runs]
+    avg_pass_rate = sum(recent_pass_rates) / len(recent_pass_rates) if recent_pass_rates else 0
+
+    if avg_pass_rate >= 100:
+        overall_health = "healthy"
+    elif avg_pass_rate >= 80:
+        overall_health = "degraded"
+    else:
+        overall_health = "critical"
+
+    # Per-scenario stats
+    scenario_stats = {}
+    for scenario in _CANARY_SCENARIOS:
+        scenario_results = [r for r in results if r["scenario_id"] == scenario["id"]]
+        if scenario_results:
+            pass_count = sum(1 for r in scenario_results if r["passed"])
+            scenario_stats[scenario["id"]] = {
+                "name": scenario["name"],
+                "category": scenario["category"],
+                "total_runs": len(scenario_results),
+                "pass_rate": round(pass_count / len(scenario_results) * 100, 1),
+                "avg_latency_ms": round(sum(r["latency_ms"] for r in scenario_results) / len(scenario_results)),
+                "last_passed": scenario_results[-1]["passed"],
+            }
+
+    return {
+        "canary_enabled": CANARY_ENABLED,
+        "interval_minutes": CANARY_INTERVAL_MINUTES,
+        "total_runs": len(runs),
+        "last_run": runs[-1] if runs else None,
+        "overall_health": overall_health,
+        "avg_pass_rate": round(avg_pass_rate, 1),
+        "scenario_stats": scenario_stats,
+        "history": runs[-10:],  # Last 10 runs
+    }
+
+
+def _summarize_canary_run(results: list[dict]) -> dict:
+    """Summarize a batch of canary results into a run summary."""
+    passed = sum(1 for r in results if r["passed"])
+    return {
+        "timestamp": results[0]["timestamp"] if results else "",
+        "total": len(results),
+        "passed": passed,
+        "failed": len(results) - passed,
+        "pass_rate": round(passed / len(results) * 100, 1) if results else 0,
+        "avg_latency_ms": round(sum(r["latency_ms"] for r in results) / len(results)) if results else 0,
+        "results": results,
+    }
 
 
 @app.delete("/watchdog/bans/{ip_address}")
