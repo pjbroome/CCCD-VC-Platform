@@ -46,10 +46,10 @@ All pages must follow `pjbroome/seo-aio-standards-2026`:
 - Full JSON-LD @graph (Organization + Dentist + Services)
 - Structured data validation before deployment
 
-## Related Repos
-- **Backend**: `pjbroome/sutton-api` — Sutton conversational AI
-- **VC Planning**: `pjbroome/cccd-virtual-consult` — Backend architecture
-- **Standards**: `pjbroome/seo-aio-standards-2026` — SEO/AIO templates
+## Related Projects
+- **Executive Hub**: [cccd-executive-hub](https://github.com/pjbroome/cccd-executive-hub) — Central wiki, shared config, team info
+- **Backend**: [sutton-api](https://github.com/pjbroome/sutton-api) — Sutton conversational AI
+- **Standards**: [seo-aio-standards-2026](https://github.com/pjbroome/seo-aio-standards-2026) — SEO/AIO templates
 
 ## Rules
 - Mobile-first: design for phone screens first, then scale up
@@ -60,10 +60,9 @@ All pages must follow `pjbroome/seo-aio-standards-2026`:
 - Follow existing component patterns — check `components/ui/` first
 - Use Tailwind utilities, avoid custom CSS where possible
 
-## Team
-- **CEO**: Dr. Patrick Broome
-- **Designer**: JJ (Claude COO agent)
-- **Lead Dev**: Devin (app.devin.ai)
-
-## MCP Connections (DO NOT ask for these — they are connected)
-- GitHub, Supabase, Railway, HeyGen, E2B, YouTube, Mem0
+## Team & Shared Config
+See [cccd-executive-hub](https://github.com/pjbroome/cccd-executive-hub) for:
+- Team roles & chain of command → `shared/config/team.md`
+- MCP connections → `shared/config/mcp-connections.md`
+- HITL workflow details → `shared/workflows/hitl-review.md`
+- Project roadmap → `docs/projects/roadmap.md`
