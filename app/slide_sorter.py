@@ -447,22 +447,42 @@ def _save_requests():
 
 
 def create_vc_request(data: dict) -> dict:
-    """Create a new VC request from patient intake."""
+    """Create a new VC request from patient intake.
+    
+    Required fields (Phase 2 schema):
+        first_name, last_name, email, phone, concern, consent_acknowledged
+    Optional fields:
+        date_of_birth, city, state, photos
+    Auto-generated:
+        id, status (new), notes, deck_id, consultation_id, created_at, updated_at
+    """
     import datetime
     _load_requests()
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     request = {
         "id": max((r["id"] for r in _requests), default=0) + 1,
-        "patient_name": data.get("patient_name", ""),
+        # Patient identity
+        "first_name": data.get("first_name", ""),
+        "last_name": data.get("last_name", ""),
         "email": data.get("email", ""),
         "phone": data.get("phone", ""),
-        "message": data.get("message", ""),
-        "concerns": data.get("concerns", []),
+        "date_of_birth": data.get("date_of_birth"),
+        "city": data.get("city"),
+        "state": data.get("state"),
+        # Clinical
+        "concern": data.get("concern", ""),
+        "consent_acknowledged": data.get("consent_acknowledged", False),
         "photos": data.get("photos", []),
-        "status": "pending",  # pending, in_progress, sent, archived
-        "submitted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        # Workflow
+        "status": "new",  # new → under_review → deck_built → recording_ready → approved → sent
         "notes": "",
+        "deck_id": None,
         "consultation_id": None,
+        # Timestamps
+        "created_at": now,
+        "updated_at": now,
+        # Legacy compat (kept for seed data migration)
+        "patient_name": f"{data.get('first_name', '')} {data.get('last_name', '')}".strip() or data.get("patient_name", ""),
     }
     _requests.append(request)
     _save_requests()

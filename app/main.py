@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks, Query, Request
+from fastapi import FastAPI, BackgroundTasks, Query, Request, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
@@ -12,6 +12,7 @@ import asyncio
 import concurrent.futures
 import time
 import random
+import shutil
 from collections import deque
 from datetime import datetime, timezone, timedelta
 import smtplib
@@ -42,6 +43,28 @@ from app.slide_sorter import (
     get_consultation,
     update_consultation,
     record_watch,
+)
+from app.models import (
+    RequestStatus,
+    VCRequestCreate,
+    VCRequestUpdate,
+    VCRequestRecord,
+    ConsultationCreate,
+    ConsultationUpdate,
+    StatusTransitionRequest,
+    StatusTransitionResponse,
+    AdminLoginRequest,
+    AdminLoginResponse,
+    PhotoUploadResponse,
+    is_valid_transition,
+)
+from app.auth import (
+    verify_admin_password,
+    create_session,
+    validate_token,
+    invalidate_session,
+    require_admin,
+    cleanup_expired_sessions,
 )
 
 load_dotenv()
@@ -2797,95 +2820,262 @@ async def remove_recording_deck(deck_id: int):
     return {"message": f"Deck {deck_id} deleted"}
 
 
+# --- Admin Auth Endpoints ---
+
+@app.post("/admin/login")
+async def admin_login(req: AdminLoginRequest):
+    """Login to get an admin bearer token for protected routes."""
+    if not verify_admin_password(req.password):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Invalid password")
+    session = create_session()
+    return AdminLoginResponse(
+        token=session["token"],
+        expires_at=session["expires_at"],
+    )
+
+
+@app.post("/admin/logout")
+async def admin_logout(session: dict = Depends(require_admin)):
+    """Invalidate the current admin session."""
+    if session.get("dev_mode"):
+        return {"message": "Dev mode — no session to invalidate"}
+    invalidate_session(session["token"])
+    return {"message": "Logged out successfully"}
+
+
+@app.get("/admin/session")
+async def admin_session_status(session: dict = Depends(require_admin)):
+    """Check current admin session status."""
+    return {"authenticated": True, "session": session}
+
+
+# --- Photo Upload Endpoints ---
+
+# Photo storage directory (MVP: local filesystem, HIPAA upgrade: S3/GCS with encryption)
+_PHOTOS_DIR = Path(__file__).parent / "vc_slides" / "patient_photos"
+_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Video storage directory (MVP: local filesystem, HIPAA upgrade: S3/GCS with encryption)
+_VIDEOS_DIR = Path(__file__).parent / "vc_slides" / "consult_videos"
+_VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.post("/vc/photos/upload")
+async def upload_patient_photo(file: UploadFile = File(...)):
+    """Upload a patient photo. Returns the file path for linking to a request.
+    
+    MVP: stored on local filesystem under app/vc_slides/patient_photos/
+    HIPAA upgrade: replace with S3/GCS pre-signed URL upload with encryption at rest.
+    """
+    # Generate unique filename to prevent collisions
+    ext = Path(file.filename or "photo.jpg").suffix or ".jpg"
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = _PHOTOS_DIR / unique_name
+
+    # Save file
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    photo_url = f"/vc/photos/{unique_name}"
+    return PhotoUploadResponse(
+        filename=unique_name,
+        path=str(file_path),
+        url=photo_url,
+        size_bytes=len(content),
+    )
+
+
+@app.get("/vc/photos/{filename}")
+async def serve_patient_photo(filename: str, session: dict = Depends(require_admin)):
+    """Serve a patient photo (admin-protected).
+    
+    MVP: serves from local filesystem.
+    HIPAA upgrade: generate pre-signed URL from S3/GCS.
+    """
+    from fastapi.responses import FileResponse
+    file_path = _PHOTOS_DIR / filename
+    if not file_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return FileResponse(file_path)
+
+
+@app.post("/vc/videos/upload")
+async def upload_consult_video(file: UploadFile = File(...), session: dict = Depends(require_admin)):
+    """Upload a consultation video. Returns the file path for linking to a consultation.
+    
+    MVP: stored on local filesystem under app/vc_slides/consult_videos/
+    HIPAA upgrade: replace with S3/GCS pre-signed URL upload with encryption at rest.
+    """
+    ext = Path(file.filename or "video.mp4").suffix or ".mp4"
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = _VIDEOS_DIR / unique_name
+
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    video_url = f"/vc/videos/{unique_name}"
+    return {
+        "filename": unique_name,
+        "path": str(file_path),
+        "url": video_url,
+        "size_bytes": len(content),
+    }
+
+
+@app.get("/vc/videos/{filename}")
+async def serve_consult_video(filename: str):
+    """Serve a consultation video (public — patient needs to watch)."""
+    from fastapi.responses import FileResponse
+    file_path = _VIDEOS_DIR / filename
+    if not file_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Video not found")
+    return FileResponse(file_path)
+
+
 # --- VC Request (Patient Intake CRM) Endpoints ---
-
-class VCRequestCreate(BaseModel):
-    patient_name: str
-    email: str = ""
-    phone: str = ""
-    message: str = ""
-    concerns: list[str] = []
-    photos: list[str] = []
-
-
-class VCRequestUpdate(BaseModel):
-    status: Optional[str] = None
-    notes: Optional[str] = None
-    patient_name: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-
-
-class ConsultationCreate(BaseModel):
-    request_id: Optional[int] = None
-    patient_name: str = ""
-    email: str = ""
-    phone: str = ""
-    concerns: list[str] = []
-    photos: list[str] = []
-    slide_numbers: list[int] = []
-    presentation_name: str = ""
-    script: str = ""
-    script_status: str = "draft"  # draft, approved, rejected
-    video_url: str = ""
-    clone_video_url: str = ""  # AI Clone generated video
-    video_source: str = "doctor"  # doctor, clone
-    summary_slide_data: Optional[dict] = None
-    training_video_ids: list[str] = []  # Smile Virtual video refs clone learned from
-    notes: str = ""
-
-
-class ConsultationUpdate(BaseModel):
-    status: Optional[str] = None
-    video_url: Optional[str] = None
-    clone_video_url: Optional[str] = None
-    video_source: Optional[str] = None
-    script: Optional[str] = None
-    script_status: Optional[str] = None
-    notes: Optional[str] = None
-
 
 @app.post("/vc/requests")
 async def create_vc_request_endpoint(req: VCRequestCreate):
-    """Submit a new VC request from patient intake."""
+    """Submit a new VC request from patient intake.
+    
+    Required fields: first_name, last_name, email, phone, concern, consent_acknowledged
+    Optional: date_of_birth, city, state, photos
+    """
+    if not req.consent_acknowledged:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Consent acknowledgement is required")
     data = req.model_dump()
     result = create_vc_request(data)
     return result
 
 
 @app.get("/vc/requests")
-async def list_vc_requests(status: Optional[str] = None):
-    """List all VC requests, optionally filtered by status."""
+async def list_vc_requests(status: Optional[str] = None, session: dict = Depends(require_admin)):
+    """List all VC requests, optionally filtered by status. Admin-protected."""
     requests = get_vc_requests(status)
     return {"total": len(requests), "requests": requests}
 
 
 @app.get("/vc/requests/{request_id}")
-async def get_vc_request_endpoint(request_id: int):
-    """Get full details of a VC request."""
+async def get_vc_request_endpoint(request_id: int, session: dict = Depends(require_admin)):
+    """Get full details of a VC request. Admin-protected."""
     result = get_vc_request(request_id)
     if not result:
-        return {"error": f"Request {request_id} not found"}
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
     return result
 
 
 @app.put("/vc/requests/{request_id}")
-async def update_vc_request_endpoint(request_id: int, req: VCRequestUpdate):
-    """Update a VC request (status, notes, etc.)."""
+async def update_vc_request_endpoint(request_id: int, req: VCRequestUpdate, session: dict = Depends(require_admin)):
+    """Update a VC request (status, notes, etc.). Admin-protected."""
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    
+    # Validate status transition if status is being changed
+    if "status" in updates:
+        current = get_vc_request(request_id)
+        if not current:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
+        current_status = RequestStatus(current.get("status", "new"))
+        target_status = updates["status"]
+        if isinstance(target_status, RequestStatus):
+            target_status_enum = target_status
+        else:
+            target_status_enum = RequestStatus(target_status)
+        if not is_valid_transition(current_status, target_status_enum):
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status transition: {current_status.value} → {target_status_enum.value}",
+            )
+        updates["status"] = target_status_enum.value
+    
     result = update_vc_request(request_id, updates)
     if not result:
-        return {"error": f"Request {request_id} not found"}
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
     return result
 
 
+@app.post("/vc/requests/{request_id}/transition")
+async def transition_request_status(
+    request_id: int,
+    req: StatusTransitionRequest,
+    session: dict = Depends(require_admin),
+):
+    """Transition a VC request to a new workflow status with validation.
+    
+    Valid transitions:
+    new → under_review
+    under_review → deck_built | new
+    deck_built → recording_ready | under_review
+    recording_ready → approved | deck_built
+    approved → sent | recording_ready
+    sent → approved (for re-send)
+    """
+    current = get_vc_request(request_id)
+    if not current:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
+    
+    current_status = RequestStatus(current.get("status", "new"))
+    if not is_valid_transition(current_status, req.status):
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid transition: {current_status.value} → {req.status.value}",
+        )
+    
+    updates: dict[str, Any] = {"status": req.status.value}
+    if req.notes:
+        existing_notes = current.get("notes", "")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        new_note = f"[{timestamp}] Status → {req.status.value}: {req.notes}"
+        updates["notes"] = f"{existing_notes}\n{new_note}".strip()
+    
+    result = update_vc_request(request_id, updates)
+    return StatusTransitionResponse(
+        request_id=request_id,
+        previous_status=current_status,
+        new_status=req.status,
+        transitioned_at=datetime.now(timezone.utc).isoformat(),
+        notes=req.notes,
+    )
+
+
 @app.delete("/vc/requests/{request_id}")
-async def delete_vc_request_endpoint(request_id: int):
-    """Delete a VC request."""
+async def delete_vc_request_endpoint(request_id: int, session: dict = Depends(require_admin)):
+    """Delete a VC request. Admin-protected."""
     success = delete_vc_request(request_id)
     if not success:
-        return {"error": f"Request {request_id} not found"}
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
     return {"message": f"Request {request_id} deleted"}
+
+
+@app.get("/vc/requests/schema")
+async def get_request_schema():
+    """Return the VC request schema and valid workflow statuses."""
+    return {
+        "schema": VCRequestCreate.model_json_schema(),
+        "statuses": [s.value for s in RequestStatus],
+        "transitions": {
+            s.value: [t.value for t in targets]
+            for s, targets in __import__("app.models", fromlist=["VALID_STATUS_TRANSITIONS"]).VALID_STATUS_TRANSITIONS.items()
+        },
+        "storage": {
+            "requests": "JSON file (app/vc_slides/vc_requests.json) — MVP",
+            "photos": "Local filesystem (app/vc_slides/patient_photos/) — MVP",
+            "videos": "Local filesystem (app/vc_slides/consult_videos/) — MVP",
+            "hipaa_upgrade": "Supabase + S3/GCS with encryption at rest",
+        },
+    }
 
 
 # --- VC Consultation (Archive) Endpoints ---
