@@ -2961,6 +2961,26 @@ async def list_vc_requests(status: Optional[str] = None, session: dict = Depends
     return {"total": len(requests), "requests": requests}
 
 
+@app.get("/vc/requests/schema")
+async def get_request_schema():
+    """Return the VC request schema and valid workflow statuses."""
+    from app.models import VALID_STATUS_TRANSITIONS
+    return {
+        "schema": VCRequestCreate.model_json_schema(),
+        "statuses": [s.value for s in RequestStatus],
+        "transitions": {
+            s.value: [t.value for t in targets]
+            for s, targets in VALID_STATUS_TRANSITIONS.items()
+        },
+        "storage": {
+            "requests": "JSON file (app/vc_slides/vc_requests.json) — MVP",
+            "photos": "Local filesystem (app/vc_slides/patient_photos/) — MVP",
+            "videos": "Local filesystem (app/vc_slides/consult_videos/) — MVP",
+            "hipaa_upgrade": "Supabase + S3/GCS with encryption at rest",
+        },
+    }
+
+
 @app.get("/vc/requests/{request_id}")
 async def get_vc_request_endpoint(request_id: int, session: dict = Depends(require_admin)):
     """Get full details of a VC request. Admin-protected."""
@@ -3057,25 +3077,6 @@ async def delete_vc_request_endpoint(request_id: int, session: dict = Depends(re
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
     return {"message": f"Request {request_id} deleted"}
-
-
-@app.get("/vc/requests/schema")
-async def get_request_schema():
-    """Return the VC request schema and valid workflow statuses."""
-    return {
-        "schema": VCRequestCreate.model_json_schema(),
-        "statuses": [s.value for s in RequestStatus],
-        "transitions": {
-            s.value: [t.value for t in targets]
-            for s, targets in __import__("app.models", fromlist=["VALID_STATUS_TRANSITIONS"]).VALID_STATUS_TRANSITIONS.items()
-        },
-        "storage": {
-            "requests": "JSON file (app/vc_slides/vc_requests.json) — MVP",
-            "photos": "Local filesystem (app/vc_slides/patient_photos/) — MVP",
-            "videos": "Local filesystem (app/vc_slides/consult_videos/) — MVP",
-            "hipaa_upgrade": "Supabase + S3/GCS with encryption at rest",
-        },
-    }
 
 
 # --- VC Consultation (Archive) Endpoints ---
