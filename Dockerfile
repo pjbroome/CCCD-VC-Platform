@@ -20,17 +20,13 @@ RUN poetry install --no-root --no-interaction --no-ansi
 # Copy application code
 COPY app/ app/
 
-# Copy pre-generated RAG data — split-file architecture for ultra-low memory (~7MB total)
-# Embeddings: memory-mapped, ~0 RSS at load time
-COPY rag_embeddings.npy /tmp/rag_embeddings.npy
-# Chunk metadata (source/category only, no text): ~0.5MB
-COPY rag_chunks_meta.json /tmp/rag_chunks_meta.json
-# Pre-built inverted index for keyword pre-filtering: ~2MB
-COPY rag_inverted_index.json /tmp/rag_inverted_index.json
-# Chunk text as JSONL for on-demand random access: ~4.8MB
-COPY rag_chunks_text.jsonl /tmp/rag_chunks_text.jsonl
-# Byte offsets for random text access: ~0.1MB
-COPY rag_chunks_text_offsets.json /tmp/rag_chunks_text_offsets.json
+# Copy pre-generated RAG data if available (use generate_embeddings.py to rebuild)
+# These files are optional — app runs with RAG_ENABLED=false if missing
+COPY rag_chunks_meta.json* /tmp/
+COPY rag_inverted_index.json* /tmp/
+COPY rag_chunks_text.jsonl* /tmp/
+COPY rag_chunks_text_offsets.json* /tmp/
+COPY rag_embeddings.npy* /tmp/
 
 # Expose port
 EXPOSE 8000
