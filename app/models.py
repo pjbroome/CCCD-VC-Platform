@@ -15,8 +15,10 @@ class RequestStatus(str, Enum):
     """Workflow statuses for a VC request.
     
     Flow: new → under_review → deck_built → recording_ready → approved → sent
+    Legacy alias: pending = new (kept for backward-compat with seed data)
     """
     NEW = "new"
+    PENDING = "pending"  # legacy alias — treated identically to NEW
     UNDER_REVIEW = "under_review"
     DECK_BUILT = "deck_built"
     RECORDING_READY = "recording_ready"
@@ -26,7 +28,8 @@ class RequestStatus(str, Enum):
 
 # Valid status transitions
 VALID_STATUS_TRANSITIONS: dict[RequestStatus, list[RequestStatus]] = {
-    RequestStatus.NEW: [RequestStatus.UNDER_REVIEW],
+    RequestStatus.NEW: [RequestStatus.UNDER_REVIEW, RequestStatus.DECK_BUILT],
+    RequestStatus.PENDING: [RequestStatus.UNDER_REVIEW, RequestStatus.DECK_BUILT, RequestStatus.NEW],  # legacy
     RequestStatus.UNDER_REVIEW: [RequestStatus.DECK_BUILT, RequestStatus.NEW],
     RequestStatus.DECK_BUILT: [RequestStatus.RECORDING_READY, RequestStatus.UNDER_REVIEW],
     RequestStatus.RECORDING_READY: [RequestStatus.APPROVED, RequestStatus.DECK_BUILT],
