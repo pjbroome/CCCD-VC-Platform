@@ -26,15 +26,15 @@ class RequestStatus(str, Enum):
     SENT = "sent"
 
 
-# Valid status transitions
+# Valid status transitions — permissive for MVP (staff can skip steps when needed)
 VALID_STATUS_TRANSITIONS: dict[RequestStatus, list[RequestStatus]] = {
-    RequestStatus.NEW: [RequestStatus.UNDER_REVIEW, RequestStatus.DECK_BUILT],
-    RequestStatus.PENDING: [RequestStatus.UNDER_REVIEW, RequestStatus.DECK_BUILT, RequestStatus.NEW],  # legacy
-    RequestStatus.UNDER_REVIEW: [RequestStatus.DECK_BUILT, RequestStatus.NEW],
-    RequestStatus.DECK_BUILT: [RequestStatus.RECORDING_READY, RequestStatus.UNDER_REVIEW],
-    RequestStatus.RECORDING_READY: [RequestStatus.APPROVED, RequestStatus.DECK_BUILT],
+    RequestStatus.NEW: [RequestStatus.UNDER_REVIEW, RequestStatus.DECK_BUILT, RequestStatus.RECORDING_READY, RequestStatus.APPROVED, RequestStatus.SENT],
+    RequestStatus.PENDING: [RequestStatus.UNDER_REVIEW, RequestStatus.DECK_BUILT, RequestStatus.RECORDING_READY, RequestStatus.APPROVED, RequestStatus.SENT, RequestStatus.NEW],
+    RequestStatus.UNDER_REVIEW: [RequestStatus.DECK_BUILT, RequestStatus.RECORDING_READY, RequestStatus.APPROVED, RequestStatus.NEW],
+    RequestStatus.DECK_BUILT: [RequestStatus.RECORDING_READY, RequestStatus.APPROVED, RequestStatus.SENT, RequestStatus.UNDER_REVIEW],
+    RequestStatus.RECORDING_READY: [RequestStatus.APPROVED, RequestStatus.SENT, RequestStatus.DECK_BUILT],
     RequestStatus.APPROVED: [RequestStatus.SENT, RequestStatus.RECORDING_READY],
-    RequestStatus.SENT: [RequestStatus.APPROVED],  # allow re-approve for re-send
+    RequestStatus.SENT: [RequestStatus.APPROVED, RequestStatus.RECORDING_READY],  # allow re-approve / re-record
 }
 
 

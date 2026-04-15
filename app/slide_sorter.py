@@ -377,7 +377,24 @@ def _save_catalog():
 
 
 # --- Recording Decks ---
-_DECKS_PATH = Path(__file__).parent / "vc_slides" / "recording_decks.json"
+# Use persistent volume (/data/) if available, fall back to app directory.
+# This ensures data survives Fly.io deploys (container rebuilds).
+_DATA_DIR = Path("/data/vc") if Path("/data").exists() else Path(__file__).parent / "vc_slides"
+_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _resolve_path(filename: str) -> Path:
+    """Return path on persistent volume, seeding from app dir if needed."""
+    vol_path = _DATA_DIR / filename
+    if not vol_path.exists():
+        seed = Path(__file__).parent / "vc_slides" / filename
+        if seed.exists():
+            import shutil
+            shutil.copy2(seed, vol_path)
+    return vol_path
+
+
+_DECKS_PATH = _resolve_path("recording_decks.json")
 _decks: list[dict] = []
 
 
@@ -428,7 +445,7 @@ def delete_recording_deck(deck_id: int) -> bool:
 
 
 # --- VC Requests (Patient Intake CRM) ---
-_REQUESTS_PATH = Path(__file__).parent / "vc_slides" / "vc_requests.json"
+_REQUESTS_PATH = _resolve_path("vc_requests.json")
 _requests: list[dict] = []
 
 
@@ -533,7 +550,7 @@ def delete_vc_request(request_id: int) -> bool:
 
 
 # --- VC Consultations (Archive) ---
-_CONSULTATIONS_PATH = Path(__file__).parent / "vc_slides" / "vc_consultations.json"
+_CONSULTATIONS_PATH = _resolve_path("vc_consultations.json")
 _consultations: list[dict] = []
 
 
