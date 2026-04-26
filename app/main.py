@@ -102,7 +102,7 @@ TRAINING_DATA_DIR = os.environ.get("TRAINING_DATA_DIR", "/home/ubuntu/repos/cccd
 
 # --- Watchdog Configuration ---
 WATCHDOG_ENABLED = os.environ.get("WATCHDOG_ENABLED", "true").lower() == "true"
-WATCHDOG_TIMEOUT_SECONDS = int(os.environ.get("WATCHDOG_TIMEOUT_SECONDS", "25"))
+WATCHDOG_TIMEOUT_SECONDS = int(os.environ.get("WATCHDOG_TIMEOUT_SECONDS", "45"))
 WATCHDOG_QUALITY_THRESHOLD = int(os.environ.get("WATCHDOG_QUALITY_THRESHOLD", "60"))
 WATCHDOG_MAX_RETRIES = int(os.environ.get("WATCHDOG_MAX_RETRIES", "1"))
 
