@@ -1,0 +1,38 @@
+# Sutton API — Fly.io Deployment Configuration
+# App: sutton-api-watchdog (Dr. Broome's Fly.io account)
+# Region: iad (Ashburn, Virginia)
+#
+# Deploy: fly deploy
+# Secrets: fly secrets set KEY=VALUE
+# Logs: fly logs
+
+app = "sutton-api-watchdog"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  LLM_PROVIDER = "gemini"
+  SUTTON_MODEL = "gemini-2.5-pro"
+  SUTTON_FALLBACK_MODEL = "gemini-2.5-flash"
+  CRITIC_MODEL = "gemini-2.5-flash"
+  SUTTON_TEMPERATURE = "0.8"
+  RAG_ENABLED = "true"
+  WATCHDOG_ENABLED = "true"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
