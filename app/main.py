@@ -89,12 +89,13 @@ if _slide_images_dir.exists():
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+ABACUS_API_KEY = os.environ.get("ABACUS_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "openrouter/auto")  # Auto-router picks best model per query (like Abacus RouteLLM)
-SUTTON_FALLBACK_MODEL = os.environ.get("SUTTON_FALLBACK_MODEL", "google/gemini-2.5-flash")  # Fast fallback if auto-router fails
+SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "route-llm")  # Abacus RouteLLM: picks best model per query (Sonnet 4.6, GPT-5.4, Gemini 3.1 Flash)
+SUTTON_FALLBACK_MODEL = os.environ.get("SUTTON_FALLBACK_MODEL", "google/gemini-2.5-flash")  # Fast fallback if RouteLLM fails
 CRITIC_MODEL = os.environ.get("CRITIC_MODEL", "google/gemini-2.5-flash")
-LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openrouter")  # "openrouter", "gemini", or "anthropic"
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openrouter")  # "openrouter" (also used for Abacus RouteLLM), "gemini", or "anthropic"
 SUTTON_TEMPERATURE = float(os.environ.get("SUTTON_TEMPERATURE", "0.8"))
 CROWN_COUNCIL_EMAIL = os.environ.get("CROWN_COUNCIL_EMAIL", "")
 CROWN_COUNCIL_PASSWORD = os.environ.get("CROWN_COUNCIL_PASSWORD", "")
@@ -830,16 +831,21 @@ async def startup():
         except Exception as e:
             print(f"Warning: Could not initialize Anthropic: {e}")
 
-    if OPENROUTER_API_KEY:
+    # Prefer Abacus RouteLLM if available (same routing as Abacus Sutton),
+    # fall back to OpenRouter if only that key is set
+    _llm_api_key = ABACUS_API_KEY or OPENROUTER_API_KEY
+    _llm_base_url = "https://routellm.abacus.ai/v1" if ABACUS_API_KEY else "https://openrouter.ai/api/v1"
+    _llm_provider_name = "Abacus RouteLLM" if ABACUS_API_KEY else "OpenRouter"
+    if _llm_api_key:
         try:
             from openai import OpenAI
             openrouter_client = OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=OPENROUTER_API_KEY,
+                base_url=_llm_base_url,
+                api_key=_llm_api_key,
             )
-            print(f"OpenRouter client initialized (model: {SUTTON_MODEL}, provider: {LLM_PROVIDER})")
+            print(f"{_llm_provider_name} client initialized (model: {SUTTON_MODEL}, base: {_llm_base_url})")
         except Exception as e:
-            print(f"Warning: Could not initialize OpenRouter: {e}")
+            print(f"Warning: Could not initialize {_llm_provider_name}: {e}")
 
     if SUPABASE_URL and SUPABASE_KEY:
         try:
