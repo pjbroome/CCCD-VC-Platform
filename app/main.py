@@ -869,11 +869,29 @@ async def startup():
 
 # --- Helper Functions ---
 def get_conversation_context(session_id: str, max_messages: int = 10) -> str:
+    """Get conversation context as flat text (for Gemini fallback)."""
     history = conversations.get(session_id, [])
     if not history:
         return ""
     recent = history[-max_messages:]
     return "\n".join(f"{'Guest' if m['role'] == 'user' else 'Sutton'}: {m['content']}" for m in recent)
+
+
+def get_conversation_messages(session_id: str, max_messages: int = 10) -> list[dict]:
+    """Get conversation history as proper multi-turn chat messages.
+    Returns list of {"role": "user"|"assistant", "content": "..."} dicts
+    suitable for OpenAI-compatible chat APIs (OpenRouter, etc).
+    This is how Abacus/RouteLLM handles conversations — proper message structure
+    lets the model see its own previous responses and maintain consistency."""
+    history = conversations.get(session_id, [])
+    if not history:
+        return []
+    recent = history[-max_messages:]
+    messages = []
+    for m in recent:
+        role = "user" if m["role"] == "user" else "assistant"
+        messages.append({"role": role, "content": m["content"]})
+    return messages
 
 
 def add_to_conversation(session_id: str, role: str, content: str):
@@ -971,9 +989,15 @@ def _clean_corporate_filler(text: str) -> str:
 
 def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "unknown"):
     """Prepare the system prompt, user prompt, and config for Sutton.
-    Returns (full_system, user_prompt, contents, config) or None if no LLM client.
-    Config is Gemini-specific; OpenRouter uses its own format."""
-    context = get_conversation_context(session_id, max_messages=10)  # Last 5 exchanges to keep responses fast
+    Returns (full_system, user_prompt, contents, config, openrouter_messages).
+    - full_system: System prompt string (for Gemini/Anthropic fallback)
+    - user_prompt: Flat user prompt string (for Gemini/Anthropic fallback)
+    - contents: Gemini-specific format
+    - config: Gemini-specific config
+    - openrouter_messages: Proper multi-turn message array for OpenRouter
+      This matches how Abacus/RouteLLM sends conversations — the model sees
+      its own previous responses as separate assistant messages, so it naturally
+      won't re-introduce itself and maintains quality over long conversations."""
 
     # RAG: Retrieve relevant training content for this specific query
     rag_context = ""
@@ -991,21 +1015,24 @@ def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "u
     if rag_context:
         rag_section = f"\n\n## RELEVANT TRAINING CONTENT (use this to inform your response)\n{rag_context}"
 
+    full_system = SUTTON_SYSTEM_PROMPT + rag_section
+
+    # --- Build proper multi-turn messages for OpenRouter (Abacus-style) ---
+    history_messages = get_conversation_messages(session_id, max_messages=10)
+    openrouter_messages = [{"role": "system", "content": full_system}]
+    # Add conversation history as proper user/assistant turns
+    openrouter_messages.extend(history_messages)
+    # Add the current guest message
+    openrouter_messages.append({"role": "user", "content": message})
+
+    # --- Build flat prompt for Gemini/Anthropic fallback ---
+    context = get_conversation_context(session_id, max_messages=10)
+
     rag_instruction = ""
     if rag_context:
         rag_instruction = " When the training content above is relevant, weave that knowledge naturally into your response."
 
-    is_continued = context and context.strip() and "Sutton:" in context
-    continuation_note = ""
-    if is_continued:
-        continuation_note = " This is a CONTINUED conversation -- do NOT re-introduce yourself or say 'I'm Sutton' or 'I'm your virtual concierge.' The guest already knows you. Just continue naturally."
-    else:
-        # First message in a new thread — introduce yourself once, then never again
-        continuation_note = " This is the FIRST message in a new conversation. You may introduce yourself briefly (e.g., mention you're Sutton), but keep it natural and short — then get straight into helping."
-
-    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your training and guidelines.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
-
-    full_system = SUTTON_SYSTEM_PROMPT + rag_section
+    user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your training and guidelines.{rag_instruction} Only reference details the guest has actually mentioned in THIS conversation — don't assume or invent anything they haven't said."
 
     from google.genai import types as genai_types
     contents = [{"role": "user", "parts": [{"text": f"{full_system}\n\n{user_prompt}"}]}]
@@ -1013,39 +1040,46 @@ def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "u
         temperature=SUTTON_TEMPERATURE,
         max_output_tokens=8192,
     )
-    return full_system, user_prompt, contents, config
+    return full_system, user_prompt, contents, config, openrouter_messages
 
 
-def _generate_openrouter_reply(system_prompt: str, user_prompt: str, model: str = None) -> str:
+def _generate_openrouter_reply(system_prompt: str, user_prompt: str, model: str = None, messages: list[dict] = None) -> str:
     """Generate a reply using OpenRouter (OpenAI-compatible API).
-    Supports any model available on OpenRouter including auto-routing."""
+    If 'messages' is provided, uses proper multi-turn format (Abacus-style).
+    Otherwise falls back to system+user single-turn format."""
     if not openrouter_client:
         return ""
     model = model or SUTTON_MODEL
     try:
-        response = openrouter_client.chat.completions.create(
-            model=model,
-            messages=[
+        # Use proper multi-turn messages if provided (preferred — matches Abacus)
+        if messages:
+            chat_messages = messages
+        else:
+            chat_messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
-            ],
+            ]
+        response = openrouter_client.chat.completions.create(
+            model=model,
+            messages=chat_messages,
             temperature=SUTTON_TEMPERATURE,
             max_tokens=1024,
         )
         reply = response.choices[0].message.content if response.choices else ""
         actual_model = getattr(response, "model", model)
-        print(f"OpenRouter: model={actual_model}, tokens={response.usage.total_tokens if response.usage else 'N/A'}")
+        msg_count = len(chat_messages) if messages else 2
+        print(f"OpenRouter: model={actual_model}, tokens={response.usage.total_tokens if response.usage else 'N/A'}, messages={msg_count}")
         return reply or ""
     except Exception as e:
         print(f"OpenRouter error ({model}): {e}")
         return ""
 
 
-async def _generate_openrouter_reply_async(system_prompt: str, user_prompt: str, model: str = None) -> str:
+async def _generate_openrouter_reply_async(system_prompt: str, user_prompt: str, model: str = None, messages: list[dict] = None) -> str:
     """Async wrapper for OpenRouter generation (runs in thread pool)."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
-        None, _generate_openrouter_reply, system_prompt, user_prompt, model
+        None, _generate_openrouter_reply, system_prompt, user_prompt, model, messages
     )
 
 
@@ -1060,16 +1094,19 @@ def generate_sutton_reply(message: str, session_id: str, disc_profile: str = "un
     user_prompt = prepared[1]
     contents = prepared[2]
     config = prepared[3]
+    openrouter_messages = prepared[4]
 
     # Step 1: Try OpenRouter (primary — multi-model routing, fast)
+    # Uses proper multi-turn messages (Abacus-style) so the model sees its own
+    # previous responses and naturally won't re-introduce or lose context.
     if openrouter_client and LLM_PROVIDER == "openrouter":
-        reply = _generate_openrouter_reply(full_system, user_prompt, SUTTON_MODEL)
+        reply = _generate_openrouter_reply(full_system, user_prompt, SUTTON_MODEL, messages=openrouter_messages)
         if reply:
             return _clean_corporate_filler(reply)
         # Try fallback model on OpenRouter
         if SUTTON_FALLBACK_MODEL:
             print(f"OpenRouter primary failed, trying fallback: {SUTTON_FALLBACK_MODEL}")
-            reply = _generate_openrouter_reply(full_system, user_prompt, SUTTON_FALLBACK_MODEL)
+            reply = _generate_openrouter_reply(full_system, user_prompt, SUTTON_FALLBACK_MODEL, messages=openrouter_messages)
             if reply:
                 return _clean_corporate_filler(reply)
 
@@ -1309,13 +1346,15 @@ async def _generate_reply_with_watchdog(message: str, session_id: str,
     user_prompt = prepared[1]
     contents = prepared[2]
     config = prepared[3]
+    openrouter_messages = prepared[4]
 
     reply = ""
 
     # Step 1: Try OpenRouter (primary — fast multi-model routing)
+    # Uses proper multi-turn messages (Abacus-style) for conversation consistency.
     if openrouter_client and LLM_PROVIDER == "openrouter":
         try:
-            reply = await _generate_openrouter_reply_async(full_system, user_prompt, SUTTON_MODEL)
+            reply = await _generate_openrouter_reply_async(full_system, user_prompt, SUTTON_MODEL, messages=openrouter_messages)
             if reply:
                 reply = _clean_corporate_filler(reply)
         except Exception as e:
@@ -1328,7 +1367,7 @@ async def _generate_reply_with_watchdog(message: str, session_id: str,
             watchdog_info["fallback_model"] = SUTTON_FALLBACK_MODEL
             watchdog_info["model_used"] = SUTTON_FALLBACK_MODEL
             try:
-                reply = await _generate_openrouter_reply_async(full_system, user_prompt, SUTTON_FALLBACK_MODEL)
+                reply = await _generate_openrouter_reply_async(full_system, user_prompt, SUTTON_FALLBACK_MODEL, messages=openrouter_messages)
                 if reply:
                     reply = _clean_corporate_filler(reply)
             except Exception as e2:
@@ -1389,8 +1428,11 @@ async def _generate_reply_with_watchdog(message: str, session_id: str,
             retry_reply = ""
             try:
                 if openrouter_client and LLM_PROVIDER == "openrouter":
-                    coaching_prompt = user_prompt + f"\n\nIMPORTANT COACHING NOTE: Your previous attempt scored {score}/100 on quality. Focus on: warmth, asking questions instead of lecturing, natural conversational flow, and matching the guest's energy level. Be concise and advance the conversation."
-                    retry_reply = await _generate_openrouter_reply_async(full_system, coaching_prompt, watchdog_info["model_used"])
+                    # Build retry messages with coaching note appended to the last user message
+                    retry_messages = openrouter_messages.copy()
+                    if retry_messages and retry_messages[-1]["role"] == "user":
+                        retry_messages[-1] = {"role": "user", "content": retry_messages[-1]["content"] + f"\n\nIMPORTANT COACHING NOTE: Your previous attempt scored {score}/100 on quality. Focus on: warmth, asking questions instead of lecturing, natural conversational flow, and matching the guest's energy level. Be concise and advance the conversation."}
+                    retry_reply = await _generate_openrouter_reply_async(full_system, user_prompt, watchdog_info["model_used"], messages=retry_messages)
                 elif gemini_client:
                     retry_contents = [{"role": "user", "parts": [{"text":
                         contents[0]["parts"][0]["text"] +
@@ -1688,20 +1730,20 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
             user_prompt = prepared[1]
             contents = prepared[2]
             config = prepared[3]
+            openrouter_messages = prepared[4]
 
             # Send session_id immediately so client can track
             yield f"data: {json.dumps({'type': 'start', 'session_id': session_id})}\n\n"
 
             # Step 1: Try OpenRouter with streaming (primary — fast)
+            # Uses proper multi-turn messages (Abacus-style) so the model sees
+            # its own previous responses and naturally maintains consistency.
             primary_succeeded = False
             if openrouter_client and LLM_PROVIDER == "openrouter":
                 try:
                     stream = openrouter_client.chat.completions.create(
                         model=SUTTON_MODEL,
-                        messages=[
-                            {"role": "system", "content": full_system},
-                            {"role": "user", "content": user_prompt},
-                        ],
+                        messages=openrouter_messages,
                         temperature=SUTTON_TEMPERATURE,
                         max_tokens=1024,
                         stream=True,
@@ -1721,7 +1763,7 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
                     print(f"Watchdog stream: OpenRouter error: {e}")
                     full_reply = ""
 
-                # OpenRouter fallback model
+                # OpenRouter fallback model (still uses multi-turn messages)
                 if not primary_succeeded and SUTTON_FALLBACK_MODEL:
                     model_used = SUTTON_FALLBACK_MODEL
                     fallback_used = True
@@ -1730,10 +1772,7 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
                         yield f"data: {json.dumps({'type': 'fallback', 'model': SUTTON_FALLBACK_MODEL})}\n\n"
                         stream = openrouter_client.chat.completions.create(
                             model=SUTTON_FALLBACK_MODEL,
-                            messages=[
-                                {"role": "system", "content": full_system},
-                                {"role": "user", "content": user_prompt},
-                            ],
+                            messages=openrouter_messages,
                             temperature=SUTTON_TEMPERATURE,
                             max_tokens=1024,
                             stream=True,
