@@ -1004,7 +1004,11 @@ def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "u
     is_continued = context and context.strip() and "Sutton:" in context
     continuation_note = ""
     if is_continued:
-        continuation_note = " This is a CONTINUED conversation -- do NOT re-introduce yourself or say 'I'm Sutton.' The guest already knows you. Just continue naturally."
+        continuation_note = " This is a CONTINUED conversation -- do NOT re-introduce yourself or say 'I'm Sutton' or 'I'm your virtual concierge.' The guest already knows you. Just continue naturally."
+    else:
+        # Even on first message, Sutton's greeting is shown in the UI already.
+        # Don't repeat the introduction — jump straight into helping.
+        continuation_note = " The guest has already seen your greeting in the chat interface. Do NOT introduce yourself or say 'I'm Sutton' — they already know who you are. Jump straight into helping them with their question."
 
     user_prompt = f"CONVERSATION HISTORY:\n{context}\n\nGUEST'S MESSAGE:\n{message}\n\nGUEST DISC PROFILE: {disc_profile}\n\nRespond as Sutton following your training and guidelines.{rag_instruction}{continuation_note} Only reference details the guest has actually mentioned in THIS conversation -- don't assume or invent anything they haven't said."
 
