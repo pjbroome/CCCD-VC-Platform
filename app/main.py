@@ -1,7 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks, Query, Request, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, Any
 import os
@@ -3542,7 +3542,7 @@ def _send_canary_alert(suite_result: dict) -> None:
                 </tr>
                 {rows}
             </table>
-            <p style="margin-top: 20px; color: #666;">View dashboard: <a href="https://sutton-api-watchdog.fly.dev/watchdog/canary">Canary Results</a></p>
+            <p style="margin-top: 20px; color: #666;">View dashboard: <a href="https://sutton-api-watchdog.fly.dev/watchdog/dashboard">Sutton Watchdog Dashboard</a></p>
             <p style="color: #999; font-size: 12px;">— Sutton Watchdog Phase C | Destination Smile</p>
             </body></html>
             """
@@ -3578,6 +3578,87 @@ async def trigger_canary():
     """Manually trigger a canary test suite run. Returns results immediately."""
     suite_result = await _run_canary_suite()
     return suite_result
+
+
+@app.get("/watchdog/dashboard", response_class=HTMLResponse)
+async def watchdog_dashboard():
+    """Visual HTML dashboard for Watchdog canary results and system health."""
+    canary_data = list(_canary_results)
+
+    # Build scenario rows
+    scenario_rows = ""
+    seen_scenarios = {}
+    for r in reversed(canary_data):
+        sid = r.get("scenario_id", "")
+        if sid not in seen_scenarios:
+            seen_scenarios[sid] = r
+    for sid, r in seen_scenarios.items():
+        color = "#4caf50" if r["passed"] else "#d32f2f"
+        status = "PASS" if r["passed"] else "FAIL"
+        scenario_rows += f"""<tr>
+            <td style="padding: 10px; border-bottom: 1px solid #333;">{r.get('scenario_name', sid)}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #333; color: {color}; font-weight: bold;">{status}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #333;">{r.get('latency_ms', 0)}ms</td>
+            <td style="padding: 10px; border-bottom: 1px solid #333;">{r.get('model_used', 'N/A')}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #333; font-size: 13px; max-width: 300px; overflow: hidden; text-overflow: ellipsis;">{r.get('error', '') or r.get('reply_excerpt', '')[:120]}</td>
+        </tr>"""
+
+    if not scenario_rows:
+        scenario_rows = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #888;">No canary results yet — tests run every 30 minutes</td></tr>'
+
+    # Calculate health
+    total = len(canary_data)
+    passed = sum(1 for r in canary_data if r.get("passed"))
+    pass_rate = round(passed / total * 100, 1) if total else 0
+    health_color = "#4caf50" if pass_rate >= 100 else "#ff9800" if pass_rate >= 80 else "#d32f2f"
+    health_label = "Healthy" if pass_rate >= 100 else "Degraded" if pass_rate >= 80 else "Critical"
+    last_run = canary_data[-1].get("timestamp", "N/A") if canary_data else "N/A"
+
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sutton Watchdog Dashboard</title>
+<style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 32px; }}
+    .header {{ display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }}
+    .header h1 {{ font-size: 24px; color: #c4a052; }}
+    .header .badge {{ padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; color: #fff; background: {health_color}; }}
+    .stats {{ display: flex; gap: 20px; margin-bottom: 32px; flex-wrap: wrap; }}
+    .stat {{ background: #161616; border: 1px solid #222; border-radius: 12px; padding: 20px; min-width: 180px; flex: 1; }}
+    .stat-label {{ font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }}
+    .stat-value {{ font-size: 28px; font-weight: 600; color: #c4a052; }}
+    .stat-value.green {{ color: #4caf50; }}
+    table {{ width: 100%; border-collapse: collapse; background: #161616; border-radius: 12px; overflow: hidden; border: 1px solid #222; }}
+    th {{ padding: 12px 10px; text-align: left; background: #1a1a1a; color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; }}
+    .footer {{ margin-top: 32px; color: #555; font-size: 12px; text-align: center; }}
+    .footer a {{ color: #c4a052; text-decoration: none; }}
+    .refresh {{ margin-left: auto; padding: 8px 16px; background: #c4a052; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }}
+    .refresh:hover {{ background: #d4b062; }}
+</style></head>
+<body>
+    <div class="header">
+        <h1>Sutton Watchdog Dashboard</h1>
+        <span class="badge">{health_label}</span>
+        <button class="refresh" onclick="location.reload()">Refresh</button>
+    </div>
+    <div class="stats">
+        <div class="stat"><div class="stat-label">Pass Rate</div><div class="stat-value" style="color: {health_color};">{pass_rate}%</div></div>
+        <div class="stat"><div class="stat-label">Total Tests</div><div class="stat-value">{total}</div></div>
+        <div class="stat"><div class="stat-label">Passed</div><div class="stat-value green">{passed}</div></div>
+        <div class="stat"><div class="stat-label">Failed</div><div class="stat-value" style="color: #d32f2f;">{total - passed}</div></div>
+        <div class="stat"><div class="stat-label">Model</div><div class="stat-value" style="font-size: 16px;">{SUTTON_MODEL}</div></div>
+        <div class="stat"><div class="stat-label">Last Run</div><div class="stat-value" style="font-size: 14px;">{last_run}</div></div>
+    </div>
+    <table>
+        <tr><th>Scenario</th><th>Status</th><th>Latency</th><th>Model</th><th>Detail</th></tr>
+        {scenario_rows}
+    </table>
+    <div class="footer">
+        <p>Sutton Watchdog Phase C &mdash; Canary Tests | <a href="/watchdog/status">System Status</a> | <a href="/watchdog/incidents">Incidents</a> | <a href="/watchdog/canary">Raw JSON</a></p>
+        <p style="margin-top: 8px;">Charlotte Center for Cosmetic Dentistry &mdash; Destination Smile</p>
+    </div>
+</body></html>"""
+    return HTMLResponse(content=html)
 
 
 @app.get("/watchdog/canary")
