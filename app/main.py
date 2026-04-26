@@ -981,6 +981,9 @@ def _clean_corporate_filler(text: str) -> str:
         text = pattern.sub("", text)
     # Clean up any double spaces or leading spaces after removal
     text = _re.sub(r"  +", " ", text).strip()
+    # Strip leading commas/conjunctions that occur when multi-turn context
+    # makes the model start a reply as if continuing mid-sentence
+    text = _re.sub(r"^[,;]\s*", "", text).strip()
     # Clean up sentences that start with lowercase after removal
     if text and text[0].islower():
         text = text[0].upper() + text[1:]
@@ -1748,11 +1751,17 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
                         max_tokens=1024,
                         stream=True,
                     )
+                    first_token = True
                     for chunk in stream:
                         if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
                             text = chunk.choices[0].delta.content
-                            full_reply += text
-                            yield f"data: {json.dumps({'type': 'token', 'text': text})}\n\n"
+                            # Strip leading commas/semicolons from first token
+                            if first_token:
+                                text = _re.sub(r"^[,;]\s*", "", text)
+                                first_token = False
+                            if text:
+                                full_reply += text
+                                yield f"data: {json.dumps({'type': 'token', 'text': text})}\n\n"
                     if full_reply:
                         primary_succeeded = True
                         # Try to get actual model from last chunk
@@ -1777,11 +1786,16 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
                             max_tokens=1024,
                             stream=True,
                         )
+                        first_token = True
                         for chunk in stream:
                             if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
                                 text = chunk.choices[0].delta.content
-                                full_reply += text
-                                yield f"data: {json.dumps({'type': 'token', 'text': text})}\n\n"
+                                if first_token:
+                                    text = _re.sub(r"^[,;]\s*", "", text)
+                                    first_token = False
+                                if text:
+                                    full_reply += text
+                                    yield f"data: {json.dumps({'type': 'token', 'text': text})}\n\n"
                         if full_reply:
                             primary_succeeded = True
                     except Exception as e2:
