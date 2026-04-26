@@ -874,7 +874,7 @@ async def startup():
 
 
 # --- Helper Functions ---
-def get_conversation_context(session_id: str, max_messages: int = 100) -> str:
+def get_conversation_context(session_id: str, max_messages: int = 10) -> str:
     history = conversations.get(session_id, [])
     if not history:
         return ""
@@ -979,7 +979,7 @@ def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "u
     """Prepare the system prompt, user prompt, and config for Sutton.
     Returns (full_system, user_prompt, contents, config) or None if no LLM client.
     Config is Gemini-specific; OpenRouter uses its own format."""
-    context = get_conversation_context(session_id)
+    context = get_conversation_context(session_id, max_messages=10)  # Last 5 exchanges to keep responses fast
 
     # RAG: Retrieve relevant training content for this specific query
     rag_context = ""
