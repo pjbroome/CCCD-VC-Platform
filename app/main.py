@@ -91,8 +91,15 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "google/gemini-2.5-flash")  # Primary model via OpenRouter
-SUTTON_FALLBACK_MODEL = os.environ.get("SUTTON_FALLBACK_MODEL", "google/gemini-2.5-flash")  # Fallback if primary fails
+SUTTON_MODEL = os.environ.get("SUTTON_MODEL", "openrouter/auto")  # Auto-router picks best model per query (like Abacus RouteLLM)
+SUTTON_FALLBACK_MODEL = os.environ.get("SUTTON_FALLBACK_MODEL", "google/gemini-2.5-flash")  # Fast fallback if auto-router fails
+# Allowed models for auto-router — fast, cost-effective models suitable for concierge chat
+SUTTON_ALLOWED_MODELS = [
+    "google/gemini-2.5-flash",       # Fast, cheap, great for simple questions
+    "google/gemini-2.5-pro",         # Powerful for complex questions
+    "anthropic/claude-sonnet-4",     # Strong reasoning when needed
+    "openai/gpt-4.1-mini",          # Fast, cheap alternative
+]
 CRITIC_MODEL = os.environ.get("CRITIC_MODEL", "google/gemini-2.5-flash")
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openrouter")  # "openrouter", "gemini", or "anthropic"
 SUTTON_TEMPERATURE = float(os.environ.get("SUTTON_TEMPERATURE", "0.8"))
@@ -1049,7 +1056,8 @@ def _prepare_sutton_prompt(message: str, session_id: str, disc_profile: str = "u
 def _generate_openrouter_reply(system_prompt: str, user_prompt: str, model: str = None, messages: list[dict] = None) -> str:
     """Generate a reply using OpenRouter (OpenAI-compatible API).
     If 'messages' is provided, uses proper multi-turn format (Abacus-style).
-    Otherwise falls back to system+user single-turn format."""
+    Otherwise falls back to system+user single-turn format.
+    When model is openrouter/auto, constrains to SUTTON_ALLOWED_MODELS."""
     if not openrouter_client:
         return ""
     model = model or SUTTON_MODEL
@@ -1062,11 +1070,18 @@ def _generate_openrouter_reply(system_prompt: str, user_prompt: str, model: str 
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ]
+        # Build extra params for auto-router model filtering
+        extra: dict = {}
+        if model == "openrouter/auto" and SUTTON_ALLOWED_MODELS:
+            extra["extra_body"] = {
+                "plugins": [{"id": "auto-router", "allowed_models": SUTTON_ALLOWED_MODELS}]
+            }
         response = openrouter_client.chat.completions.create(
             model=model,
             messages=chat_messages,
             temperature=SUTTON_TEMPERATURE,
             max_tokens=1024,
+            **extra,
         )
         reply = response.choices[0].message.content if response.choices else ""
         actual_model = getattr(response, "model", model)
@@ -1744,12 +1759,19 @@ async def chat_stream(request: ChatRequest, http_request: Request = None):
             primary_succeeded = False
             if openrouter_client and LLM_PROVIDER == "openrouter":
                 try:
+                    # Build extra params for auto-router model filtering
+                    stream_extra: dict = {}
+                    if SUTTON_MODEL == "openrouter/auto" and SUTTON_ALLOWED_MODELS:
+                        stream_extra["extra_body"] = {
+                            "plugins": [{"id": "auto-router", "allowed_models": SUTTON_ALLOWED_MODELS}]
+                        }
                     stream = openrouter_client.chat.completions.create(
                         model=SUTTON_MODEL,
                         messages=openrouter_messages,
                         temperature=SUTTON_TEMPERATURE,
                         max_tokens=1024,
                         stream=True,
+                        **stream_extra,
                     )
                     first_token = True
                     for chunk in stream:
