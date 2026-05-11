@@ -25,3 +25,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Graphify artifacts (regenerate with /graphify .)
+graphify-out/
