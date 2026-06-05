@@ -293,7 +293,26 @@ export default function RequestDetail() {
           )}
         </div>
 
-        {/* Video / Consultation */}
+        {/* Step 1 — build the presentation (always the first action) */}
+        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+          <h3 className="mb-1 text-sm font-semibold text-zinc-900">Presentation</h3>
+          <p className="mb-3 text-xs text-zinc-500">{request.deck_id ? "Deck built — edit it or open the recorder." : "Step 1: build this patient's slide deck from the library, then record the walkthrough."}</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/staff/${request.id}/deck`} className="inline-flex items-center gap-2 rounded-lg bg-[#c4a052] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[#b8933f]">
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" /></svg>
+              {request.deck_id ? "Edit Deck" : "Build Deck"}
+            </Link>
+            {request.deck_id && (
+              <Link href={`/staff/${request.id}/deck/present`} className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-zinc-700">
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
+                Present &amp; Record
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Video / Consultation — only after a deck is built */}
+        {request.deck_id && (
         <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
           <h3 className="mb-3 text-sm font-semibold text-zinc-900">Consultation Video</h3>
           {consultation && consultation.video_url ? (
@@ -360,6 +379,7 @@ export default function RequestDetail() {
           </div>
           {uploadMsg && <p className={`mt-2 text-xs font-medium ${uploadMsg.startsWith("Upload failed") || uploadMsg.startsWith("Delete failed") ? "text-red-600" : "text-emerald-600"}`}>{uploadMsg}</p>}
         </div>
+        )}
 
         {/* Review & Send */}
         <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
