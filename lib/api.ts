@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://app-lvdqzury.fly.dev";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cccd-vc-backend.fly.dev";
 
 export interface PhotoUploadResponse {
   filename: string;
@@ -245,6 +245,14 @@ export async function getSlideDetail(slideNumber: number): Promise<SlideItem> {
   return res.json();
 }
 
+export async function deleteSlide(slideNumber: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/slides/${slideNumber}`, { method: "DELETE" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to delete slide (${res.status}): ${text}`);
+  }
+}
+
 export async function listRecordingDecks(): Promise<{ total: number; decks: RecordingDeck[] }> {
   const res = await fetch(`${API_BASE}/recording-decks`);
   if (!res.ok) {
@@ -310,6 +318,8 @@ export interface Consultation {
   sent_at?: string | null;
   watch_count?: number;
   last_watched_at?: string | null;
+  play_count?: number;
+  last_played_at?: string | null;
   follow_up_dates?: string[];
   created_at: string;
   updated_at?: string;
@@ -415,6 +425,24 @@ export async function recordConsultationWatch(id: number): Promise<Consultation>
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to record consultation watch (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function recordConsultationPlay(id: number): Promise<{ play_count: number; last_played_at: string | null }> {
+  const res = await fetch(`${API_BASE}/vc/consultations/${id}/play`, { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to record play (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function emailConsultationReview(consultationId: number): Promise<{ sent: boolean; email: string; link: string }> {
+  const res = await fetch(`${API_BASE}/vc/consultations/${consultationId}/email-review`, { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to email review (${res.status}): ${text}`);
   }
   return res.json();
 }

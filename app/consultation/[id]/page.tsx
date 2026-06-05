@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { getConsultation, recordConsultationWatch, videoUrl } from "@/lib/api"
+import { getConsultation, recordConsultationWatch, recordConsultationPlay, videoUrl } from "@/lib/api"
 import type { Consultation } from "@/lib/api"
 
 type ReceiptState = "idle" | "recording" | "done" | "failed"
@@ -26,7 +26,8 @@ export default function ConsultationReceiptPage() {
   const [error, setError] = useState<string | null>(null)
   const [watchState, setWatchState] = useState<ReceiptState>("idle")
   const [watchMsg, setWatchMsg] = useState<string | null>(null)
-  const hasTrackedView = useRef(false)
+  const hasOpened = useRef(false)
+  const hasPlayed = useRef(false)
 
   useEffect(() => {
     async function load() {
@@ -36,6 +37,15 @@ export default function ConsultationReceiptPage() {
           throw new Error((data as unknown as { error?: string }).error)
         }
         setConsultation(data)
+        if (!hasOpened.current) {
+          hasOpened.current = true
+          try {
+            const opened = await recordConsultationWatch(data.id)
+            setConsultation(opened)
+          } catch {
+            /* ignore open-tracking errors */
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load consultation")
       } finally {
@@ -56,21 +66,14 @@ export default function ConsultationReceiptPage() {
     return consultation?.summary_slide_data?.items ?? []
   }, [consultation])
 
-  async function trackWatch() {
-    if (!consultation || hasTrackedView.current) return
-    hasTrackedView.current = true
-    setWatchState("recording")
-    setWatchMsg(null)
-
+  async function trackPlay() {
+    if (!consultation || hasPlayed.current) return
+    hasPlayed.current = true
     try {
-      const updated = await recordConsultationWatch(consultation.id)
-      setConsultation(updated)
-      setWatchState("done")
-      setWatchMsg("View recorded for follow-up tracking.")
-    } catch (err) {
-      hasTrackedView.current = false
-      setWatchState("failed")
-      setWatchMsg(err instanceof Error ? err.message : "Could not record video view")
+      const r = await recordConsultationPlay(consultation.id)
+      setConsultation((prev) => (prev ? { ...prev, play_count: r.play_count, last_played_at: r.last_played_at } : prev))
+    } catch {
+      hasPlayed.current = false
     }
   }
 
@@ -138,8 +141,7 @@ export default function ConsultationReceiptPage() {
                   controls
                   playsInline
                   preload="metadata"
-                  onPlay={trackWatch}
-                  onEnded={trackWatch}
+                  onPlay={trackPlay}
                   className="aspect-video w-full bg-black"
                 />
               </div>

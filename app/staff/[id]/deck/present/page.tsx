@@ -8,9 +8,11 @@ import {
   listAllSlides,
   listRecordingDecks,
   slideImageUrl,
+  photoUrl,
   uploadVideo,
   createConsultation,
   updateVCRequest,
+  emailConsultationReview,
 } from "@/lib/api"
 import type { VCRequestListItem, SlideItem, RecordingDeck } from "@/lib/api"
 
@@ -47,6 +49,7 @@ type RecommendationPreset = {
 }
 
 type PresenterSlide =
+  | { kind: "patient"; name: string; photos: string[]; concern: string }
   | { kind: "catalog"; slide: SlideItem }
   | { kind: "summary"; title: string; items: SummaryItem[]; notes?: string }
 
@@ -130,7 +133,9 @@ export default function PresenterViewPage() {
   const streamRef = useRef<MediaStream | null>(null)
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
-  const [bubblePosition, setBubblePosition] = useState<"bottom-right" | "bottom-left" | "top-right" | "top-left">("bottom-right")
+  const [bubbleSize, setBubbleSize] = useState<"sm" | "md" | "lg">("md")
+  const [bubblePos, setBubblePos] = useState<{ x: number; y: number } | null>(null) // null = default bottom-right
+  const draggingBubble = useRef<{ dx: number; dy: number } | null>(null)
 
   /* MediaRecorder */
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -142,6 +147,7 @@ export default function PresenterViewPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState<string | null>(null)
   const recordedBlobRef = useRef<Blob | null>(null)
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null)
 
   /* ── load data ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -241,10 +247,20 @@ export default function PresenterViewPage() {
     [summaryItems]
   )
 
+  const patientSlide = useMemo<PresenterSlide | null>(() => {
+    if (!request) return null
+    return {
+      kind: "patient",
+      name: getDisplayName(request),
+      photos: request.photos || [],
+      concern: request.concern || request.message || "",
+    }
+  }, [request])
+
   const presenterSlides = useMemo<PresenterSlide[]>(() => {
     const catalogSlides = deckSlides.map((slide) => ({ kind: "catalog", slide }) as PresenterSlide)
-    return [...catalogSlides, summarySlide]
-  }, [deckSlides, summarySlide])
+    return [...(patientSlide ? [patientSlide] : []), ...catalogSlides, summarySlide]
+  }, [deckSlides, summarySlide, patientSlide])
 
   const currentPresenterSlide = presenterSlides[currentSlideIdx] || null
 
@@ -273,41 +289,67 @@ export default function PresenterViewPage() {
 
   /* ── recording controls ────────────────────────────────────── */
   const startRecording = useCallback(async () => {
-    if (!streamRef.current) return
+    /* Capture the active browser TAB (slides + webcam bubble overlay), not the whole screen. */
+    let displayStream: MediaStream
+    try {
+      displayStream = await navigator.mediaDevices.getDisplayMedia({
+        // preferCurrentTab is Chromium-only and not yet in the TS DOM lib
+        preferCurrentTab: true,
+        video: { displaySurface: "browser" },
+        audio: false,
+      } as MediaStreamConstraints & { preferCurrentTab?: boolean })
+    } catch {
+      setUploadMsg("Recording needs you to share “This Tab.” Click Start Recording again and choose this tab.")
+      return
+    }
+
+    /* Add the doctor's microphone so the walkthrough is narrated. */
+    let micTrack: MediaStreamTrack | undefined = streamRef.current?.getAudioTracks?.()[0]
+    if (!micTrack) {
+      try {
+        const a = await navigator.mediaDevices.getUserMedia({ audio: true })
+        micTrack = a.getAudioTracks()[0]
+      } catch {
+        /* no mic — record video only */
+      }
+    }
+
+    const tracks: MediaStreamTrack[] = [...displayStream.getVideoTracks()]
+    if (micTrack) tracks.push(micTrack)
+    const combined = new MediaStream(tracks)
+    compositeStreamRef.current = displayStream
 
     chunksRef.current = []
-
-    /* Use camera+audio stream directly for MVP */
-    const stream = streamRef.current
     const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
       ? "video/webm;codecs=vp9,opus"
       : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
         ? "video/webm;codecs=vp8,opus"
         : "video/webm"
 
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: 2_500_000,
-    })
-
+    const recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 4_000_000 })
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
-
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType })
       recordedBlobRef.current = blob
+      setReviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
+      compositeStreamRef.current?.getTracks().forEach((t) => t.stop())
+      compositeStreamRef.current = null
+      if (timerRef.current) clearInterval(timerRef.current)
       setRecordingState("stopped")
     }
 
-    recorder.start(1000) // collect data every second
+    /* If the doctor uses the browser's own "Stop sharing" control, finalize too. */
+    displayStream.getVideoTracks()[0]?.addEventListener("ended", () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop()
+    })
+
+    recorder.start(1000)
     mediaRecorderRef.current = recorder
     setRecordingState("recording")
     setElapsedTime(0)
-
-    timerRef.current = setInterval(() => {
-      setElapsedTime((prev) => prev + 1)
-    }, 1000)
+    timerRef.current = setInterval(() => setElapsedTime((prev) => prev + 1), 1000)
   }, [])
 
   const pauseRecording = useCallback(() => {
@@ -338,6 +380,7 @@ export default function PresenterViewPage() {
   const discardRecording = useCallback(() => {
     recordedBlobRef.current = null
     chunksRef.current = []
+    setReviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null })
     setRecordingState("idle")
     setElapsedTime(0)
     setUploadMsg(null)
@@ -379,7 +422,14 @@ export default function PresenterViewPage() {
         status: "recording_ready",
       })
 
-      setUploadMsg(`Consultation #${consultation.id} saved and ready to send. Patient receipt: /consultation/${consultation.id}`)
+      let emailNote = "."
+      try {
+        const r = await emailConsultationReview(consultation.id)
+        emailNote = r.sent ? ` — emailed to ${r.email} for your review.` : " — add an email key to deliver (review link ready)."
+      } catch {
+        emailNote = " (review link ready)."
+      }
+      setUploadMsg(`Consultation #${consultation.id} saved${emailNote} Review: /consultation/${consultation.id}`)
     } catch (err) {
       setUploadMsg(`Upload failed: ${err instanceof Error ? err.message : "unknown error"}`)
     } finally {
@@ -388,23 +438,25 @@ export default function PresenterViewPage() {
   }, [request, deckSlides])
 
   /* ── bubble position cycling ────────────────────────────────── */
-  const cycleBubblePosition = useCallback(() => {
-    const positions: typeof bubblePosition[] = [
-      "bottom-right",
-      "bottom-left",
-      "top-left",
-      "top-right",
-    ]
-    const idx = positions.indexOf(bubblePosition)
-    setBubblePosition(positions[(idx + 1) % positions.length])
-  }, [bubblePosition])
+  const cycleBubbleSize = useCallback(() => {
+    setBubbleSize((s) => (s === "sm" ? "md" : s === "md" ? "lg" : "sm"))
+  }, [])
 
-  const bubblePositionClass = {
-    "bottom-right": "bottom-4 right-4",
-    "bottom-left": "bottom-4 left-4",
-    "top-right": "top-4 right-4",
-    "top-left": "top-4 left-4",
-  }[bubblePosition]
+  const bubbleSizeClass = { sm: "size-24", md: "size-36", lg: "size-52" }[bubbleSize]
+
+  const onBubblePointerDown = (e: React.PointerEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    draggingBubble.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top }
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch { /* ignore */ }
+  }
+  const onBubblePointerMove = (e: React.PointerEvent) => {
+    if (!draggingBubble.current) return
+    setBubblePos({ x: e.clientX - draggingBubble.current.dx, y: e.clientY - draggingBubble.current.dy })
+  }
+  const onBubblePointerUp = (e: React.PointerEvent) => {
+    draggingBubble.current = null
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+  }
 
   /* ── loading / error states ────────────────────────────────── */
   if (loading) {
@@ -435,7 +487,7 @@ export default function PresenterViewPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-900">
       {/* ── Top bar ────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-950/80 px-4 py-2 backdrop-blur-sm">
+      <header className={`flex items-center justify-between border-b border-zinc-800 bg-zinc-950/80 px-4 py-2 backdrop-blur-sm ${recordingState === "recording" || recordingState === "paused" ? "hidden" : ""}`}>
         <div className="flex items-center gap-3">
           <Link
             href={`/staff/${request.id}/deck`}
@@ -481,6 +533,33 @@ export default function PresenterViewPage() {
 
       {/* ── Main slide area ────────────────────────────────────── */}
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+        {/* Patient intro slide — their photos + what they asked us to look at */}
+        {currentPresenterSlide?.kind === "patient" && (
+          <div className="flex h-full w-full items-center justify-center p-6">
+            <div className="grid w-full max-w-6xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="flex flex-col justify-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#d8bf7a]">Your Virtual Consultation</p>
+                <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">{currentPresenterSlide.name}</h2>
+                <div className="mt-6 rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">What you asked us to look at</p>
+                  <p className="mt-2 text-lg leading-relaxed text-zinc-100">{currentPresenterSlide.concern || "—"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {currentPresenterSlide.photos.length > 0 ? (
+                  currentPresenterSlide.photos.map((p, i) => (
+                    <div key={i} className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-800">
+                      <img src={photoUrl(p)} alt={`Patient photo ${i + 1}`} className="max-h-[70vh] h-full w-full object-cover" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-2 flex h-48 items-center justify-center rounded-2xl bg-zinc-800 text-sm text-zinc-500">No photos provided</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Slide image */}
         {currentPresenterSlide?.kind === "catalog" && (
           <div className="relative flex h-full w-full items-center justify-center p-4">
@@ -555,38 +634,50 @@ export default function PresenterViewPage() {
           </div>
         )}
 
-        {/* ── Webcam bubble (Loom-style) ───────────────────────── */}
+        {/* Review the just-recorded video before sending */}
+        {recordingState === "stopped" && reviewUrl && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-zinc-950/95 p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#d8bf7a]">Review your recording</p>
+            <video src={reviewUrl} controls autoPlay className="max-h-[70vh] w-auto max-w-full rounded-xl border border-white/10 shadow-2xl" />
+            <p className="text-xs text-zinc-400">Watch it through — if it looks good, send it to your email; otherwise delete and re-record.</p>
+          </div>
+        )}
+
+        {/* ── Webcam bubble — Loom-style: drag anywhere, 3 sizes ─── */}
         <div
-          className={`absolute ${bubblePositionClass} z-30 cursor-pointer transition-all duration-300`}
-          onClick={cycleBubblePosition}
-          title="Click to move bubble"
+          className="fixed z-30 select-none"
+          style={bubblePos ? { left: bubblePos.x, top: bubblePos.y } : { right: 24, bottom: 100 }}
         >
-          <div className="relative">
-            {/* Ring animation when recording */}
-            {recordingState === "recording" && (
-              <div className="absolute -inset-1 animate-pulse rounded-full border-2 border-red-500/50" />
-            )}
-            <div className="size-36 overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800 shadow-xl">
+          <div
+            className="group relative cursor-grab touch-none active:cursor-grabbing"
+            onPointerDown={onBubblePointerDown}
+            onPointerMove={onBubblePointerMove}
+            onPointerUp={onBubblePointerUp}
+            title="Drag to move"
+          >
+            {recordingState === "recording" && <div className="absolute -inset-1 animate-pulse rounded-full border-2 border-red-500/50" />}
+            <div className={`${bubbleSizeClass} overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800 shadow-xl`}>
               {cameraError ? (
-                <div className="flex size-full items-center justify-center text-[10px] text-zinc-500">
-                  {cameraError}
-                </div>
+                <div className="flex size-full items-center justify-center p-2 text-center text-[10px] text-zinc-500">{cameraError}</div>
               ) : (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="size-full scale-x-[-1] object-cover"
-                />
+                <video ref={videoRef} autoPlay playsInline muted className="size-full scale-x-[-1] object-cover" />
               )}
             </div>
-            {/* Recording indicator */}
             {recordingState === "recording" && (
               <div className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-red-500">
                 <div className="size-2 rounded-sm bg-white" />
               </div>
             )}
+            {/* size toggle (doesn't start a drag) */}
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={cycleBubbleSize}
+              title="Change bubble size"
+              className="absolute -bottom-1 -left-1 flex size-6 items-center justify-center rounded-full bg-zinc-900/90 text-[9px] font-bold uppercase text-white shadow ring-1 ring-white/20 transition hover:bg-zinc-700"
+            >
+              {bubbleSize}
+            </button>
           </div>
         </div>
 
@@ -614,10 +705,10 @@ export default function PresenterViewPage() {
       {/* ── Bottom controls bar ────────────────────────────────── */}
       <div className="border-t border-zinc-800 bg-zinc-950/80 backdrop-blur-sm">
         {/* Slide filmstrip */}
-        <div className="flex gap-1.5 overflow-x-auto px-4 py-2">
+        <div className={`gap-1.5 overflow-x-auto px-4 py-2 ${recordingState === "recording" || recordingState === "paused" ? "hidden" : "flex"}`}>
           {presenterSlides.map((slide, idx) => (
             <button
-              key={slide.kind === "catalog" ? slide.slide.slide_number : "summary-slide"}
+              key={`ps-${idx}`}
               onClick={() => setCurrentSlideIdx(idx)}
               className={`flex-shrink-0 overflow-hidden rounded-md border-2 transition-all ${
                 idx === currentSlideIdx
@@ -631,6 +722,12 @@ export default function PresenterViewPage() {
                   alt={`Slide ${slide.slide.slide_number}`}
                   className="h-12 w-20 object-cover"
                 />
+              ) : slide.kind === "patient" ? (
+                slide.photos[0] ? (
+                  <img src={photoUrl(slide.photos[0])} alt="Patient" className="h-12 w-20 object-cover" />
+                ) : (
+                  <div className="flex h-12 w-20 items-center justify-center bg-zinc-700 text-[8px] font-semibold text-white">Patient</div>
+                )
               ) : (
                 <div className="flex h-12 w-20 flex-col justify-between bg-gradient-to-br from-[#2a2414] via-[#5c4720] to-[#c4a052] p-2 text-left text-white">
                   <span className="text-[7px] font-semibold uppercase tracking-[0.18em] text-white/80">Summary</span>
@@ -723,7 +820,7 @@ export default function PresenterViewPage() {
                     <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                     </svg>
-                    Send
+                    Send to my email
                   </>
                 )}
               </button>
@@ -735,7 +832,7 @@ export default function PresenterViewPage() {
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                 </svg>
-                Discard
+                Delete &amp; re-record
               </button>
               <span className="text-xs text-zinc-500">
                 {formatTime(elapsedTime)} recorded

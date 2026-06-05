@@ -143,6 +143,19 @@ export default function RequestDetail() {
     }
   }, [request])
 
+  const handleDeleteVideo = useCallback(async () => {
+    if (!request || !consultation) return
+    if (typeof window !== "undefined" && !window.confirm("Delete this recording and start over? The patient link stops working until you record again.")) return
+    try {
+      const updated = await updateVCRequest(request.id, { consultation_id: null, status: "deck_built" })
+      setRequest(updated)
+      setConsultation(null)
+      setUploadMsg("Recording removed — record a new one from the deck builder.")
+    } catch (err) {
+      setUploadMsg(`Delete failed: ${err instanceof Error ? err.message : "unknown"}`)
+    }
+  }, [request, consultation])
+
   const handleStatusChange = useCallback(async (newStatus: string) => {
     if (!request || newStatus === request.status) return
     setChangingStatus(true)
@@ -304,6 +317,20 @@ export default function RequestDetail() {
                   <span className="truncate text-[10px] text-zinc-500">/consultation/{consultation.id}</span>
                 </div>
               </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-400">Opened</p>
+                  <p className="mt-0.5 text-sm font-bold text-zinc-900">{consultation.watch_count ?? 0}&times;</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-400">Played</p>
+                  <p className="mt-0.5 text-sm font-bold text-zinc-900">{consultation.play_count ?? 0}&times;</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-400">Last activity</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-zinc-700">{formatDate(consultation.last_played_at || consultation.last_watched_at)}</p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="text-center">
@@ -324,8 +351,14 @@ export default function RequestDetail() {
                 <><svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>{consultation ? "Replace Video" : "Upload Video"}</>
               )}
             </button>
+            {consultation && consultation.video_url && (
+              <button onClick={handleDeleteVideo} disabled={uploading} className="ml-2 inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40">
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9M5.78 5.79l.84 13.88A2.25 2.25 0 0 0 8.86 21.75h6.28a2.25 2.25 0 0 0 2.24-2.08L18.22 5.79M9 5.79V3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75v2.04" /></svg>
+                Delete &amp; re-record
+              </button>
+            )}
           </div>
-          {uploadMsg && <p className={`mt-2 text-xs font-medium ${uploadMsg.startsWith("Upload failed") ? "text-red-600" : "text-emerald-600"}`}>{uploadMsg}</p>}
+          {uploadMsg && <p className={`mt-2 text-xs font-medium ${uploadMsg.startsWith("Upload failed") || uploadMsg.startsWith("Delete failed") ? "text-red-600" : "text-emerald-600"}`}>{uploadMsg}</p>}
         </div>
 
         {/* Review & Send */}
