@@ -578,11 +578,11 @@ export default function PresenterViewPage() {
 
         {/* Slide image */}
         {currentPresenterSlide?.kind === "catalog" && (
-          <div className="relative flex h-full w-full items-center justify-center p-4">
+          <div className="relative flex h-full w-full items-center justify-center p-1 sm:p-2">
             <img
               src={slideImageUrl(currentPresenterSlide.slide.full_slide_image || currentPresenterSlide.slide.images[0] || "")}
               alt={`Slide ${currentPresenterSlide.slide.slide_number}`}
-              className="max-h-[calc(100vh-180px)] max-w-full rounded-lg object-contain shadow-2xl"
+              className="h-full w-full rounded-lg object-contain shadow-2xl"
             />
           </div>
         )}
