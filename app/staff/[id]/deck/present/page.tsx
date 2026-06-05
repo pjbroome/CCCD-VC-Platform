@@ -132,6 +132,7 @@ export default function PresenterViewPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [cameraReady, setCameraReady] = useState(false)
+  const [cameraOn, setCameraOn] = useState(true)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [bubbleSize, setBubbleSize] = useState<"sm" | "md" | "lg">("md")
   const [bubblePos, setBubblePos] = useState<{ x: number; y: number } | null>(null) // null = default bottom-right
@@ -189,53 +190,79 @@ export default function PresenterViewPage() {
   }, [requestId])
 
   /* ── webcam setup (with canvas fallback when no camera) ───── */
-  useEffect(() => {
-    async function initCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 320, height: 240, facingMode: "user" },
-          audio: true,
-        })
-        streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-        }
-        setCameraReady(true)
-      } catch (err) {
-        /* Camera unavailable — create a canvas-based fallback stream
-           so recording still works (slide-only mode). */
-        const fallbackCanvas = document.createElement("canvas")
-        fallbackCanvas.width = 640
-        fallbackCanvas.height = 480
-        const ctx = fallbackCanvas.getContext("2d")
-        if (ctx) {
-          ctx.fillStyle = "#18181b"
-          ctx.fillRect(0, 0, 640, 480)
-          ctx.fillStyle = "#c4a052"
-          ctx.font = "bold 24px sans-serif"
-          ctx.textAlign = "center"
-          ctx.fillText("Slide-Only Recording", 320, 230)
-          ctx.font = "14px sans-serif"
-          ctx.fillStyle = "#a1a1aa"
-          ctx.fillText("Camera not available", 320, 260)
-        }
-        const fallbackStream = fallbackCanvas.captureStream(1)
-        streamRef.current = fallbackStream
-        setCameraReady(true)
-        setCameraError(
-          "Camera not available — recording in slide-only mode"
-        )
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240, facingMode: "user" },
+        audio: true,
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play().catch(() => {})
       }
-    }
-    initCamera()
-
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop())
+      setCameraReady(true)
+      setCameraOn(true)
+      setCameraError(null)
+    } catch {
+      /* Camera unavailable — create a canvas-based fallback stream
+         so recording still works (slide-only mode). */
+      const fallbackCanvas = document.createElement("canvas")
+      fallbackCanvas.width = 640
+      fallbackCanvas.height = 480
+      const ctx = fallbackCanvas.getContext("2d")
+      if (ctx) {
+        ctx.fillStyle = "#18181b"
+        ctx.fillRect(0, 0, 640, 480)
+        ctx.fillStyle = "#c4a052"
+        ctx.font = "bold 24px sans-serif"
+        ctx.textAlign = "center"
+        ctx.fillText("Slide-Only Recording", 320, 230)
+        ctx.font = "14px sans-serif"
+        ctx.fillStyle = "#a1a1aa"
+        ctx.fillText("Camera not available", 320, 260)
       }
-      if (timerRef.current) clearInterval(timerRef.current)
+      const fallbackStream = fallbackCanvas.captureStream(1)
+      streamRef.current = fallbackStream
+      setCameraReady(true)
+      setCameraOn(true)
+      setCameraError("Camera not available — recording in slide-only mode")
     }
   }, [])
+
+  /* Fully release the webcam — this turns the hardware camera light OFF. */
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) videoRef.current.srcObject = null
+    setCameraReady(false)
+    setCameraOn(false)
+  }, [])
+
+  const toggleCamera = useCallback(() => {
+    if (cameraOn) stopCamera()
+    else startCamera()
+  }, [cameraOn, startCamera, stopCamera])
+
+  useEffect(() => {
+    startCamera()
+    /* On leaving the page, ALWAYS release the camera (stops the light). */
+    return () => {
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop())
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /* Re-attach the live stream to the <video> when the camera is turned back on. */
+  useEffect(() => {
+    if (cameraOn && videoRef.current && streamRef.current && !videoRef.current.srcObject) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().catch(() => {})
+    }
+  }, [cameraOn])
 
   /* ── slide navigation ──────────────────────────────────────── */
   const summarySlide = useMemo<PresenterSlide>(
@@ -450,12 +477,13 @@ export default function PresenterViewPage() {
         emailNote = " (review link ready)."
       }
       setUploadMsg(`Consultation #${consultation.id} saved${emailNote} Review: /consultation/${consultation.id}`)
+      stopCamera() // done sending → release the webcam so the light turns off
     } catch (err) {
       setUploadMsg(`Upload failed: ${err instanceof Error ? err.message : "unknown error"}`)
     } finally {
       setUploading(false)
     }
-  }, [request, deckSlides])
+  }, [request, deckSlides, summaryItems, stopCamera])
 
   /* ── bubble position cycling ────────────────────────────────── */
   const cycleBubbleSize = useCallback(() => {
@@ -684,17 +712,47 @@ export default function PresenterViewPage() {
             title="Drag to move"
           >
             {recordingState === "recording" && <div className="absolute -inset-1 animate-pulse rounded-full border-2 border-red-500/50" />}
-            <div className={`${bubbleSizeClass} overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800 shadow-xl`}>
+            <div className={`${bubbleSizeClass} relative overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800 shadow-xl`}>
               {cameraError ? (
                 <div className="flex size-full items-center justify-center p-2 text-center text-[10px] text-zinc-500">{cameraError}</div>
               ) : (
-                <video ref={videoRef} autoPlay playsInline muted className="size-full scale-x-[-1] object-cover" />
+                <>
+                  <video ref={videoRef} autoPlay playsInline muted className="size-full scale-x-[-1] object-cover" />
+                  {!cameraOn && (
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={startCamera}
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-zinc-900 text-zinc-400 transition hover:text-white"
+                      title="Turn camera on"
+                    >
+                      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
+                      </svg>
+                      <span className="text-[8px] font-semibold uppercase tracking-wide">Camera off</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
             {recordingState === "recording" && (
               <div className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-red-500">
                 <div className="size-2 rounded-sm bg-white" />
               </div>
+            )}
+            {/* power toggle — turn the camera OFF (releases the light); hidden while recording */}
+            {cameraOn && recordingState !== "recording" && recordingState !== "paused" && (
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={stopCamera}
+                title="Turn camera off"
+                className="absolute -top-1 -left-1 flex size-6 items-center justify-center rounded-full bg-zinc-900/90 text-white shadow ring-1 ring-white/20 transition hover:bg-red-600"
+              >
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
+                </svg>
+              </button>
             )}
             {/* size toggle (doesn't start a drag) */}
             <button
@@ -866,6 +924,24 @@ export default function PresenterViewPage() {
                 {formatTime(elapsedTime)} recorded
               </span>
             </>
+          )}
+
+          {(recordingState === "idle" || recordingState === "stopped") && (
+            <button
+              type="button"
+              onClick={toggleCamera}
+              title={cameraOn ? "Turn the webcam off (releases the camera light)" : "Turn the webcam back on"}
+              className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg transition-all ${
+                cameraOn
+                  ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  : "bg-[#c4a052] text-zinc-900 hover:bg-[#d8bf7a]"
+              }`}
+            >
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
+              </svg>
+              {cameraOn ? "Turn camera off" : "Turn camera on"}
+            </button>
           )}
 
           {uploadMsg && (
