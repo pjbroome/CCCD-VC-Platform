@@ -2964,6 +2964,87 @@ async def reorder_slides_endpoint(req: ReorderRequest):
     return {"total": len(result), "message": "Slides reordered successfully"}
 
 
+@app.delete("/slides/{slide_number}")
+async def delete_slide_endpoint(slide_number: int):
+    """Delete a slide from the library (removes catalog entry + image file)."""
+    from app.slide_sorter import delete_slide
+    ok = delete_slide(slide_number)
+    if not ok:
+        return {"error": f"Slide {slide_number} not found"}
+    return {"message": f"Slide {slide_number} deleted", "slide_number": slide_number}
+
+
+def _send_review_email(to_email: str, subject: str, html_body: str) -> bool:
+    """Send a review email via Resend (RESEND_API_KEY) or SMTP (SMTP_HOST...).
+    Returns False (and logs) if no provider is configured."""
+    resend_key = os.environ.get("RESEND_API_KEY", "")
+    smtp_host = os.environ.get("SMTP_HOST", "")
+    sender = os.environ.get("EMAIL_FROM", "") or os.environ.get("SMTP_USER", "") or "onboarding@resend.dev"
+    if resend_key:
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=json.dumps({"from": sender, "to": [to_email], "subject": subject, "html": html_body}).encode(),
+                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=20).read()
+            return True
+        except Exception as e:
+            print(f"Resend email error: {e}")
+            return False
+    if smtp_host:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            msg = MIMEText(html_body, "html")
+            msg["Subject"] = subject
+            msg["From"] = sender
+            msg["To"] = to_email
+            with smtplib.SMTP(smtp_host, int(os.environ.get("SMTP_PORT", "587")), timeout=20) as s:
+                s.starttls()
+                u, p = os.environ.get("SMTP_USER", ""), os.environ.get("SMTP_PASS", "")
+                if u:
+                    s.login(u, p)
+                s.sendmail(sender, [to_email], msg.as_string())
+            return True
+        except Exception as e:
+            print(f"SMTP email error: {e}")
+            return False
+    print("Email not configured (set RESEND_API_KEY or SMTP_HOST) — skipping send")
+    return False
+
+
+@app.post("/vc/consultations/{consultation_id}/email-review")
+async def email_consultation_review(consultation_id: int):
+    """Email the consultation review link to the doctor's review address (default pjbroome@gmail.com)."""
+    from app.slide_sorter import get_consultation
+    c = get_consultation(consultation_id)
+    if not c:
+        return {"error": "Consultation not found"}
+    review_email = os.environ.get("REVIEW_EMAIL", "pjbroome@gmail.com")
+    base = os.environ.get("PUBLIC_BASE_URL", "")
+    link = f"{base}/consultation/{consultation_id}" if base else f"/consultation/{consultation_id}"
+    name = c.get("patient_name", "patient")
+    html = (
+        f"<p>A virtual consultation video is ready to review for <b>{name}</b>.</p>"
+        f"<p><a href=\"{link}\">Open the consultation</a> to watch what the patient will see.</p>"
+    )
+    sent = _send_review_email(review_email, f"VC review — {name} (#{consultation_id})", html)
+    return {"sent": sent, "email": review_email, "link": link}
+
+
+@app.post("/vc/consultations/{consultation_id}/play")
+async def play_consultation(consultation_id: int):
+    """Record that the patient pressed play (distinct from opening the page)."""
+    from app.slide_sorter import record_play
+    c = record_play(consultation_id)
+    if not c:
+        return {"error": "Consultation not found"}
+    return {"play_count": c.get("play_count", 0), "last_played_at": c.get("last_played_at")}
+
+
 @app.get("/recording-decks")
 async def list_recording_decks():
     """List all saved recording decks."""

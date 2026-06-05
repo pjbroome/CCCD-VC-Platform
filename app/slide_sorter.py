@@ -376,6 +376,25 @@ def _save_catalog():
         json.dump(_catalog, f, indent=2)
 
 
+def delete_slide(slide_number: int) -> bool:
+    """Remove a slide from the catalog and best-effort delete its image files."""
+    global _catalog
+    _load_catalog()
+    for i, s in enumerate(_catalog):
+        if s["slide_number"] == slide_number:
+            removed = _catalog.pop(i)
+            _save_catalog()
+            for img in removed.get("images", []):
+                try:
+                    p = _IMAGES_DIR / img
+                    if p.exists():
+                        p.unlink()
+                except Exception:
+                    pass
+            return True
+    return False
+
+
 # --- Recording Decks ---
 # Use persistent volume (/data/) if available, fall back to app directory.
 # This ensures data survives Fly.io deploys (container rebuilds).
@@ -592,6 +611,8 @@ def create_consultation(data: dict) -> dict:
         "status": "sent",  # draft, script_ready, recording, sent, watched, follow_up_sent
         "watch_count": 0,
         "last_watched_at": None,
+        "play_count": 0,
+        "last_played_at": None,
         "sent_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -644,7 +665,7 @@ def update_consultation(consultation_id: int, updates: dict) -> Optional[dict]:
 
 
 def record_watch(consultation_id: int) -> Optional[dict]:
-    """Record that a patient watched their consultation video."""
+    """Record that a patient OPENED their consultation page."""
     import datetime
     _load_consultations()
     for c in _consultations:
@@ -652,6 +673,20 @@ def record_watch(consultation_id: int) -> Optional[dict]:
             c["watch_count"] = c.get("watch_count", 0) + 1
             c["last_watched_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
             c["status"] = "watched"
+            c["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            _save_consultations()
+            return c
+    return None
+
+
+def record_play(consultation_id: int) -> Optional[dict]:
+    """Record that the patient pressed PLAY on their consultation video."""
+    import datetime
+    _load_consultations()
+    for c in _consultations:
+        if c["id"] == consultation_id:
+            c["play_count"] = c.get("play_count", 0) + 1
+            c["last_played_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
             c["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
             _save_consultations()
             return c
