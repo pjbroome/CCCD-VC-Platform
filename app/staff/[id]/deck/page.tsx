@@ -27,7 +27,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core"
-import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
+import { SortableContext, horizontalListSortingStrategy, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 
 /* ── helpers ─────────────────────────────────────────────── */
@@ -112,6 +112,18 @@ function readFavs(): number[] {
   return []
 }
 
+const LIB_ORDER_KEY = "vc-lib-order"
+function readLibOrder(): number[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = window.localStorage.getItem(LIB_ORDER_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    /* ignore */
+  }
+  return []
+}
+
 /* ── slide image ─────────────────────────────────────────── */
 
 function SlideImg({ slide, className }: { slide: SlideItem; className: string }) {
@@ -176,8 +188,8 @@ function DockZone({ deck, onRemove, onPreview }: { deck: SlideItem[]; onRemove: 
 /* ── library card — draggable, double-click to add, star to favorite ── */
 
 function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleFav }: { slide: SlideItem; inDeck: boolean; fav: boolean; onAdd: () => void; onPreview: () => void; onDelete: () => void; onToggleFav: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `L:${slide.slide_number}` })
-  const style = { transform: CSS.Translate.toString(transform), opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `L:${slide.slide_number}` })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
   return (
     <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${inDeck ? "border-[#c4a052]/60 ring-1 ring-[#c4a052]/30" : "border-zinc-200 hover:-translate-y-0.5 hover:shadow-md"}`}>
       <div className="absolute left-2 top-2 z-10 flex gap-1">
@@ -218,6 +230,7 @@ export default function DeckBuilderPage() {
   const [summaryRows, setSummaryRows] = useState<SummaryRow[]>([])
   const [txPresets, setTxPresets] = useState<TxPreset[]>(DEFAULT_TX_PRESETS)
   const [favs, setFavs] = useState<number[]>([])
+  const [libOrder, setLibOrder] = useState<number[]>([])
   const [existingDeckId, setExistingDeckId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -238,6 +251,9 @@ export default function DeckBuilderPage() {
         setAllSlides(slideData.slides)
         setTxPresets(readTxPresets())
         setFavs(readFavs())
+        const allNums = slideData.slides.map((s: SlideItem) => s.slide_number)
+        const storedOrder = readLibOrder()
+        setLibOrder([...storedOrder.filter((n) => allNums.includes(n)), ...allNums.filter((n) => !storedOrder.includes(n))])
         const map = new Map(slideData.slides.map((s: SlideItem) => [s.slide_number, s]))
         const existingDeck = reqData.deck_id ? deckData.decks.find((d: RecordingDeck) => d.id === reqData.deck_id) ?? null : null
         setExistingDeckId(existingDeck?.id ?? null)
@@ -269,15 +285,20 @@ export default function DeckBuilderPage() {
 
   useEffect(() => { if (typeof window !== "undefined") window.localStorage.setItem(TX_PRESETS_KEY, JSON.stringify(txPresets)) }, [txPresets])
   useEffect(() => { if (typeof window !== "undefined") window.localStorage.setItem(FAV_KEY, JSON.stringify(favs)) }, [favs])
+  useEffect(() => { if (typeof window !== "undefined" && libOrder.length) window.localStorage.setItem(LIB_ORDER_KEY, JSON.stringify(libOrder)) }, [libOrder])
 
   const deckNumbers = useMemo(() => new Set(deckSlides.map((s) => s.slide_number)), [deckSlides])
   const favSet = useMemo(() => new Set(favs), [favs])
 
+  const orderedSlides = useMemo(() => {
+    if (!libOrder.length) return allSlides
+    const idx = new Map(libOrder.map((n, i) => [n, i]))
+    return [...allSlides].sort((a, b) => (idx.get(a.slide_number) ?? 1e9) - (idx.get(b.slide_number) ?? 1e9))
+  }, [allSlides, libOrder])
   const filteredSlides = useMemo(() => {
     const q = searchText.trim().toLowerCase()
-    const base = q ? allSlides.filter((s) => [s.condition, s.solution, String(s.slide_number), ...(s.text_content || [])].join(" ").toLowerCase().includes(q)) : allSlides
-    return base
-  }, [allSlides, searchText])
+    return q ? orderedSlides.filter((s) => [s.condition, s.solution, String(s.slide_number), ...(s.text_content || [])].join(" ").toLowerCase().includes(q)) : orderedSlides
+  }, [orderedSlides, searchText])
 
   const favSlides = useMemo(() => favs.map((n) => allSlides.find((s) => s.slide_number === n)).filter(Boolean) as SlideItem[], [favs, allSlides])
 
@@ -312,8 +333,13 @@ export default function DeckBuilderPage() {
     const { active, over } = e
     if (!over) return
     const a = String(active.id), o = String(over.id)
-    if (a.startsWith("L:") || a.startsWith("F:")) {
+    if (a.startsWith("L:")) {
       const sn = Number(a.slice(2))
+      if (o.startsWith("L:")) {
+        const on = Number(o.slice(2))
+        if (sn !== on) setLibOrder((prev) => { const f = prev.indexOf(sn), t = prev.indexOf(on); return f < 0 || t < 0 ? prev : arrayMove(prev, f, t) })
+        return
+      }
       if (deckNumbers.has(sn)) return
       if (o === "DOCK" || o.startsWith("D:")) {
         const slide = allSlides.find((s) => s.slide_number === sn)
@@ -495,11 +521,13 @@ export default function DeckBuilderPage() {
           {filteredSlides.length === 0 ? (
             <div className="flex items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white p-10 text-center text-sm text-zinc-400">No slides match “{searchText}”.</div>
           ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))` }}>
-              {filteredSlides.map((slide) => (
-                <LibraryCard key={slide.slide_number} slide={slide} inDeck={deckNumbers.has(slide.slide_number)} fav={favSet.has(slide.slide_number)} onAdd={() => addToDeck(slide)} onPreview={() => setPreviewSlide(slide)} onDelete={() => handleDelete(slide)} onToggleFav={() => toggleFav(slide.slide_number)} />
-              ))}
-            </div>
+            <SortableContext items={filteredSlides.map((s) => `L:${s.slide_number}`)} strategy={rectSortingStrategy}>
+              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))` }}>
+                {filteredSlides.map((slide) => (
+                  <LibraryCard key={slide.slide_number} slide={slide} inDeck={deckNumbers.has(slide.slide_number)} fav={favSet.has(slide.slide_number)} onAdd={() => addToDeck(slide)} onPreview={() => setPreviewSlide(slide)} onDelete={() => handleDelete(slide)} onToggleFav={() => toggleFav(slide.slide_number)} />
+                ))}
+              </div>
+            </SortableContext>
           )}
         </div>
 
