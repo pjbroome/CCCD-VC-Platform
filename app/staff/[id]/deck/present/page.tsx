@@ -289,21 +289,8 @@ export default function PresenterViewPage() {
   }, [goNext, goPrev])
 
   /* ── recording controls ────────────────────────────────────── */
-  const startRecording = useCallback(async () => {
-    /* Capture the active browser TAB (slides + webcam bubble overlay), not the whole screen. */
-    let displayStream: MediaStream
-    try {
-      displayStream = await navigator.mediaDevices.getDisplayMedia({
-        // preferCurrentTab is Chromium-only and not yet in the TS DOM lib
-        preferCurrentTab: true,
-        video: { displaySurface: "browser" },
-        audio: false,
-      } as MediaStreamConstraints & { preferCurrentTab?: boolean })
-    } catch {
-      setUploadMsg("Recording needs you to share “This Tab.” Click Start Recording again and choose this tab.")
-      return
-    }
-
+  /* Build the recorder from the already-captured tab stream + mic, then start. */
+  const startRecorder = useCallback(async (displayStream: MediaStream) => {
     /* Add the doctor's microphone so the walkthrough is narrated. */
     let micTrack: MediaStreamTrack | undefined = streamRef.current?.getAudioTracks?.()[0]
     if (!micTrack) {
@@ -314,6 +301,9 @@ export default function PresenterViewPage() {
         /* no mic — record video only */
       }
     }
+
+    /* Keep the live camera bubble playing (the share prompt can pause it). */
+    try { await videoRef.current?.play() } catch { /* ignore */ }
 
     const tracks: MediaStreamTrack[] = [...displayStream.getVideoTracks()]
     if (micTrack) tracks.push(micTrack)
@@ -353,7 +343,21 @@ export default function PresenterViewPage() {
     timerRef.current = setInterval(() => setElapsedTime((prev) => prev + 1), 1000)
   }, [])
 
-  const startWithCountdown = useCallback(() => {
+  /* On click (user gesture): pick the tab to share FIRST, then run the 3-2-1, then record. */
+  const beginRecording = useCallback(async () => {
+    let displayStream: MediaStream
+    try {
+      displayStream = await navigator.mediaDevices.getDisplayMedia({
+        preferCurrentTab: true,
+        video: { displaySurface: "browser" },
+        audio: false,
+      } as MediaStreamConstraints & { preferCurrentTab?: boolean })
+    } catch {
+      setUploadMsg("Recording needs you to share “This Tab.” Click Start Recording and choose this tab.")
+      return
+    }
+    /* keep the camera bubble alive after the share prompt */
+    try { await videoRef.current?.play() } catch { /* ignore */ }
     setCountdown(3)
     let n = 3
     const iv = setInterval(() => {
@@ -361,12 +365,12 @@ export default function PresenterViewPage() {
       if (n <= 0) {
         clearInterval(iv)
         setCountdown(null)
-        startRecording()
+        startRecorder(displayStream)
       } else {
         setCountdown(n)
       }
     }, 1000)
-  }, [startRecording])
+  }, [startRecorder])
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingState === "recording") {
@@ -652,8 +656,8 @@ export default function PresenterViewPage() {
 
         {/* 3-2-1 countdown before recording starts */}
         {countdown !== null && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70">
-            <div className="text-[140px] font-bold leading-none text-white drop-shadow-lg">{countdown}</div>
+          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-black/30">
+            <div className="text-[140px] font-bold leading-none text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">{countdown}</div>
           </div>
         )}
 
@@ -667,8 +671,9 @@ export default function PresenterViewPage() {
         )}
 
         {/* ── Webcam bubble — Loom-style: drag anywhere, 3 sizes ─── */}
+        {/* z-50 keeps the live camera visible ABOVE the countdown overlay (z-40). */}
         <div
-          className="fixed z-30 select-none"
+          className="fixed z-50 select-none"
           style={bubblePos ? { left: bubblePos.x, top: bubblePos.y } : { right: 24, bottom: 100 }}
         >
           <div
@@ -765,7 +770,7 @@ export default function PresenterViewPage() {
         <div className="flex items-center justify-center gap-3 border-t border-zinc-800/50 px-4 py-3">
           {recordingState === "idle" && (
             <button
-              onClick={startWithCountdown}
+              onClick={beginRecording}
               disabled={!cameraReady || presenterSlides.length === 0 || countdown !== null}
               className="flex items-center gap-2 rounded-full bg-red-600 px-6 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-red-500 disabled:opacity-40"
             >
