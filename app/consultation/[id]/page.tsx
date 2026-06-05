@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getConsultation, recordConsultationWatch, recordConsultationPlay, videoUrl } from "@/lib/api"
 import type { Consultation } from "@/lib/api"
+import { VideoPlayer } from "@/components/vc/VideoPlayer"
 
 type ReceiptState = "idle" | "recording" | "done" | "failed"
 
@@ -135,15 +136,14 @@ export default function ConsultationReceiptPage() {
 
           <div className="grid gap-8 px-6 py-6 sm:px-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)] lg:px-10 lg:py-8">
             <div className="space-y-4">
-              <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-950 shadow-lg">
-                <video
-                  src={videoUrl(consultation.video_url)}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  onPlay={trackPlay}
-                  className="aspect-video w-full bg-black"
-                />
+              <div className="overflow-hidden rounded-3xl border border-zinc-200 shadow-lg">
+                {consultation.video_url ? (
+                  <VideoPlayer src={videoUrl(consultation.video_url)} onFirstPlay={trackPlay} />
+                ) : (
+                  <div className="flex aspect-video w-full items-center justify-center bg-zinc-950 text-sm text-zinc-400">
+                    Your consultation video is being prepared.
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
