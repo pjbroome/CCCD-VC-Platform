@@ -148,6 +148,7 @@ export default function PresenterViewPage() {
   const [uploadMsg, setUploadMsg] = useState<string | null>(null)
   const recordedBlobRef = useRef<Blob | null>(null)
   const [reviewUrl, setReviewUrl] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState<number | null>(null)
 
   /* ── load data ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -351,6 +352,21 @@ export default function PresenterViewPage() {
     setElapsedTime(0)
     timerRef.current = setInterval(() => setElapsedTime((prev) => prev + 1), 1000)
   }, [])
+
+  const startWithCountdown = useCallback(() => {
+    setCountdown(3)
+    let n = 3
+    const iv = setInterval(() => {
+      n -= 1
+      if (n <= 0) {
+        clearInterval(iv)
+        setCountdown(null)
+        startRecording()
+      } else {
+        setCountdown(n)
+      }
+    }, 1000)
+  }, [startRecording])
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingState === "recording") {
@@ -634,6 +650,13 @@ export default function PresenterViewPage() {
           </div>
         )}
 
+        {/* 3-2-1 countdown before recording starts */}
+        {countdown !== null && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70">
+            <div className="text-[140px] font-bold leading-none text-white drop-shadow-lg">{countdown}</div>
+          </div>
+        )}
+
         {/* Review the just-recorded video before sending */}
         {recordingState === "stopped" && reviewUrl && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-zinc-950/95 p-6">
@@ -742,8 +765,8 @@ export default function PresenterViewPage() {
         <div className="flex items-center justify-center gap-3 border-t border-zinc-800/50 px-4 py-3">
           {recordingState === "idle" && (
             <button
-              onClick={startRecording}
-              disabled={!cameraReady || presenterSlides.length === 0}
+              onClick={startWithCountdown}
+              disabled={!cameraReady || presenterSlides.length === 0 || countdown !== null}
               className="flex items-center gap-2 rounded-full bg-red-600 px-6 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-red-500 disabled:opacity-40"
             >
               <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
