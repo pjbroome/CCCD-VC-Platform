@@ -1,14 +1,17 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { listVCRequests, updateVCRequest } from "@/lib/api"
 import type { VCRequestListItem } from "@/lib/api"
+import { useTheme } from "@/components/vc/ThemeProvider"
+import { ThemeSwitcher } from "@/components/vc/ThemeSwitcher"
+import { themeStyleVars } from "@/lib/theme"
 
 const STATUS_ORDER = ["new", "under_review", "deck_built", "recording_ready", "approved", "sent"]
 
 const STATUS_FILTERS = [
-  { value: "all", label: "All" },
+  { value: "all", label: "All Requests" },
   { value: "new", label: "New" },
   { value: "under_review", label: "Under Review" },
   { value: "deck_built", label: "Deck Built" },
@@ -22,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "bg-blue-100 text-blue-700",
   under_review: "bg-amber-100 text-amber-700",
   in_progress: "bg-amber-100 text-amber-700",
-  deck_built: "bg-purple-100 text-purple-700",
+  deck_built: "bg-violet-100 text-violet-700",
   recording_ready: "bg-indigo-100 text-indigo-700",
   approved: "bg-emerald-100 text-emerald-700",
   sent: "bg-zinc-100 text-zinc-600",
@@ -35,8 +38,7 @@ function statusLabel(status: string): string {
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "—"
   try {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   } catch {
     return dateStr
   }
@@ -48,24 +50,24 @@ function getDisplayName(req: VCRequestListItem): string {
   return "Unknown"
 }
 
-function getSubmittedDate(req: VCRequestListItem): string {
-  return formatDate(req.created_at || req.submitted_at)
+function initials(req: VCRequestListItem): string {
+  const n = getDisplayName(req)
+  return n.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?"
 }
 
 export default function StaffDashboard() {
-  const [requests, setRequests] = useState<VCRequestListItem[]>([])
-  const [total, setTotal] = useState(0)
-  const [activeFilter, setActiveFilter] = useState("all")
+  const { theme } = useTheme()
+  const [allRequests, setAllRequests] = useState<VCRequestListItem[]>([])
+  const [activeFilter, setActiveFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchRequests = useCallback(async (status: string) => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await listVCRequests(status === "all" ? undefined : status)
-      setRequests(data.requests)
-      setTotal(data.total)
+      const data = await listVCRequests(undefined)
+      setAllRequests(data.requests)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load requests")
     } finally {
@@ -74,188 +76,290 @@ export default function StaffDashboard() {
   }, [])
 
   useEffect(() => {
-    fetchRequests(activeFilter)
-  }, [activeFilter, fetchRequests])
+    fetchRequests()
+  }, [fetchRequests])
 
-  const handleFilterChange = (value: string) => {
-    setActiveFilter(value)
-  }
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {}
+    for (const r of allRequests) c[r.status] = (c[r.status] || 0) + 1
+    return c
+  }, [allRequests])
 
-  const filteredRequests = activeFilter === "all"
-    ? requests
-    : requests.filter((r) => r.status === activeFilter)
+  const total = allRequests.length
+  const filtered = activeFilter === "all" ? allRequests : allRequests.filter((r) => r.status === activeFilter)
+
+  const kpis = [
+    { label: "Total Requests", value: total, sub: "all time", icon: "inbox" },
+    { label: "New", value: counts.new || 0, sub: "awaiting review", icon: "spark" },
+    { label: "Recording Ready", value: counts.recording_ready || 0, sub: "ready to send", icon: "video" },
+    { label: "Sent", value: counts.sent || 0, sub: "delivered", icon: "send" },
+  ] as const
 
   return (
-    <div className="min-h-dvh bg-zinc-50">
-      {/* Header */}
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+    <div className="flex min-h-dvh text-[var(--k-text)]" style={{ ...themeStyleVars(theme), background: "var(--k-bg)" }}>
+      {/* ── Sidebar ──────────────────────────────────────────── */}
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-[var(--k-line)] bg-white lg:flex">
+        <div className="flex items-center gap-2.5 px-5 py-5">
+          <span className="flex size-9 items-center justify-center rounded-xl text-white shadow-sm" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25A2.25 2.25 0 0 1 8.25 10.5H6A2.25 2.25 0 0 1 3.75 8.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+            </svg>
+          </span>
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#c4a052]">
-              CCCD Staff Portal
-            </p>
-            <h1 className="text-lg font-bold tracking-tight text-zinc-900 sm:text-xl">
-              VC Request Dashboard
-            </h1>
+            <p className="text-sm font-bold tracking-tight text-zinc-900">VC Portal</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">CCCD Staff</p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
-              {total} request{total !== 1 ? "s" : ""}
-            </span>
+        </div>
+
+        <nav className="flex-1 space-y-1 px-3 py-2">
+          {STATUS_FILTERS.map((f) => {
+            const active = activeFilter === f.value
+            const count = f.value === "all" ? total : counts[f.value] || 0
+            return (
+              <button
+                key={f.value}
+                onClick={() => setActiveFilter(f.value)}
+                className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition"
+                style={active ? { background: "var(--k-accent-soft)", color: "var(--k-accent)" } : { color: "var(--k-muted)" }}
+              >
+                <span className="flex size-2 rounded-full" style={{ background: active ? "var(--k-accent)" : "rgba(20,18,40,0.18)" }} />
+                <span className="flex-1 text-left">{f.label}</span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                  style={active ? { background: "var(--k-accent)", color: "var(--k-on-accent)" } : { background: "rgba(20,18,40,0.05)", color: "var(--k-muted)" }}
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="border-t border-[var(--k-line)] p-3">
+          <a href="/" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--k-muted)] transition hover:bg-zinc-50">
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+            Patient intake site
+          </a>
+        </div>
+      </aside>
+
+      {/* ── Main ─────────────────────────────────────────────── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Topbar */}
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--k-line)] bg-white/85 px-4 py-3 backdrop-blur sm:px-6">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--k-accent)" }}>CCCD Staff Portal</p>
+            <h1 className="text-lg font-bold tracking-tight text-zinc-900">Request Dashboard</h1>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onClick={() => fetchRequests(activeFilter)}
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+              onClick={fetchRequests}
+              className="hidden items-center gap-1.5 rounded-full border border-[var(--k-line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--k-text)] shadow-sm transition hover:bg-zinc-50 sm:flex"
             >
+              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.985 14.652H-.007m4.008 0h4.984M19.5 12a7.5 7.5 0 1 1-2.197-5.303" />
+              </svg>
               Refresh
             </button>
+            <ThemeSwitcher />
+            <span className="flex size-9 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
+              PB
+            </span>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {/* Status Filters */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => handleFilterChange(f.value)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-                activeFilter === f.value
-                  ? "bg-[#c4a052] text-white shadow-sm"
-                  : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Error State */}
-        {error && (
-          <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
-            {error}
-            <button onClick={() => fetchRequests(activeFilter)} className="ml-2 underline">
-              Retry
-            </button>
+        <main className="flex-1 px-4 py-6 sm:px-6">
+          {/* KPI cards */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {kpis.map((k) => (
+              <div key={k.label} className="rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)]">
+                <div className="flex items-start justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">{k.label}</p>
+                  <span className="flex size-9 items-center justify-center rounded-xl" style={{ background: "var(--k-accent-soft)", color: "var(--k-accent)" }}>
+                    <KpiIcon name={k.icon} />
+                  </span>
+                </div>
+                <p className="mt-3 text-3xl font-bold tracking-tight text-zinc-900">{k.value}</p>
+                <p className="mt-1 text-xs text-zinc-400">{k.sub}</p>
+              </div>
+            ))}
           </div>
-        )}
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-3 text-zinc-400">
-              <svg className="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span className="text-sm">Loading requests...</span>
+          {/* Mobile filter chips */}
+          <div className="mt-6 flex flex-wrap gap-2 lg:hidden">
+            {STATUS_FILTERS.map((f) => {
+              const active = activeFilter === f.value
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setActiveFilter(f.value)}
+                  className="rounded-full px-3.5 py-1.5 text-xs font-medium transition"
+                  style={active ? { background: "var(--k-accent)", color: "var(--k-on-accent)" } : { background: "#fff", color: "var(--k-muted)", boxShadow: "inset 0 0 0 1px var(--k-line)" }}
+                >
+                  {f.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+              {error}
+              <button onClick={fetchRequests} className="ml-2 underline">Retry</button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Empty State */}
-        {!loading && !error && filteredRequests.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-zinc-100">
-              <svg className="size-6 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-              </svg>
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-20">
+              <div className="flex items-center gap-3 text-zinc-400">
+                <svg className="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-sm">Loading requests...</span>
+              </div>
             </div>
-            <p className="text-sm font-medium text-zinc-600">No requests found</p>
-            <p className="mt-1 text-xs text-zinc-400">
-              {activeFilter !== "all"
-                ? `No requests with status "${statusLabel(activeFilter)}"`
-                : "No consultation requests have been submitted yet"}
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* Request Table */}
-        {!loading && !error && filteredRequests.length > 0 && (
-          <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">ID</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Patient Name</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Submitted</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Status</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Contact</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Photos</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {filteredRequests.map((req) => (
-                    <tr key={req.id} className="transition-colors hover:bg-zinc-50/50">
-                      <td className="px-4 py-3 text-xs font-mono text-zinc-400">#{req.id}</td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-zinc-900">{getDisplayName(req)}</p>
-                        {(req.city || req.state) && (
-                          <p className="text-xs text-zinc-400">
-                            {[req.city, req.state].filter(Boolean).join(", ")}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-zinc-500">{getSubmittedDate(req)}</td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={req.status}
-                          onChange={async (e) => {
-                            const newStatus = e.target.value
-                            try {
-                              await updateVCRequest(req.id, { status: newStatus })
-                              fetchRequests(activeFilter)
-                            } catch { /* ignore */ }
-                          }}
-                          className={`rounded-full border-0 px-2.5 py-0.5 text-[10px] font-semibold cursor-pointer ${STATUS_COLORS[req.status] || "bg-zinc-100 text-zinc-600"}`}
-                        >
-                          {STATUS_ORDER.map((s) => (
-                            <option key={s} value={s}>{statusLabel(s)}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-xs text-zinc-600">{req.email}</p>
-                        <p className="text-[10px] text-zinc-400">{req.phone}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        {req.photos && req.photos.length > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
-                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-                            </svg>
-                            {req.photos.length}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-300">None</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/staff/${req.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg bg-[#c4a052]/10 px-3 py-1.5 text-xs font-medium text-[#c4a052] transition-colors hover:bg-[#c4a052]/20"
-                        >
-                          View Profile
-                          <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                          </svg>
-                        </Link>
-                      </td>
+          {/* Empty */}
+          {!loading && !error && filtered.length === 0 && (
+            <div className="mt-6 flex flex-col items-center justify-center rounded-2xl bg-white py-20 text-center ring-1 ring-[var(--k-line)]">
+              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-zinc-100">
+                <svg className="size-6 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-zinc-600">No requests found</p>
+              <p className="mt-1 text-xs text-zinc-400">
+                {activeFilter !== "all" ? `No requests with status "${statusLabel(activeFilter)}"` : "No consultation requests have been submitted yet"}
+              </p>
+            </div>
+          )}
+
+          {/* Table */}
+          {!loading && !error && filtered.length > 0 && (
+            <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--k-line)]" style={{ background: "var(--k-bg)" }}>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">ID</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Patient</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Submitted</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Status</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Contact</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Photos</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--k-line)]">
+                    {filtered.map((req) => (
+                      <tr key={req.id} className="transition-colors hover:bg-zinc-50/70">
+                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">#{req.id}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
+                              {initials(req)}
+                            </span>
+                            <div>
+                              <p className="font-medium text-zinc-900">{getDisplayName(req)}</p>
+                              {(req.city || req.state) && (
+                                <p className="text-xs text-zinc-400">{[req.city, req.state].filter(Boolean).join(", ")}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-zinc-500">{formatDate(req.created_at || req.submitted_at)}</td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={req.status}
+                            onChange={async (e) => {
+                              try {
+                                await updateVCRequest(req.id, { status: e.target.value })
+                                fetchRequests()
+                              } catch {
+                                /* ignore */
+                              }
+                            }}
+                            className={`cursor-pointer rounded-full border-0 px-2.5 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[req.status] || "bg-zinc-100 text-zinc-600"}`}
+                          >
+                            {STATUS_ORDER.map((s) => (
+                              <option key={s} value={s}>{statusLabel(s)}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs text-zinc-600">{req.email}</p>
+                          <p className="text-[10px] text-zinc-400">{req.phone}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          {req.photos && req.photos.length > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
+                              </svg>
+                              {req.photos.length}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-300">None</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/staff/${req.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition hover:brightness-95"
+                            style={{ background: "var(--k-accent-soft)", color: "var(--k-accent)" }}
+                          >
+                            View
+                            <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Footer */}
-      <footer className="mt-8 border-t border-zinc-100 py-4 text-center text-[10px] text-zinc-300">
-        Charlotte Center for Cosmetic Dentistry &middot; Staff Portal &middot; VC Request Management
-      </footer>
+          <p className="mt-8 text-center text-[10px] text-zinc-300">
+            Charlotte Center for Cosmetic Dentistry · Staff Portal · {theme.name} theme
+          </p>
+        </main>
+      </div>
     </div>
+  )
+}
+
+function KpiIcon({ name }: { name: string }) {
+  const cls = "size-5"
+  if (name === "inbox")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" />
+      </svg>
+    )
+  if (name === "spark")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+      </svg>
+    )
+  if (name === "video")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+      </svg>
+    )
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+    </svg>
   )
 }
