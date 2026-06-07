@@ -41,7 +41,7 @@ export function StaffStepNav({ current, requestId }: { current: Step; requestId:
         <Link href="/staff" className="rounded-lg px-2.5 py-1 text-[11px] font-medium text-[var(--k-muted)] transition hover:bg-zinc-100">Dashboard</Link>
       </div>
 
-      <Link href={next.href} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700">
+      <Link href={next.href} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--k-accent)] px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:brightness-110">
         {next.label}
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
       </Link>

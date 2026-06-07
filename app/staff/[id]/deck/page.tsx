@@ -222,12 +222,16 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
       <button type="button" onClick={onDelete} title="Delete from library" className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-white/85 text-zinc-400 opacity-0 shadow transition hover:bg-red-500 hover:text-white group-hover:opacity-100">
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
       </button>
-      <button type="button" {...attributes} {...listeners} onClick={onPreview} className="block cursor-grab text-left active:cursor-grabbing" title="Double-click to add · drag up · click to preview">
-        <SlideImg slide={slide} className="aspect-[4/3] w-full" />
-      </button>
-      <div className="flex items-center justify-between gap-2 px-2.5 py-2">
+      <div className="relative">
+        <button type="button" {...attributes} {...listeners} onClick={onPreview} className="block w-full cursor-grab text-left active:cursor-grabbing" title="Double-click to add · drag up · click to preview">
+          <SlideImg slide={slide} className="aspect-[4/3] w-full" />
+        </button>
+        {!inDeck && (
+          <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onAdd} title="Add to presentation (or double-click the slide)" className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-zinc-600 opacity-0 shadow ring-1 ring-zinc-200 backdrop-blur transition hover:bg-white hover:text-zinc-900 group-hover:opacity-100">+ Add</button>
+        )}
+      </div>
+      <div className="px-2.5 py-2">
         <p className="truncate text-[11px] font-medium text-zinc-600" title={getSlideTitle(slide)}>{getSlideTitle(slide)}</p>
-        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "Added" : "Add"}</button>
       </div>
     </div>
   )
@@ -243,12 +247,16 @@ function FavCard({ slide, inDeck, onAdd, onUnpin, onPreview }: { slide: SlideIte
       <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onUnpin} title="Unpin from Most Used" className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[var(--k-accent)] text-white shadow">
         <StarIcon filled />
       </button>
-      <button type="button" {...attributes} {...listeners} onClick={onPreview} className="block w-full cursor-grab text-left active:cursor-grabbing" title="Drag to reorder · click to preview">
-        <SlideImg slide={slide} className="aspect-[4/3] w-full" />
-      </button>
-      <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+      <div className="relative">
+        <button type="button" {...attributes} {...listeners} onClick={onPreview} className="block w-full cursor-grab text-left active:cursor-grabbing" title="Drag to reorder · double-click to add">
+          <SlideImg slide={slide} className="aspect-[4/3] w-full" />
+        </button>
+        {!inDeck && (
+          <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onAdd} title="Add to presentation (or double-click the slide)" className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-zinc-600 opacity-0 shadow ring-1 ring-zinc-200 transition hover:bg-white group-hover:opacity-100">+ Add</button>
+        )}
+      </div>
+      <div className="px-2 py-1.5">
         <span className="truncate text-[10px] text-zinc-500">{getSlideTitle(slide)}</span>
-        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "✓" : "Add"}</button>
       </div>
     </div>
   )
@@ -603,7 +611,7 @@ export default function DeckBuilderPage() {
               <p className="mt-1 text-xs text-zinc-500">Double-click (or drag up) to add to the presentation. ★ pins to Most Used. Hover to delete.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" onClick={() => addInputRef.current?.click()} disabled={adding} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+              <button type="button" onClick={() => addInputRef.current?.click()} disabled={adding} className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50">
                 {adding ? (
                   <svg className="size-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                 ) : (
@@ -641,7 +649,7 @@ export default function DeckBuilderPage() {
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h3 className="text-xl font-bold text-zinc-900">{getSlideTitle(previewSlide)}</h3>
                 <div className="flex items-center gap-2">
-                  {!deckNumbers.has(previewSlide.slide_number) && <button type="button" onClick={() => { addToDeck(previewSlide); setPreviewSlide(null) }} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700">Add to Deck</button>}
+                  {!deckNumbers.has(previewSlide.slide_number) && <button type="button" onClick={() => { addToDeck(previewSlide); setPreviewSlide(null) }} className="rounded-lg bg-[var(--k-accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--k-accent-strong)]">Add to Deck</button>}
                   <button type="button" onClick={() => setPreviewSlide(null)} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100"><svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
                 </div>
               </div>

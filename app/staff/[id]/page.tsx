@@ -289,7 +289,7 @@ export default function RequestDetail() {
           <h3 className="mb-1 text-sm font-semibold text-zinc-900">Presentation</h3>
           <p className="mb-3 text-xs text-zinc-500">{request.deck_id ? "Deck built — edit it or open the recorder." : "Step 1: build this patient's slide deck from the library, then record the walkthrough."}</p>
           <div className="flex flex-wrap gap-2">
-            <Link href={`/staff/${request.id}/deck`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-700">
+            <Link href={`/staff/${request.id}/deck`} className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[var(--k-accent-strong)]">
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" /></svg>
               {request.deck_id ? "Edit Deck" : "Build Deck"}
             </Link>
@@ -456,7 +456,7 @@ export default function RequestDetail() {
                           setReviewAction(false)
                         }
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-40"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[var(--k-accent-strong)] disabled:opacity-40"
                     >
                       <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                       Approve Consultation
@@ -481,7 +481,7 @@ export default function RequestDetail() {
                           setReviewAction(false)
                         }
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-40"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[var(--k-accent-strong)] disabled:opacity-40"
                     >
                       <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
                       Send to Patient
