@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -15,6 +15,8 @@ import {
 } from "@/lib/api"
 import type { VCRequestListItem, SlideItem, RecordingDeck } from "@/lib/api"
 import { Slider } from "@/components/ui/slider"
+import { StaffNav } from "@/components/vc/StaffNav"
+import { StaffStepNav } from "@/components/vc/StaffStepNav"
 import {
   DndContext,
   DragOverlay,
@@ -196,7 +198,7 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
         <button type="button" onClick={onToggleFav} title={fav ? "Unpin from Most Used" : "Pin to Most Used"} className={`flex size-7 items-center justify-center rounded-full shadow transition ${fav ? "bg-[var(--k-accent)] text-white" : "bg-white/85 text-zinc-400 hover:text-[var(--k-accent)]"}`}>
           <StarIcon filled={fav} />
         </button>
-        {inDeck && <span className="rounded-full bg-[#f97316] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow">In deck</span>}
+        {inDeck && <span title="In deck" className="size-2.5 rounded-full bg-[#f97316] shadow ring-2 ring-white" />}
       </div>
       <button type="button" onClick={onDelete} title="Delete from library" className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-white/85 text-zinc-400 opacity-0 shadow transition hover:bg-red-500 hover:text-white group-hover:opacity-100">
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
@@ -206,7 +208,7 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
       </button>
       <div className="flex items-center justify-between gap-2 px-2.5 py-2">
         <p className="truncate text-[11px] font-medium text-zinc-600" title={getSlideTitle(slide)}>{getSlideTitle(slide)}</p>
-        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded-lg bg-[var(--k-accent)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[var(--k-accent-strong)] disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "Added" : "Add"}</button>
+        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "Added" : "Add"}</button>
       </div>
     </div>
   )
@@ -232,8 +234,9 @@ export default function DeckBuilderPage() {
   const [favs, setFavs] = useState<number[]>([])
   const [libOrder, setLibOrder] = useState<number[]>([])
   const [existingDeckId, setExistingDeckId] = useState<number | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const lastSavedRef = useRef<string>("")
 
   const [previewSlide, setPreviewSlide] = useState<SlideItem | null>(null)
   const [summaryOpen, setSummaryOpen] = useState(false)
@@ -257,6 +260,7 @@ export default function DeckBuilderPage() {
         const map = new Map(slideData.slides.map((s: SlideItem) => [s.slide_number, s]))
         const existingDeck = reqData.deck_id ? deckData.decks.find((d: RecordingDeck) => d.id === reqData.deck_id) ?? null : null
         setExistingDeckId(existingDeck?.id ?? null)
+        lastSavedRef.current = existingDeck ? existingDeck.slide_numbers.join(",") : ""
         if (reqData.status === "sent") clearDraftDeck(requestId)
         const draft = reqData.status === "sent" ? null : readDraftDeck(requestId)
         if (draft?.recommendation_items?.length) setSummaryRows(draft.recommendation_items)
@@ -364,7 +368,8 @@ export default function DeckBuilderPage() {
 
   const saveDeck = useCallback(async () => {
     if (!request || deckSlides.length === 0) return
-    setSaving(true); setSaveMsg(null)
+    setAutoSaveState("saving")
+    setSaveMsg(null)
     try {
       const name = `Request #${request.id} — ${getDisplayName(request)}`
       const slideNumbers = deckSlides.map((s) => s.slide_number)
@@ -374,13 +379,25 @@ export default function DeckBuilderPage() {
       await updateVCRequest(request.id, { deck_id: newDeck.id })
       setRequest((prev) => (prev ? { ...prev, deck_id: newDeck.id } : prev))
       writeDraftDeck(request.id, slideNumbers, summaryRows)
-      setSaveMsg(`Saved deck #${newDeck.id} (${slideNumbers.length} slides).`)
+      lastSavedRef.current = slideNumbers.join(",")
+      setAutoSaveState("saved")
     } catch (err) {
-      setSaveMsg(`Save failed: ${err instanceof Error ? err.message : "unknown error"}`)
-    } finally {
-      setSaving(false)
+      setAutoSaveState("error")
+      setSaveMsg(`Auto-save failed: ${err instanceof Error ? err.message : "unknown error"}`)
     }
   }, [request, deckSlides, existingDeckId, summaryRows])
+
+  /* Auto-save the deck (debounced) — no manual Save button needed. */
+  useEffect(() => {
+    if (!initialized.done || !requestId || Number.isNaN(requestId)) return
+    if (request?.status === "sent") return
+    if (deckSlides.length === 0) return
+    const sig = deckSlides.map((s) => s.slide_number).join(",")
+    if (sig === lastSavedRef.current) return
+    setAutoSaveState("saving")
+    const t = setTimeout(() => { saveDeck() }, 1200)
+    return () => clearTimeout(t)
+  }, [deckSlides, initialized, requestId, request?.status, saveDeck])
 
   if (loading) {
     return <div className="flex min-h-dvh items-center justify-center bg-[var(--k-bg)]"><span className="text-sm text-zinc-400">Loading deck builder…</span></div>
@@ -397,35 +414,34 @@ export default function DeckBuilderPage() {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div className="flex min-h-dvh flex-col bg-[var(--k-bg)]">
-        {/* header */}
-        <header className="z-30 border-b border-zinc-200 bg-white">
-          <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <Link href={`/staff/${request.id}`} className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600">
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                Profile
-              </Link>
-              <span className="text-zinc-200">/</span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--k-accent)]">Build Presentation · Step 1</p>
-                <p className="truncate text-sm font-bold text-zinc-900">#{request.id} — {getDisplayName(request)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+        <StaffNav
+          current="deck"
+          requestId={request.id}
+          patientName={getDisplayName(request)}
+          actions={
+            <>
+              <span className="hidden items-center gap-1.5 text-[11px] font-medium text-zinc-400 sm:flex">
+                {autoSaveState === "saving" ? (
+                  <><svg className="size-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Saving…</>
+                ) : autoSaveState === "error" ? (
+                  <span className="text-red-500">Save failed</span>
+                ) : autoSaveState === "saved" ? (
+                  <><svg className="size-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>Saved</>
+                ) : null}
+              </span>
               {deckSlides.length > 0 && (
                 <Link href={`/staff/${request.id}/deck/present`} className="hidden items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 sm:flex">
                   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
                   Record
                 </Link>
               )}
-              <button onClick={saveDeck} disabled={saving || deckSlides.length === 0} className="rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--k-accent-strong)] disabled:opacity-40" type="button">{saving ? "Saving…" : "Save Deck"}</button>
-            </div>
-          </div>
-          {saveMsg && <div className={`border-t px-4 py-2 text-xs font-medium ${saveMsg.startsWith("Save failed") ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>{saveMsg}</div>}
-        </header>
+            </>
+          }
+        />
+        {saveMsg && <div className={`px-4 py-2 text-xs font-medium sm:px-6 lg:px-8 ${saveMsg.startsWith("Auto-save failed") ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{saveMsg}</div>}
 
         {/* DOCK / staging tray */}
-        <div className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+        <div className="sticky top-[53px] z-20 border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-bold text-zinc-900">Presentation order <span className="text-zinc-400">({deckSlides.length} slide{deckSlides.length !== 1 ? "s" : ""})</span></h2>
             {deckSlides.length > 0 && <button type="button" onClick={() => setDeckSlides([])} className="text-[11px] font-medium text-zinc-400 hover:text-red-500">Clear all</button>}
@@ -498,7 +514,7 @@ export default function DeckBuilderPage() {
                     <button type="button" onClick={() => setPreviewSlide(slide)}><SlideImg slide={slide} className="aspect-[4/3] w-full" /></button>
                     <div className="flex items-center justify-between gap-1 px-2 py-1.5">
                       <span className="truncate text-[10px] text-zinc-500">{getSlideTitle(slide)}</span>
-                      <button type="button" onClick={() => addToDeck(slide)} disabled={deckNumbers.has(slide.slide_number)} className="shrink-0 rounded bg-[var(--k-accent)] px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{deckNumbers.has(slide.slide_number) ? "✓" : "Add"}</button>
+                      <button type="button" onClick={() => addToDeck(slide)} disabled={deckNumbers.has(slide.slide_number)} className="shrink-0 rounded bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{deckNumbers.has(slide.slide_number) ? "✓" : "Add"}</button>
                     </div>
                   </div>
                 ))}
@@ -531,6 +547,8 @@ export default function DeckBuilderPage() {
           )}
         </div>
 
+        <StaffStepNav current="deck" requestId={request.id} />
+
         <DragOverlay>{activeSlide ? <div className="w-[150px] overflow-hidden rounded-xl border-2 border-[var(--k-accent)] bg-white shadow-2xl"><SlideImg slide={activeSlide} className="aspect-[4/3] w-full" /></div> : null}</DragOverlay>
 
         {previewSlide && (
@@ -539,7 +557,7 @@ export default function DeckBuilderPage() {
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h3 className="text-xl font-bold text-zinc-900">{getSlideTitle(previewSlide)}</h3>
                 <div className="flex items-center gap-2">
-                  {!deckNumbers.has(previewSlide.slide_number) && <button type="button" onClick={() => { addToDeck(previewSlide); setPreviewSlide(null) }} className="rounded-lg bg-[var(--k-accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--k-accent-strong)]">Add to Deck</button>}
+                  {!deckNumbers.has(previewSlide.slide_number) && <button type="button" onClick={() => { addToDeck(previewSlide); setPreviewSlide(null) }} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700">Add to Deck</button>}
                   <button type="button" onClick={() => setPreviewSlide(null)} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100"><svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
                 </div>
               </div>

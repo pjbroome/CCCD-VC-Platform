@@ -536,25 +536,15 @@ export default function PresenterViewPage() {
     <div className="flex min-h-dvh flex-col bg-zinc-900">
       {/* ── Top bar ────────────────────────────────────────────── */}
       <header className={`flex items-center justify-between border-b border-zinc-800 bg-zinc-950/80 px-4 py-2 backdrop-blur-sm ${recordingState === "recording" || recordingState === "paused" ? "hidden" : ""}`}>
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/staff/${request.id}/deck`}
-            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-            Back to Builder
-          </Link>
-          <span className="text-zinc-700">/</span>
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#c4a052]">
-              Presenter View
-            </p>
-            <p className="text-xs font-bold text-zinc-200">
-              #{request.id} — {getDisplayName(request)}
-            </p>
-          </div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link href="/staff" className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200">Dashboard</Link>
+          <span className="text-zinc-700">·</span>
+          <Link href={`/staff/${request.id}`} className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200">Profile</Link>
+          <span className="text-zinc-700">·</span>
+          <Link href={`/staff/${request.id}/deck`} className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200">Build Deck</Link>
+          <span className="text-zinc-700">·</span>
+          <span className="rounded-lg px-2 py-1 text-xs font-semibold" style={{ background: "var(--k-accent-soft)", color: "var(--k-accent)" }}>Record</span>
+          <span className="ml-2 hidden max-w-[200px] truncate text-xs font-bold text-zinc-300 lg:inline">#{request.id} — {getDisplayName(request)}</span>
         </div>
 
         {/* Slide counter + timer */}
