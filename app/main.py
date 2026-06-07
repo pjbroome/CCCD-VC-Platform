@@ -80,8 +80,8 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Mount slide images as static files
-_slide_images_dir = Path(__file__).parent / "vc_slides" / "slide_images"
+# Mount slide images as static files (from the persistent volume when present).
+from app.slide_sorter import _IMAGES_DIR as _slide_images_dir
 if _slide_images_dir.exists():
     app.mount("/vc/images", StaticFiles(directory=str(_slide_images_dir)), name="slide_images")
 
@@ -2972,6 +2972,22 @@ async def delete_slide_endpoint(slide_number: int):
     if not ok:
         return {"error": f"Slide {slide_number} not found"}
     return {"message": f"Slide {slide_number} deleted", "slide_number": slide_number}
+
+
+@app.post("/slides/upload")
+async def upload_slide_endpoint(
+    files: list[UploadFile] = File(...),
+    session: dict = Depends(require_admin),
+):
+    """Add one or more new slides to the library from uploaded images."""
+    from app.slide_sorter import add_slide
+    created = []
+    for f in files:
+        data = await f.read()
+        if not data:
+            continue
+        created.append(add_slide(f.filename or "slide", data))
+    return {"created": created, "count": len(created)}
 
 
 def _send_review_email(to_email: str, subject: str, html_body: str) -> bool:

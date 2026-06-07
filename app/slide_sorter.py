@@ -8,9 +8,42 @@ import os
 from typing import Optional
 from pathlib import Path
 
-# Load indexed catalog on import
-_CATALOG_PATH = Path(__file__).parent / "vc_slides" / "indexed_catalog.json"
-_IMAGES_DIR = Path(__file__).parent / "vc_slides" / "slide_images"
+# The slide catalog + images live on a persistent volume (/data/vc) when one
+# is mounted, so deletes and uploads survive Fly deploys. We seed the volume
+# from the baked-in app files on first boot. If anything about the volume is
+# off, we fall back to the app directory (current behaviour) so the library
+# never breaks.
+_APP_VC_DIR = Path(__file__).parent / "vc_slides"
+
+
+def _resolve_vc_dir() -> tuple[Path, Path]:
+    """Return (catalog_dir, images_dir), preferring a mounted /data volume."""
+    if Path("/data").exists():
+        try:
+            import shutil
+            vol = Path("/data/vc")
+            vol.mkdir(parents=True, exist_ok=True)
+            vimg = vol / "slide_images"
+            vimg.mkdir(parents=True, exist_ok=True)
+            app_img = _APP_VC_DIR / "slide_images"
+            if app_img.exists():
+                for f in app_img.iterdir():
+                    if f.is_file() and not (vimg / f.name).exists():
+                        shutil.copy2(f, vimg / f.name)
+            vcat = vol / "indexed_catalog.json"
+            app_cat = _APP_VC_DIR / "indexed_catalog.json"
+            if not vcat.exists() and app_cat.exists():
+                shutil.copy2(app_cat, vcat)
+            # Only use the volume if it actually has images seeded.
+            if any(vimg.iterdir()):
+                return vol, vimg
+        except Exception:
+            pass
+    return _APP_VC_DIR, (_APP_VC_DIR / "slide_images")
+
+
+_VC_DIR, _IMAGES_DIR = _resolve_vc_dir()
+_CATALOG_PATH = _VC_DIR / "indexed_catalog.json"
 _catalog: list[dict] = []
 
 
@@ -393,6 +426,36 @@ def delete_slide(slide_number: int) -> bool:
                     pass
             return True
     return False
+
+
+def add_slide(filename: str, data: bytes) -> dict:
+    """Add a new slide to the library from uploaded image bytes."""
+    global _catalog
+    _load_catalog()
+    import uuid
+    ext = os.path.splitext(filename or "")[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
+        ext = ".jpg"
+    safe = f"upload_{uuid.uuid4().hex}{ext}"
+    _IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    with open(_IMAGES_DIR / safe, "wb") as f:
+        f.write(data)
+    nums = [s.get("slide_number", 0) for s in _catalog]
+    new_num = (max(nums) + 1) if nums else 1
+    base = os.path.splitext(os.path.basename(filename or ""))[0]
+    title = base[:60] if base else f"Slide {new_num}"
+    slide = {
+        "slide_number": new_num,
+        "condition": title,
+        "solution": "",
+        "images": [safe],
+        "full_slide_image": safe,
+        "image_count": 1,
+        "text_content": [],
+    }
+    _catalog.append(slide)
+    _save_catalog()
+    return slide
 
 
 # --- Recording Decks ---
