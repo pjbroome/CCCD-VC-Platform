@@ -253,6 +253,17 @@ export async function deleteSlide(slideNumber: number): Promise<void> {
   }
 }
 
+export async function uploadSlides(files: File[]): Promise<{ created: SlideItem[]; count: number }> {
+  const formData = new FormData();
+  files.forEach((f) => formData.append("files", f));
+  const res = await fetch(`${API_BASE}/slides/upload`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Slide upload failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
 export async function listRecordingDecks(): Promise<{ total: number; decks: RecordingDeck[] }> {
   const res = await fetch(`${API_BASE}/recording-decks`);
   if (!res.ok) {

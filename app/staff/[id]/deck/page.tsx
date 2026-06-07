@@ -12,6 +12,7 @@ import {
   deleteRecordingDeck,
   updateVCRequest,
   deleteSlide,
+  uploadSlides,
 } from "@/lib/api"
 import type { VCRequestListItem, SlideItem, RecordingDeck } from "@/lib/api"
 import { Slider } from "@/components/ui/slider"
@@ -126,6 +127,24 @@ function readLibOrder(): number[] {
   return []
 }
 
+/* Slides the user deleted — persisted so they never reload, even if the
+   backend catalog is reseeded on a deploy. */
+const DELETED_KEY = "vc-deleted-slides"
+function readDeleted(): number[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = window.localStorage.getItem(DELETED_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    /* ignore */
+  }
+  return []
+}
+function writeDeleted(nums: number[]) {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(new Set(nums))))
+}
+
 /* ── slide image ─────────────────────────────────────────── */
 
 function SlideImg({ slide, className }: { slide: SlideItem; className: string }) {
@@ -214,6 +233,27 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
   )
 }
 
+/* ── Most Used favorite — sortable (drag to reorder) ─────── */
+
+function FavCard({ slide, inDeck, onAdd, onUnpin, onPreview }: { slide: SlideItem; inDeck: boolean; onAdd: () => void; onUnpin: () => void; onPreview: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `F:${slide.slide_number}` })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
+  return (
+    <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${inDeck ? "border-[#f97316]/70" : "border-zinc-200"}`}>
+      <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onUnpin} title="Unpin from Most Used" className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[var(--k-accent)] text-white shadow">
+        <StarIcon filled />
+      </button>
+      <button type="button" {...attributes} {...listeners} onClick={onPreview} className="block w-full cursor-grab text-left active:cursor-grabbing" title="Drag to reorder · click to preview">
+        <SlideImg slide={slide} className="aspect-[4/3] w-full" />
+      </button>
+      <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+        <span className="truncate text-[10px] text-zinc-500">{getSlideTitle(slide)}</span>
+        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "✓" : "Add"}</button>
+      </div>
+    </div>
+  )
+}
+
 /* ── page ────────────────────────────────────────────────── */
 
 export default function DeckBuilderPage() {
@@ -239,6 +279,8 @@ export default function DeckBuilderPage() {
   const lastSavedRef = useRef<string>("")
 
   const [previewSlide, setPreviewSlide] = useState<SlideItem | null>(null)
+  const [adding, setAdding] = useState(false)
+  const addInputRef = useRef<HTMLInputElement>(null)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [managePresets, setManagePresets] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -251,13 +293,15 @@ export default function DeckBuilderPage() {
       try {
         const [reqData, slideData, deckData] = await Promise.all([getVCRequest(requestId), listAllSlides(), listRecordingDecks()])
         setRequest(reqData)
-        setAllSlides(slideData.slides)
+        const deletedSet = new Set(readDeleted())
+        const liveSlides = slideData.slides.filter((s: SlideItem) => !deletedSet.has(s.slide_number))
+        setAllSlides(liveSlides)
         setTxPresets(readTxPresets())
         setFavs(readFavs())
-        const allNums = slideData.slides.map((s: SlideItem) => s.slide_number)
+        const allNums = liveSlides.map((s: SlideItem) => s.slide_number)
         const storedOrder = readLibOrder()
         setLibOrder([...storedOrder.filter((n) => allNums.includes(n)), ...allNums.filter((n) => !storedOrder.includes(n))])
-        const map = new Map(slideData.slides.map((s: SlideItem) => [s.slide_number, s]))
+        const map = new Map(liveSlides.map((s: SlideItem) => [s.slide_number, s]))
         const existingDeck = reqData.deck_id ? deckData.decks.find((d: RecordingDeck) => d.id === reqData.deck_id) ?? null : null
         setExistingDeckId(existingDeck?.id ?? null)
         lastSavedRef.current = existingDeck ? existingDeck.slide_numbers.join(",") : ""
@@ -315,10 +359,32 @@ export default function DeckBuilderPage() {
 
   const handleDelete = useCallback(async (slide: SlideItem) => {
     if (typeof window !== "undefined" && !window.confirm(`Delete "${getSlideTitle(slide)}" from the library? This removes the image for good.`)) return
+    // Record the deletion locally so it never reloads, even across backend deploys.
+    writeDeleted([...readDeleted(), slide.slide_number])
     setAllSlides((prev) => prev.filter((s) => s.slide_number !== slide.slide_number))
     setDeckSlides((prev) => prev.filter((s) => s.slide_number !== slide.slide_number))
     setFavs((prev) => prev.filter((x) => x !== slide.slide_number))
-    try { await deleteSlide(slide.slide_number) } catch { /* optimistic */ }
+    setLibOrder((prev) => prev.filter((n) => n !== slide.slide_number))
+    try { await deleteSlide(slide.slide_number) } catch { /* optimistic — local hide still applies */ }
+  }, [])
+
+  /* Add new slides to the library from image files. */
+  const handleAddSlides = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (addInputRef.current) addInputRef.current.value = ""
+    if (!files.length) return
+    setAdding(true)
+    setSaveMsg(null)
+    try {
+      const { created } = await uploadSlides(files)
+      setAllSlides((prev) => [...created, ...prev])
+      setLibOrder((prev) => [...created.map((s) => s.slide_number), ...prev])
+      setSaveMsg(`Added ${created.length} slide${created.length !== 1 ? "s" : ""} to the library.`)
+    } catch (err) {
+      setSaveMsg(`Add failed: ${err instanceof Error ? err.message : "unknown error"}`)
+    } finally {
+      setAdding(false)
+    }
   }, [])
 
   /* summary rows */
@@ -337,6 +403,13 @@ export default function DeckBuilderPage() {
     const { active, over } = e
     if (!over) return
     const a = String(active.id), o = String(over.id)
+    if (a.startsWith("F:")) {
+      if (o.startsWith("F:") && a !== o) {
+        const sn = Number(a.slice(2)), on = Number(o.slice(2))
+        setFavs((prev) => { const f = prev.indexOf(sn), t = prev.indexOf(on); return f < 0 || t < 0 ? prev : arrayMove(prev, f, t) })
+      }
+      return
+    }
     if (a.startsWith("L:")) {
       const sn = Number(a.slice(2))
       if (o.startsWith("L:")) {
@@ -438,7 +511,7 @@ export default function DeckBuilderPage() {
             </>
           }
         />
-        {saveMsg && <div className={`px-4 py-2 text-xs font-medium sm:px-6 lg:px-8 ${saveMsg.startsWith("Auto-save failed") ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{saveMsg}</div>}
+        {saveMsg && <div className={`px-4 py-2 text-xs font-medium sm:px-6 lg:px-8 ${saveMsg.includes("failed") ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{saveMsg}</div>}
 
         {/* DOCK / staging tray */}
         <div className="sticky top-[53px] z-20 border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
@@ -507,18 +580,20 @@ export default function DeckBuilderPage() {
           {favSlides.length > 0 && (
             <div className="mb-4">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--k-accent)]">★ Most Used</p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {favSlides.map((slide) => (
-                  <div key={slide.slide_number} onDoubleClick={() => addToDeck(slide)} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${deckNumbers.has(slide.slide_number) ? "border-[#f97316]/70" : "border-zinc-200"}`}>
-                    <button type="button" onClick={() => toggleFav(slide.slide_number)} title="Unpin" className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[var(--k-accent)] text-white shadow"><StarIcon filled /></button>
-                    <button type="button" onClick={() => setPreviewSlide(slide)}><SlideImg slide={slide} className="aspect-[4/3] w-full" /></button>
-                    <div className="flex items-center justify-between gap-1 px-2 py-1.5">
-                      <span className="truncate text-[10px] text-zinc-500">{getSlideTitle(slide)}</span>
-                      <button type="button" onClick={() => addToDeck(slide)} disabled={deckNumbers.has(slide.slide_number)} className="shrink-0 rounded bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{deckNumbers.has(slide.slide_number) ? "✓" : "Add"}</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <SortableContext items={favSlides.map((s) => `F:${s.slide_number}`)} strategy={horizontalListSortingStrategy}>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {favSlides.map((slide) => (
+                    <FavCard
+                      key={slide.slide_number}
+                      slide={slide}
+                      inDeck={deckNumbers.has(slide.slide_number)}
+                      onAdd={() => addToDeck(slide)}
+                      onUnpin={() => toggleFav(slide.slide_number)}
+                      onPreview={() => setPreviewSlide(slide)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
             </div>
           )}
 
@@ -528,6 +603,15 @@ export default function DeckBuilderPage() {
               <p className="mt-1 text-xs text-zinc-500">Double-click (or drag up) to add to the presentation. ★ pins to Most Used. Hover to delete.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => addInputRef.current?.click()} disabled={adding} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+                {adding ? (
+                  <svg className="size-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                ) : (
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                )}
+                {adding ? "Uploading…" : "Add slides"}
+              </button>
+              <input ref={addInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddSlides} />
               <input type="text" placeholder="Search slides…" value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700 placeholder:text-zinc-300 focus:border-[var(--k-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--k-accent)]/30 sm:w-64" />
               <div className="min-w-[150px]"><p className="mb-1 text-[11px] font-medium text-zinc-500">Size</p><Slider value={[thumbnailSize]} min={140} max={300} step={10} onValueChange={(v) => setThumbnailSize(v[0] ?? 200)} /></div>
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-medium text-zinc-500">{filteredSlides.length} slides</span>
