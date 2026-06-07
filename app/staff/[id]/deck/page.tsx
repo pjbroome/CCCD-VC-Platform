@@ -191,12 +191,12 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `L:${slide.slide_number}` })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
   return (
-    <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${inDeck ? "border-[var(--k-accent)]/60 ring-1 ring-[var(--k-accent)]/30" : "border-zinc-200 hover:-translate-y-0.5 hover:shadow-md"}`}>
+    <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${inDeck ? "border-[#f97316]/70 ring-1 ring-[#f97316]/40" : "border-zinc-200 hover:-translate-y-0.5 hover:shadow-md"}`}>
       <div className="absolute left-2 top-2 z-10 flex gap-1">
         <button type="button" onClick={onToggleFav} title={fav ? "Unpin from Most Used" : "Pin to Most Used"} className={`flex size-7 items-center justify-center rounded-full shadow transition ${fav ? "bg-[var(--k-accent)] text-white" : "bg-white/85 text-zinc-400 hover:text-[var(--k-accent)]"}`}>
           <StarIcon filled={fav} />
         </button>
-        {inDeck && <span className="rounded-full bg-[var(--k-accent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow">In deck</span>}
+        {inDeck && <span className="rounded-full bg-[#f97316] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow">In deck</span>}
       </div>
       <button type="button" onClick={onDelete} title="Delete from library" className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-white/85 text-zinc-400 opacity-0 shadow transition hover:bg-red-500 hover:text-white group-hover:opacity-100">
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
@@ -413,7 +413,7 @@ export default function DeckBuilderPage() {
             </div>
             <div className="flex items-center gap-2">
               {deckSlides.length > 0 && (
-                <Link href={`/staff/${request.id}/deck/present`} className="hidden items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-zinc-700 sm:flex">
+                <Link href={`/staff/${request.id}/deck/present`} className="hidden items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 sm:flex">
                   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
                   Record
                 </Link>
@@ -493,7 +493,7 @@ export default function DeckBuilderPage() {
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--k-accent)]">★ Most Used</p>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {favSlides.map((slide) => (
-                  <div key={slide.slide_number} onDoubleClick={() => addToDeck(slide)} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${deckNumbers.has(slide.slide_number) ? "border-[var(--k-accent)]/60" : "border-zinc-200"}`}>
+                  <div key={slide.slide_number} onDoubleClick={() => addToDeck(slide)} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${deckNumbers.has(slide.slide_number) ? "border-[#f97316]/70" : "border-zinc-200"}`}>
                     <button type="button" onClick={() => toggleFav(slide.slide_number)} title="Unpin" className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[var(--k-accent)] text-white shadow"><StarIcon filled /></button>
                     <button type="button" onClick={() => setPreviewSlide(slide)}><SlideImg slide={slide} className="aspect-[4/3] w-full" /></button>
                     <div className="flex items-center justify-between gap-1 px-2 py-1.5">
