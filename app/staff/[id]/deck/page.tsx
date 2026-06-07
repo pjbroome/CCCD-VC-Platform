@@ -502,7 +502,7 @@ export default function DeckBuilderPage() {
         </div>
 
         {/* LIBRARY */}
-        <div className="min-h-0 flex-1 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="min-h-0 flex-1 px-4 py-4 pb-24 sm:px-6 lg:px-8">
           {/* Most Used favorites row */}
           {favSlides.length > 0 && (
             <div className="mb-4">

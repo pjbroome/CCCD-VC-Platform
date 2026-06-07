@@ -220,7 +220,7 @@ export default function RequestDetail() {
         }
       />
 
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:px-6">
         {/* Patient Info Card */}
         <div className="rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h2 className="mb-4 text-base font-bold text-zinc-900 sm:text-lg">
