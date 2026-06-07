@@ -27,10 +27,22 @@ import {
   closestCenter,
   useDroppable,
   useDraggable,
+  MeasuringStrategy,
+  defaultDropAnimationSideEffects,
   type DragStartEvent,
   type DragEndEvent,
+  type DropAnimation,
 } from "@dnd-kit/core"
-import { SortableContext, horizontalListSortingStrategy, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
+import { SortableContext, horizontalListSortingStrategy, rectSortingStrategy, useSortable, arrayMove, defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable"
+
+/* Smooth, natural sortable motion shared by the dock, library, and Most Used. */
+const animateLayoutChanges: AnimateLayoutChanges = (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true })
+const SORT_TRANSITION = { duration: 260, easing: "cubic-bezier(0.2, 0, 0, 1)" }
+const DROP_ANIMATION: DropAnimation = {
+  duration: 260,
+  easing: "cubic-bezier(0.2, 0, 0, 1)",
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0.4" } } }),
+}
 import { CSS } from "@dnd-kit/utilities"
 
 /* ── helpers ─────────────────────────────────────────────── */
@@ -170,7 +182,7 @@ function StarIcon({ filled }: { filled: boolean }) {
 /* ── dock (tray) item — sortable ─────────────────────────── */
 
 function DockItem({ slide, index, onRemove, onPreview }: { slide: SlideItem; index: number; onRemove: () => void; onPreview: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `D:${slide.slide_number}` })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `D:${slide.slide_number}`, animateLayoutChanges, transition: SORT_TRANSITION })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 }
   return (
     <div ref={setNodeRef} style={style} className="group relative flex w-[128px] shrink-0 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -209,7 +221,7 @@ function DockZone({ deck, onRemove, onPreview }: { deck: SlideItem[]; onRemove: 
 /* ── library card — draggable, double-click to add, star to favorite ── */
 
 function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleFav }: { slide: SlideItem; inDeck: boolean; fav: boolean; onAdd: () => void; onPreview: () => void; onDelete: () => void; onToggleFav: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `L:${slide.slide_number}` })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `L:${slide.slide_number}`, animateLayoutChanges, transition: SORT_TRANSITION })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
   return (
     <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${inDeck ? "border-[#f97316]/70 ring-1 ring-[#f97316]/40" : "border-zinc-200 hover:-translate-y-0.5 hover:shadow-md"}`}>
@@ -240,7 +252,7 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
 /* ── Most Used favorite — sortable (drag to reorder) ─────── */
 
 function FavCard({ slide, inDeck, onAdd, onUnpin, onPreview }: { slide: SlideItem; inDeck: boolean; onAdd: () => void; onUnpin: () => void; onPreview: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `F:${slide.slide_number}` })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `F:${slide.slide_number}`, animateLayoutChanges, transition: SORT_TRANSITION })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
   return (
     <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${inDeck ? "border-[#f97316]/70" : "border-zinc-200"}`}>
@@ -493,7 +505,7 @@ export default function DeckBuilderPage() {
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div className="flex min-h-dvh flex-col bg-[var(--k-bg)]">
         <StaffNav
           current="deck"
@@ -641,7 +653,7 @@ export default function DeckBuilderPage() {
 
         <StaffStepNav current="deck" requestId={request.id} />
 
-        <DragOverlay>{activeSlide ? <div className="w-[150px] overflow-hidden rounded-xl border-2 border-[var(--k-accent)] bg-white shadow-2xl"><SlideImg slide={activeSlide} className="aspect-[4/3] w-full" /></div> : null}</DragOverlay>
+        <DragOverlay dropAnimation={DROP_ANIMATION}>{activeSlide ? <div className="w-[150px] rotate-2 overflow-hidden rounded-xl border-2 border-[var(--k-accent)] bg-white shadow-2xl"><SlideImg slide={activeSlide} className="aspect-[4/3] w-full" /></div> : null}</DragOverlay>
 
         {previewSlide && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPreviewSlide(null)}>
