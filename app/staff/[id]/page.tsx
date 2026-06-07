@@ -174,7 +174,7 @@ export default function RequestDetail() {
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-zinc-50">
+      <div className="flex min-h-dvh items-center justify-center bg-[var(--k-bg)]">
         <div className="flex items-center gap-3 text-zinc-400">
           <svg className="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -188,10 +188,10 @@ export default function RequestDetail() {
 
   if (error || !request) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--k-bg)] px-4">
         <div className="text-center">
           <p className="text-sm font-medium text-red-600">{error || "Request not found"}</p>
-          <Link href="/staff" className="mt-4 inline-block text-sm text-[#c4a052] underline">
+          <Link href="/staff" className="mt-4 inline-block text-sm text-[var(--k-accent)] underline">
             Back to Dashboard
           </Link>
         </div>
@@ -202,7 +202,7 @@ export default function RequestDetail() {
   const concern = request.concern || request.message || ""
 
   return (
-    <div className="min-h-dvh bg-zinc-50">
+    <div className="min-h-dvh bg-[var(--k-bg)]">
       {/* Header */}
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
@@ -231,7 +231,7 @@ export default function RequestDetail() {
 
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         {/* Patient Info Card */}
-        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h2 className="mb-4 text-base font-bold text-zinc-900 sm:text-lg">
             {getDisplayName(request)}
           </h2>
@@ -252,7 +252,7 @@ export default function RequestDetail() {
         </div>
 
         {/* Concern / Message */}
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-2 text-sm font-semibold text-zinc-900">Patient Concern</h3>
           <p className="text-sm leading-relaxed text-zinc-600">
             {concern || "No concern provided"}
@@ -260,7 +260,7 @@ export default function RequestDetail() {
         </div>
 
         {/* Photos */}
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-3 text-sm font-semibold text-zinc-900">
             Patient Photos ({request.photos?.length || 0})
           </h3>
@@ -294,11 +294,11 @@ export default function RequestDetail() {
         </div>
 
         {/* Step 1 — build the presentation (always the first action) */}
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-1 text-sm font-semibold text-zinc-900">Presentation</h3>
           <p className="mb-3 text-xs text-zinc-500">{request.deck_id ? "Deck built — edit it or open the recorder." : "Step 1: build this patient's slide deck from the library, then record the walkthrough."}</p>
           <div className="flex flex-wrap gap-2">
-            <Link href={`/staff/${request.id}/deck`} className="inline-flex items-center gap-2 rounded-lg bg-[#c4a052] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[#b8933f]">
+            <Link href={`/staff/${request.id}/deck`} className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[var(--k-accent-strong)]">
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" /></svg>
               {request.deck_id ? "Edit Deck" : "Build Deck"}
             </Link>
@@ -313,7 +313,7 @@ export default function RequestDetail() {
 
         {/* Video / Consultation — only after a deck is built */}
         {request.deck_id && (
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-3 text-sm font-semibold text-zinc-900">Consultation Video</h3>
           {consultation && consultation.video_url ? (
             <div>
@@ -323,7 +323,7 @@ export default function RequestDetail() {
                 <span>Source: {consultation.video_source}</span>
                 <span>Created: {formatDate(consultation.created_at)}</span>
               </div>
-              <div className="mt-3 rounded-lg bg-zinc-50 px-3 py-3 ring-1 ring-zinc-200">
+              <div className="mt-3 rounded-lg bg-[var(--k-bg)] px-3 py-3 ring-1 ring-zinc-200">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Patient receipt link</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Link
@@ -337,15 +337,15 @@ export default function RequestDetail() {
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                <div className="rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200">
+                <div className="rounded-lg bg-[var(--k-bg)] px-3 py-2 ring-1 ring-zinc-200">
                   <p className="text-[10px] uppercase tracking-wide text-zinc-400">Opened</p>
                   <p className="mt-0.5 text-sm font-bold text-zinc-900">{consultation.watch_count ?? 0}&times;</p>
                 </div>
-                <div className="rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200">
+                <div className="rounded-lg bg-[var(--k-bg)] px-3 py-2 ring-1 ring-zinc-200">
                   <p className="text-[10px] uppercase tracking-wide text-zinc-400">Played</p>
                   <p className="mt-0.5 text-sm font-bold text-zinc-900">{consultation.play_count ?? 0}&times;</p>
                 </div>
-                <div className="rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200">
+                <div className="rounded-lg bg-[var(--k-bg)] px-3 py-2 ring-1 ring-zinc-200">
                   <p className="text-[10px] uppercase tracking-wide text-zinc-400">Last activity</p>
                   <p className="mt-0.5 text-[11px] font-medium text-zinc-700">{formatDate(consultation.last_played_at || consultation.last_watched_at)}</p>
                 </div>
@@ -363,7 +363,7 @@ export default function RequestDetail() {
           )}
           <div className="mt-4">
             <input ref={fileInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:opacity-40">
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--k-accent-strong)] disabled:opacity-40">
               {uploading ? (
                 <><svg className="size-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Uploading...</>
               ) : (
@@ -382,7 +382,7 @@ export default function RequestDetail() {
         )}
 
         {/* Review & Send */}
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-3 text-sm font-semibold text-zinc-900">Review &amp; Send</h3>
           {(() => {
             const hasVideo = !!(consultation && consultation.video_url)
@@ -393,7 +393,7 @@ export default function RequestDetail() {
 
             if (!hasVideo && !hasDeck) {
               return (
-                <div className="rounded-lg bg-zinc-50 px-4 py-6 text-center">
+                <div className="rounded-lg bg-[var(--k-bg)] px-4 py-6 text-center">
                   <p className="text-xs font-medium text-zinc-500">Not ready for review</p>
                   <p className="mt-1 text-[10px] text-zinc-400">Build a deck and upload a video before approving.</p>
                   <div className="mt-3 flex justify-center gap-4 text-[10px] text-zinc-400">
@@ -490,7 +490,7 @@ export default function RequestDetail() {
                           setReviewAction(false)
                         }
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg bg-[#c4a052] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[#b8933f] disabled:opacity-40"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[var(--k-accent-strong)] disabled:opacity-40"
                     >
                       <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
                       Send to Patient
@@ -514,7 +514,7 @@ export default function RequestDetail() {
                           setReviewAction(false)
                         }
                       }}
-                      className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 disabled:opacity-40"
+                      className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-[var(--k-bg)] disabled:opacity-40"
                     >
                       <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
                       Resend Follow-up
@@ -529,18 +529,18 @@ export default function RequestDetail() {
 
         {/* Notes */}
         {request.notes && (
-          <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+          <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
             <h3 className="mb-2 text-sm font-semibold text-zinc-900">Staff Notes</h3>
             <p className="text-sm leading-relaxed text-zinc-600">{request.notes}</p>
           </div>
         )}
 
         {/* Workflow Status */}
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-3 text-sm font-semibold text-zinc-900">Workflow Status</h3>
           <div className="flex flex-wrap gap-2">
             {STATUS_ORDER.map((s) => (
-              <button key={s} onClick={() => handleStatusChange(s)} disabled={changingStatus || s === request.status} className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-all ${s === request.status ? `${STATUS_COLORS[s] || "bg-zinc-100 text-zinc-600"} ring-2 ring-offset-1 ring-zinc-300` : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"} disabled:cursor-default`}>
+              <button key={s} onClick={() => handleStatusChange(s)} disabled={changingStatus || s === request.status} className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-all ${s === request.status ? `${STATUS_COLORS[s] || "bg-zinc-100 text-zinc-600"} ring-2 ring-offset-1 ring-zinc-300` : "bg-[var(--k-bg)] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"} disabled:cursor-default`}>
                 {statusLabel(s)}
               </button>
             ))}
@@ -549,7 +549,7 @@ export default function RequestDetail() {
         </div>
 
         {/* Metadata */}
-        <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-6">
+        <div className="mt-4 rounded-2xl bg-white p-5 shadow-[0_2px_20px_-8px_rgba(20,18,40,0.12)] ring-1 ring-[var(--k-line)] sm:p-6">
           <h3 className="mb-3 text-sm font-semibold text-zinc-900">Request Metadata</h3>
           <div className="grid gap-2 sm:grid-cols-3">
             <InfoRow label="Request ID" value={`#${request.id}`} />
@@ -565,7 +565,7 @@ export default function RequestDetail() {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             href={`/staff/${request.id}/deck`}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#c4a052] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#b8933f]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--k-accent)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--k-accent-strong)]"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
@@ -574,7 +574,7 @@ export default function RequestDetail() {
           </Link>
           <Link
             href="/staff"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-[var(--k-bg)]"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />

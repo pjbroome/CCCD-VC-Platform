@@ -153,7 +153,7 @@ function DockItem({ slide, index, onRemove, onPreview }: { slide: SlideItem; ind
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 }
   return (
     <div ref={setNodeRef} style={style} className="group relative flex w-[128px] shrink-0 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-      <div className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[#c4a052] text-[11px] font-bold text-white shadow">{index + 1}</div>
+      <div className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[var(--k-accent)] text-[11px] font-bold text-white shadow">{index + 1}</div>
       <button type="button" onClick={onRemove} title="Remove from deck" className="absolute right-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-white/90 text-zinc-400 shadow transition hover:bg-red-500 hover:text-white">
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
       </button>
@@ -168,7 +168,7 @@ function DockItem({ slide, index, onRemove, onPreview }: { slide: SlideItem; ind
 function DockZone({ deck, onRemove, onPreview }: { deck: SlideItem[]; onRemove: (n: number) => void; onPreview: (s: SlideItem) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: "DOCK" })
   return (
-    <div ref={setNodeRef} className={`flex min-h-[148px] items-stretch gap-3 overflow-x-auto rounded-2xl border-2 border-dashed p-3 transition-colors ${isOver ? "border-[#c4a052] bg-amber-50/60" : "border-zinc-200 bg-zinc-50/60"}`}>
+    <div ref={setNodeRef} className={`flex min-h-[148px] items-stretch gap-3 overflow-x-auto rounded-2xl border-2 border-dashed p-3 transition-colors ${isOver ? "border-[var(--k-accent)] bg-amber-50/60" : "border-zinc-200 bg-zinc-50/60"}`}>
       {deck.length === 0 ? (
         <div className="flex w-full flex-col items-center justify-center gap-1 py-5 text-center">
           <p className="text-xs font-medium text-zinc-500">Double-click or drag slides here to build the presentation</p>
@@ -191,12 +191,12 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `L:${slide.slide_number}` })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined }
   return (
-    <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${inDeck ? "border-[#c4a052]/60 ring-1 ring-[#c4a052]/30" : "border-zinc-200 hover:-translate-y-0.5 hover:shadow-md"}`}>
+    <div ref={setNodeRef} style={style} onDoubleClick={onAdd} className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${inDeck ? "border-[var(--k-accent)]/60 ring-1 ring-[var(--k-accent)]/30" : "border-zinc-200 hover:-translate-y-0.5 hover:shadow-md"}`}>
       <div className="absolute left-2 top-2 z-10 flex gap-1">
-        <button type="button" onClick={onToggleFav} title={fav ? "Unpin from Most Used" : "Pin to Most Used"} className={`flex size-7 items-center justify-center rounded-full shadow transition ${fav ? "bg-[#c4a052] text-white" : "bg-white/85 text-zinc-400 hover:text-[#c4a052]"}`}>
+        <button type="button" onClick={onToggleFav} title={fav ? "Unpin from Most Used" : "Pin to Most Used"} className={`flex size-7 items-center justify-center rounded-full shadow transition ${fav ? "bg-[var(--k-accent)] text-white" : "bg-white/85 text-zinc-400 hover:text-[var(--k-accent)]"}`}>
           <StarIcon filled={fav} />
         </button>
-        {inDeck && <span className="rounded-full bg-[#c4a052] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow">In deck</span>}
+        {inDeck && <span className="rounded-full bg-[var(--k-accent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow">In deck</span>}
       </div>
       <button type="button" onClick={onDelete} title="Delete from library" className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-white/85 text-zinc-400 opacity-0 shadow transition hover:bg-red-500 hover:text-white group-hover:opacity-100">
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
@@ -206,7 +206,7 @@ function LibraryCard({ slide, inDeck, fav, onAdd, onPreview, onDelete, onToggleF
       </button>
       <div className="flex items-center justify-between gap-2 px-2.5 py-2">
         <p className="truncate text-[11px] font-medium text-zinc-600" title={getSlideTitle(slide)}>{getSlideTitle(slide)}</p>
-        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded-lg bg-[#c4a052] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#b8933f] disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "Added" : "Add"}</button>
+        <button type="button" onClick={onAdd} disabled={inDeck} className="shrink-0 rounded-lg bg-[var(--k-accent)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[var(--k-accent-strong)] disabled:bg-zinc-200 disabled:text-zinc-400">{inDeck ? "Added" : "Add"}</button>
       </div>
     </div>
   )
@@ -383,20 +383,20 @@ export default function DeckBuilderPage() {
   }, [request, deckSlides, existingDeckId, summaryRows])
 
   if (loading) {
-    return <div className="flex min-h-dvh items-center justify-center bg-zinc-50"><span className="text-sm text-zinc-400">Loading deck builder…</span></div>
+    return <div className="flex min-h-dvh items-center justify-center bg-[var(--k-bg)]"><span className="text-sm text-zinc-400">Loading deck builder…</span></div>
   }
   if (error || !request) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--k-bg)] px-4">
         <p className="text-sm font-medium text-red-600">{error || "Request not found"}</p>
-        <Link href="/staff" className="mt-4 text-sm text-[#c4a052] underline">Back to Dashboard</Link>
+        <Link href="/staff" className="mt-4 text-sm text-[var(--k-accent)] underline">Back to Dashboard</Link>
       </div>
     )
   }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="flex min-h-dvh flex-col bg-zinc-50">
+      <div className="flex min-h-dvh flex-col bg-[var(--k-bg)]">
         {/* header */}
         <header className="z-30 border-b border-zinc-200 bg-white">
           <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
@@ -407,7 +407,7 @@ export default function DeckBuilderPage() {
               </Link>
               <span className="text-zinc-200">/</span>
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#c4a052]">Build Presentation · Step 1</p>
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--k-accent)]">Build Presentation · Step 1</p>
                 <p className="truncate text-sm font-bold text-zinc-900">#{request.id} — {getDisplayName(request)}</p>
               </div>
             </div>
@@ -418,7 +418,7 @@ export default function DeckBuilderPage() {
                   Record
                 </Link>
               )}
-              <button onClick={saveDeck} disabled={saving || deckSlides.length === 0} className="rounded-lg bg-[#c4a052] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[#b8933f] disabled:opacity-40" type="button">{saving ? "Saving…" : "Save Deck"}</button>
+              <button onClick={saveDeck} disabled={saving || deckSlides.length === 0} className="rounded-lg bg-[var(--k-accent)] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--k-accent-strong)] disabled:opacity-40" type="button">{saving ? "Saving…" : "Save Deck"}</button>
             </div>
           </div>
           {saveMsg && <div className={`border-t px-4 py-2 text-xs font-medium ${saveMsg.startsWith("Save failed") ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>{saveMsg}</div>}
@@ -442,7 +442,7 @@ export default function DeckBuilderPage() {
           {summaryOpen && (
             <div className="pb-4">
               <div className="flex flex-wrap items-center gap-2">
-                <select defaultValue="" onChange={(e) => { if (e.target.value) { addSummaryFromPreset(e.target.value); e.target.value = "" } }} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 focus:border-[#c4a052] focus:outline-none">
+                <select defaultValue="" onChange={(e) => { if (e.target.value) { addSummaryFromPreset(e.target.value); e.target.value = "" } }} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 focus:border-[var(--k-accent)] focus:outline-none">
                   <option value="">＋ Add a suggestion…</option>
                   {txPresets.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.visits} · {p.fee}</option>)}
                 </select>
@@ -456,9 +456,9 @@ export default function DeckBuilderPage() {
                   </div>
                   {summaryRows.map((r) => (
                     <div key={r.id} className="grid grid-cols-[1.3fr_0.9fr_0.9fr_auto] items-center gap-2 border-b border-zinc-50 px-3 py-2">
-                      <input value={r.treatment} onChange={(e) => updateSummaryRow(r.id, { treatment: e.target.value })} className="rounded border border-transparent bg-transparent px-1 py-1 text-xs text-zinc-800 hover:border-zinc-200 focus:border-[#c4a052] focus:outline-none" />
-                      <input value={r.visits} onChange={(e) => updateSummaryRow(r.id, { visits: e.target.value })} className="rounded border border-transparent bg-transparent px-1 py-1 text-xs text-zinc-600 hover:border-zinc-200 focus:border-[#c4a052] focus:outline-none" />
-                      <input value={r.investment} onChange={(e) => updateSummaryRow(r.id, { investment: e.target.value })} className="rounded border border-transparent bg-transparent px-1 py-1 text-xs text-zinc-600 hover:border-zinc-200 focus:border-[#c4a052] focus:outline-none" />
+                      <input value={r.treatment} onChange={(e) => updateSummaryRow(r.id, { treatment: e.target.value })} className="rounded border border-transparent bg-transparent px-1 py-1 text-xs text-zinc-800 hover:border-zinc-200 focus:border-[var(--k-accent)] focus:outline-none" />
+                      <input value={r.visits} onChange={(e) => updateSummaryRow(r.id, { visits: e.target.value })} className="rounded border border-transparent bg-transparent px-1 py-1 text-xs text-zinc-600 hover:border-zinc-200 focus:border-[var(--k-accent)] focus:outline-none" />
+                      <input value={r.investment} onChange={(e) => updateSummaryRow(r.id, { investment: e.target.value })} className="rounded border border-transparent bg-transparent px-1 py-1 text-xs text-zinc-600 hover:border-zinc-200 focus:border-[var(--k-accent)] focus:outline-none" />
                       <button type="button" onClick={() => removeSummaryRow(r.id)} className="rounded p-1 text-zinc-300 hover:bg-red-50 hover:text-red-500"><svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
                     </div>
                   ))}
@@ -490,15 +490,15 @@ export default function DeckBuilderPage() {
           {/* Most Used favorites row */}
           {favSlides.length > 0 && (
             <div className="mb-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#c4a052]">★ Most Used</p>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--k-accent)]">★ Most Used</p>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {favSlides.map((slide) => (
-                  <div key={slide.slide_number} onDoubleClick={() => addToDeck(slide)} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${deckNumbers.has(slide.slide_number) ? "border-[#c4a052]/60" : "border-zinc-200"}`}>
-                    <button type="button" onClick={() => toggleFav(slide.slide_number)} title="Unpin" className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[#c4a052] text-white shadow"><StarIcon filled /></button>
+                  <div key={slide.slide_number} onDoubleClick={() => addToDeck(slide)} className={`group relative w-[140px] shrink-0 overflow-hidden rounded-xl border bg-white shadow-sm ${deckNumbers.has(slide.slide_number) ? "border-[var(--k-accent)]/60" : "border-zinc-200"}`}>
+                    <button type="button" onClick={() => toggleFav(slide.slide_number)} title="Unpin" className="absolute left-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-[var(--k-accent)] text-white shadow"><StarIcon filled /></button>
                     <button type="button" onClick={() => setPreviewSlide(slide)}><SlideImg slide={slide} className="aspect-[4/3] w-full" /></button>
                     <div className="flex items-center justify-between gap-1 px-2 py-1.5">
                       <span className="truncate text-[10px] text-zinc-500">{getSlideTitle(slide)}</span>
-                      <button type="button" onClick={() => addToDeck(slide)} disabled={deckNumbers.has(slide.slide_number)} className="shrink-0 rounded bg-[#c4a052] px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{deckNumbers.has(slide.slide_number) ? "✓" : "Add"}</button>
+                      <button type="button" onClick={() => addToDeck(slide)} disabled={deckNumbers.has(slide.slide_number)} className="shrink-0 rounded bg-[var(--k-accent)] px-2 py-0.5 text-[10px] font-semibold text-white disabled:bg-zinc-200 disabled:text-zinc-400">{deckNumbers.has(slide.slide_number) ? "✓" : "Add"}</button>
                     </div>
                   </div>
                 ))}
@@ -512,7 +512,7 @@ export default function DeckBuilderPage() {
               <p className="mt-1 text-xs text-zinc-500">Double-click (or drag up) to add to the presentation. ★ pins to Most Used. Hover to delete.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <input type="text" placeholder="Search slides…" value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700 placeholder:text-zinc-300 focus:border-[#c4a052] focus:outline-none focus:ring-1 focus:ring-[#c4a052]/30 sm:w-64" />
+              <input type="text" placeholder="Search slides…" value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700 placeholder:text-zinc-300 focus:border-[var(--k-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--k-accent)]/30 sm:w-64" />
               <div className="min-w-[150px]"><p className="mb-1 text-[11px] font-medium text-zinc-500">Size</p><Slider value={[thumbnailSize]} min={140} max={300} step={10} onValueChange={(v) => setThumbnailSize(v[0] ?? 200)} /></div>
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-medium text-zinc-500">{filteredSlides.length} slides</span>
             </div>
@@ -531,7 +531,7 @@ export default function DeckBuilderPage() {
           )}
         </div>
 
-        <DragOverlay>{activeSlide ? <div className="w-[150px] overflow-hidden rounded-xl border-2 border-[#c4a052] bg-white shadow-2xl"><SlideImg slide={activeSlide} className="aspect-[4/3] w-full" /></div> : null}</DragOverlay>
+        <DragOverlay>{activeSlide ? <div className="w-[150px] overflow-hidden rounded-xl border-2 border-[var(--k-accent)] bg-white shadow-2xl"><SlideImg slide={activeSlide} className="aspect-[4/3] w-full" /></div> : null}</DragOverlay>
 
         {previewSlide && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPreviewSlide(null)}>
@@ -539,7 +539,7 @@ export default function DeckBuilderPage() {
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h3 className="text-xl font-bold text-zinc-900">{getSlideTitle(previewSlide)}</h3>
                 <div className="flex items-center gap-2">
-                  {!deckNumbers.has(previewSlide.slide_number) && <button type="button" onClick={() => { addToDeck(previewSlide); setPreviewSlide(null) }} className="rounded-lg bg-[#c4a052] px-3 py-2 text-xs font-medium text-white hover:bg-[#b8933f]">Add to Deck</button>}
+                  {!deckNumbers.has(previewSlide.slide_number) && <button type="button" onClick={() => { addToDeck(previewSlide); setPreviewSlide(null) }} className="rounded-lg bg-[var(--k-accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--k-accent-strong)]">Add to Deck</button>}
                   <button type="button" onClick={() => setPreviewSlide(null)} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100"><svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
                 </div>
               </div>
