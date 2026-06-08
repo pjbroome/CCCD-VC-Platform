@@ -570,6 +570,9 @@ def create_vc_request(data: dict) -> dict:
         "date_of_birth": data.get("date_of_birth"),
         "city": data.get("city"),
         "state": data.get("state"),
+        # Attribution
+        "referral_source": data.get("referral_source"),
+        "source_url": data.get("source_url"),
         # Clinical
         "concern": data.get("concern", ""),
         "consent_acknowledged": data.get("consent_acknowledged", False),
