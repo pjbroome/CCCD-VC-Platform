@@ -3370,7 +3370,11 @@ async def list_vc_requests(status: Optional[str] = None, session: dict = Depends
     out = []
     for r in requests:
         rr = dict(r)
-        c = by_id.get(rr.get("consultation_id")) or by_req.get(rr.get("id"))
+        c = by_id.get(rr.get("consultation_id"))
+        if c and c.get("request_id") not in (None, rr.get("id")):
+            c = None  # stale/mismatched link — fall back to request_id match
+        if not c:
+            c = by_req.get(rr.get("id"))
         state = "not_sent"
         if c:
             if (c.get("watch_count") or 0) or (c.get("play_count") or 0):
@@ -3416,7 +3420,16 @@ async def get_vc_request_endpoint(request_id: int, session: dict = Depends(requi
 async def update_vc_request_endpoint(request_id: int, req: VCRequestUpdate, session: dict = Depends(require_admin)):
     """Update a VC request (status, notes, etc.). Admin-protected."""
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
-    
+
+    # Photos can only be set to safe in-app media paths (defense-in-depth even for staff)
+    if "photos" in updates:
+        photos = updates["photos"]
+        if not isinstance(photos, list) or any(
+            not isinstance(p, str) or not p.startswith("/vc/photos/") or ".." in p for p in photos
+        ):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Invalid photos")
+
     # Validate status transition if status is being changed
     if "status" in updates:
         current = get_vc_request(request_id)

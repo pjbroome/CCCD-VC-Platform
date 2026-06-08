@@ -44,7 +44,10 @@ def _save_sessions() -> None:
         return
     try:
         import json
-        _SESSIONS_FILE.write_text(json.dumps(_active_sessions))
+        import os
+        tmp = _SESSIONS_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(_active_sessions))
+        os.replace(tmp, _SESSIONS_FILE)  # atomic — avoids corruption on concurrent writes
     except Exception:
         pass
 
