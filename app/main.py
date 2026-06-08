@@ -71,13 +71,17 @@ load_dotenv()
 
 app = FastAPI(title="Sutton AI Brand Ambassador API", version="1.0.0")
 
-# Disable CORS. Do not remove this for full-stack development.
+# CORS — restricted to the VC Portal frontend (prod + Vercel previews + local dev).
+# Override with CORS_ALLOWED_ORIGINS (comma-separated) per deployment.
+_default_cors_origins = "https://v0-kleon-samples.vercel.app,http://localhost:3000,http://localhost:3001"
+_cors_origins = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", _default_cors_origins).split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=_cors_origins,
+    allow_origin_regex=r"https://v0-kleon-samples[a-z0-9-]*\.vercel\.app",  # Vercel preview deploys
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount slide images as static files (from the persistent volume when present).
@@ -3041,7 +3045,9 @@ async def email_consultation_review(consultation_id: int):
         return {"error": "Consultation not found"}
     review_email = os.environ.get("REVIEW_EMAIL", "pjbroome@gmail.com")
     base = os.environ.get("PUBLIC_BASE_URL", "")
-    link = f"{base}/consultation/{consultation_id}" if base else f"/consultation/{consultation_id}"
+    token = c.get("token") or ""
+    path = f"/consultation/{token}" if token else f"/consultation/{consultation_id}"
+    link = f"{base}{path}" if base else path
     name = c.get("patient_name", "patient")
     html = (
         f"<p>A virtual consultation video is ready to review for <b>{name}</b>.</p>"
@@ -3116,12 +3122,14 @@ async def admin_session_status(session: dict = Depends(require_admin)):
 
 # --- Photo Upload Endpoints ---
 
-# Photo storage directory (MVP: local filesystem, HIPAA upgrade: S3/GCS with encryption)
-_PHOTOS_DIR = Path(__file__).parent / "vc_slides" / "patient_photos"
+# Patient photos + consult videos live on the persistent volume (/data/vc) so
+# they survive deploys, alongside the catalog/data files. Falls back to the app
+# dir when no volume is mounted.
+from app.slide_sorter import _VC_DIR as _vc_data_dir
+_PHOTOS_DIR = _vc_data_dir / "patient_photos"
 _PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Video storage directory (MVP: local filesystem, HIPAA upgrade: S3/GCS with encryption)
-_VIDEOS_DIR = Path(__file__).parent / "vc_slides" / "consult_videos"
+_VIDEOS_DIR = _vc_data_dir / "consult_videos"
 _VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -3360,9 +3368,48 @@ async def list_consultations(status: Optional[str] = None):
     return {"total": len(consults), "consultations": consults}
 
 
+@app.get("/vc/consultations/by-token/{token}")
+async def get_consultation_by_token_endpoint(token: str):
+    """Public patient view via an unguessable token — no sequential-ID enumeration."""
+    from fastapi.responses import JSONResponse
+    from app.slide_sorter import get_consultation_by_token
+    import datetime as _dt
+    c = get_consultation_by_token(token)
+    if not c:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+    exp = c.get("token_expires_at")
+    if exp:
+        try:
+            if _dt.datetime.fromisoformat(exp) < _dt.datetime.now(_dt.timezone.utc):
+                return JSONResponse({"error": "expired"}, status_code=410)
+        except Exception:
+            pass
+    return c
+
+
+@app.post("/vc/consultations/by-token/{token}/watch")
+async def record_watch_by_token_endpoint(token: str):
+    from fastapi.responses import JSONResponse
+    from app.slide_sorter import record_watch_by_token
+    result = record_watch_by_token(token)
+    if not result:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+    return result
+
+
+@app.post("/vc/consultations/by-token/{token}/play")
+async def record_play_by_token_endpoint(token: str):
+    from fastapi.responses import JSONResponse
+    from app.slide_sorter import record_play_by_token
+    result = record_play_by_token(token)
+    if not result:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+    return {"play_count": result.get("play_count", 0), "last_played_at": result.get("last_played_at")}
+
+
 @app.get("/vc/consultations/{consultation_id}")
-async def get_consultation_endpoint(consultation_id: int):
-    """Get full details of a consultation."""
+async def get_consultation_endpoint(consultation_id: int, session: dict = Depends(require_admin)):
+    """Staff-only: full details of a consultation by internal ID (patients use the token route)."""
     result = get_consultation(consultation_id)
     if not result:
         return {"error": f"Consultation {consultation_id} not found"}

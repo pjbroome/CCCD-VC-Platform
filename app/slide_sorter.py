@@ -5,6 +5,8 @@ for each guest based on their concerns, desired treatments, and context.
 """
 import json
 import os
+import secrets
+import datetime
 from typing import Optional
 from pathlib import Path
 
@@ -656,6 +658,8 @@ def create_consultation(data: dict) -> dict:
     _load_consultations()
     consultation = {
         "id": max((c["id"] for c in _consultations), default=0) + 1,
+        "token": secrets.token_urlsafe(24),
+        "token_expires_at": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60)).isoformat(),
         "request_id": data.get("request_id"),
         "patient_name": data.get("patient_name", ""),
         "email": data.get("email", ""),
@@ -698,6 +702,7 @@ def create_consultation(data: dict) -> dict:
 def get_consultations(status: Optional[str] = None) -> list[dict]:
     """Get all consultations, optionally filtered by status."""
     _load_consultations()
+    _ensure_tokens()
     if status:
         return [c for c in _consultations if c["status"] == status]
     return _consultations
@@ -706,10 +711,45 @@ def get_consultations(status: Optional[str] = None) -> list[dict]:
 def get_consultation(consultation_id: int) -> Optional[dict]:
     """Get a single consultation by ID."""
     _load_consultations()
+    _ensure_tokens()
     for c in _consultations:
         if c["id"] == consultation_id:
             return c
     return None
+
+
+def _ensure_tokens():
+    """Backfill an unguessable token for any legacy consultation missing one."""
+    changed = False
+    for c in _consultations:
+        if not c.get("token"):
+            c["token"] = secrets.token_urlsafe(24)
+            c["token_expires_at"] = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60)).isoformat()
+            changed = True
+    if changed:
+        _save_consultations()
+
+
+def get_consultation_by_token(token: str) -> Optional[dict]:
+    """Get a single consultation by its unguessable share token."""
+    if not token:
+        return None
+    _load_consultations()
+    _ensure_tokens()
+    for c in _consultations:
+        if c.get("token") == token:
+            return c
+    return None
+
+
+def record_watch_by_token(token: str) -> Optional[dict]:
+    c = get_consultation_by_token(token)
+    return record_watch(c["id"]) if c else None
+
+
+def record_play_by_token(token: str) -> Optional[dict]:
+    c = get_consultation_by_token(token)
+    return record_play(c["id"]) if c else None
 
 
 def update_consultation(consultation_id: int, updates: dict) -> Optional[dict]:
