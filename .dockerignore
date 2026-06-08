@@ -1,0 +1,16 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+node_modules/
+*.log
+.DS_Store
+fly.toml
+fly.vc.toml
+
+# VC PHI data — never bake patient records into the image (runtime data lives on the volume)
+app/vc_slides/vc_requests.json
+app/vc_slides/vc_consultations.json

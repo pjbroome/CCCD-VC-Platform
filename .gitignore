@@ -23,6 +23,11 @@ Thumbs.db
 
 # VC slide images (119MB — too large for git, bundled in Docker build)
 app/vc_slides/slide_images/
+
+# VC PHI data — patient intake + consultation records. NEVER commit (PII/PHI).
+# Real data lives on the Fly /data volume at runtime. See *.example for schema.
+app/vc_slides/vc_requests.json
+app/vc_slides/vc_consultations.json
 rag_embeddings.npy
 rag_chunks_meta.json
 rag_chunks_text.jsonl

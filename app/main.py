@@ -3088,7 +3088,7 @@ def _send_review_email(to_email: str, subject: str, html_body: str) -> bool:
 
 
 @app.post("/vc/consultations/{consultation_id}/email-review")
-async def email_consultation_review(consultation_id: int):
+async def email_consultation_review(consultation_id: int, session: dict = Depends(require_admin)):
     """Email the consultation review link to the doctor's review address (default pjbroome@gmail.com)."""
     from app.slide_sorter import get_consultation
     c = get_consultation(consultation_id)
@@ -3210,17 +3210,33 @@ async def upload_patient_photo(file: UploadFile = File(...)):
     )
 
 
+def _safe_media_path(base: Path, filename: str) -> Path:
+    """Resolve `filename` inside `base`, blocking path traversal.
+
+    Rejects path separators / parent refs and asserts the resolved path stays
+    within `base`. Raises 404 on any attempt to escape the directory.
+    """
+    from fastapi import HTTPException
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=404, detail="Not found")
+    candidate = (base / filename).resolve()
+    base_resolved = base.resolve()
+    try:
+        contained = candidate.is_relative_to(base_resolved)
+    except AttributeError:  # Python < 3.9
+        contained = os.path.commonpath([str(candidate), str(base_resolved)]) == str(base_resolved)
+    if not contained:
+        raise HTTPException(status_code=404, detail="Not found")
+    return candidate
+
+
 @app.get("/vc/photos/{filename}")
 async def serve_patient_photo(filename: str):
-    """Serve a patient photo (admin-protected).
-    
-    MVP: serves from local filesystem.
-    HIPAA upgrade: generate pre-signed URL from S3/GCS.
-    """
+    """Serve a patient photo by its uuid filename (public-by-unguessable-name)."""
     from fastapi.responses import FileResponse
-    file_path = _PHOTOS_DIR / filename
-    if not file_path.exists():
-        from fastapi import HTTPException
+    from fastapi import HTTPException
+    file_path = _safe_media_path(_PHOTOS_DIR, filename)
+    if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Photo not found")
     return FileResponse(file_path)
 
@@ -3253,9 +3269,9 @@ async def upload_consult_video(file: UploadFile = File(...), session: dict = Dep
 async def serve_consult_video(filename: str):
     """Serve a consultation video (public — patient needs to watch)."""
     from fastapi.responses import FileResponse
-    file_path = _VIDEOS_DIR / filename
-    if not file_path.exists():
-        from fastapi import HTTPException
+    from fastapi import HTTPException
+    file_path = _safe_media_path(_VIDEOS_DIR, filename)
+    if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Video not found")
     return FileResponse(file_path)
 
@@ -3405,7 +3421,7 @@ async def delete_vc_request_endpoint(request_id: int, session: dict = Depends(re
 # --- VC Consultation (Archive) Endpoints ---
 
 @app.post("/vc/consultations")
-async def create_consultation_endpoint(req: ConsultationCreate):
+async def create_consultation_endpoint(req: ConsultationCreate, session: dict = Depends(require_admin)):
     """Save a completed consultation to the archive."""
     data = req.model_dump()
     result = create_consultation(data)
@@ -3413,7 +3429,7 @@ async def create_consultation_endpoint(req: ConsultationCreate):
 
 
 @app.get("/vc/consultations")
-async def list_consultations(status: Optional[str] = None):
+async def list_consultations(status: Optional[str] = None, session: dict = Depends(require_admin)):
     """List all consultations, optionally filtered by status."""
     consults = get_consultations(status)
     return {"total": len(consults), "consultations": consults}
@@ -3468,7 +3484,7 @@ async def get_consultation_endpoint(consultation_id: int, session: dict = Depend
 
 
 @app.put("/vc/consultations/{consultation_id}")
-async def update_consultation_endpoint(consultation_id: int, req: ConsultationUpdate):
+async def update_consultation_endpoint(consultation_id: int, req: ConsultationUpdate, session: dict = Depends(require_admin)):
     """Update a consultation."""
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     result = update_consultation(consultation_id, updates)
