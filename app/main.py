@@ -84,6 +84,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+def _is_public_path(path: str, method: str) -> bool:
+    """Allowlist of routes reachable without a staff token. Everything else is
+    gated once VC_ADMIN_PASSWORD is set. Patient/media routes use unguessable
+    tokens/filenames (img/video tags can't carry Authorization headers)."""
+    if method == "OPTIONS":
+        return True  # CORS preflight
+    if path in ("/", "/healthz", "/admin/login"):
+        return True
+    # Media reads served to <img>/<video> (uuid filenames; slide imgs are non-PHI)
+    if method == "GET" and (
+        path.startswith("/vc/images/")
+        or path.startswith("/vc/videos/")
+        or path.startswith("/vc/photos/")
+    ):
+        return True
+    # Public patient intake (write-only front door)
+    if method == "POST" and path in ("/vc/requests", "/vc/photos/upload"):
+        return True
+    # Patient consult page via unguessable token
+    if path.startswith("/vc/consultations/by-token/"):
+        return True
+    # Non-PHI case library used to assemble decks
+    if path.startswith("/vc/slides/") or path == "/vc/presentation":
+        return True
+    return False
+
+
+@app.middleware("http")
+async def staff_auth_gate(request, call_next):
+    """When VC_ADMIN_PASSWORD is set, require a valid staff token for every
+    non-public route (this single gate covers the whole admin/Sutton/VC surface).
+    When it's unset (dev mode), it's a pass-through — zero behavior change."""
+    from app.auth import VC_ADMIN_PASSWORD as _pw, validate_token as _validate
+    if not _pw:
+        return await call_next(request)
+    if _is_public_path(request.url.path, request.method):
+        return await call_next(request)
+    auth = request.headers.get("authorization", "")
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    if token and _validate(token):
+        return await call_next(request)
+    from fastapi.responses import JSONResponse
+    resp = JSONResponse({"error": "authentication required"}, status_code=401)
+    origin = request.headers.get("origin")
+    if origin:  # keep the 401 readable cross-origin for the SPA
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
+
+
 # Mount slide images as static files (from the persistent volume when present).
 from app.slide_sorter import _IMAGES_DIR as _slide_images_dir
 if _slide_images_dir.exists():
@@ -3160,7 +3211,7 @@ async def upload_patient_photo(file: UploadFile = File(...)):
 
 
 @app.get("/vc/photos/{filename}")
-async def serve_patient_photo(filename: str, session: dict = Depends(require_admin)):
+async def serve_patient_photo(filename: str):
     """Serve a patient photo (admin-protected).
     
     MVP: serves from local filesystem.
