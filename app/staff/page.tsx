@@ -121,7 +121,7 @@ export default function StaffDashboard() {
       })
       setShowAdd(false)
       setAddForm({ firstName: "", lastName: "", email: "", phone: "", concern: "" })
-      fetchRequests()
+      await fetchRequests()
     } catch (e) {
       setAddErr(e instanceof Error ? e.message : "Could not add patient")
     } finally {
@@ -348,8 +348,9 @@ export default function StaffDashboard() {
                             onChange={async (e) => {
                               try {
                                 await updateVCRequest(req.id, { status: e.target.value })
-                                fetchRequests()
+                                await fetchRequests()
                               } catch {
+                                setError("Couldn't update status. Please retry.")
                                 /* ignore */
                               }
                             }}
@@ -408,7 +409,7 @@ export default function StaffDashboard() {
           )}
 
           {showAdd && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAdd(false)}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { if (!addBusy) setShowAdd(false) }}>
               <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="mb-1 flex items-center justify-between">
                   <h3 className="text-base font-bold text-zinc-900">Add Patient</h3>

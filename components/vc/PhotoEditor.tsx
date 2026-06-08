@@ -32,11 +32,12 @@ export function PhotoEditor({
   async function save() {
     setSaving(true)
     setErr(null)
+    let bmp: ImageBitmap | null = null
     try {
       const res = await fetch(photoUrl(photoPath))
       if (!res.ok) throw new Error("fetch failed")
       const blob = await res.blob()
-      const bmp = await createImageBitmap(blob)
+      bmp = await createImageBitmap(blob)
 
       const rot = ((rotation % 360) + 360) % 360
       const swap = rot === 90 || rot === 270
@@ -58,16 +59,17 @@ export function PhotoEditor({
       )
       const file = new File([out], `edited_${Date.now()}.jpg`, { type: "image/jpeg" })
       const uploaded = await uploadPhoto(file)
-      onSaved(uploaded.url)
+      await onSaved(uploaded.url)
     } catch {
       setErr("Couldn't save the edit. Please try again.")
     } finally {
+      bmp?.close()
       setSaving(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => { if (!saving) onClose() }}>
       <div
         className="flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -109,7 +111,7 @@ export function PhotoEditor({
           {err && <p className="text-xs font-medium text-red-600">{err}</p>}
 
           <div className="flex items-center justify-end gap-2 pt-1">
-            <button onClick={onClose} className="rounded-full px-4 py-2 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100">Cancel</button>
+            <button onClick={onClose} disabled={saving} className="rounded-full px-4 py-2 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100 disabled:opacity-50">Cancel</button>
             <button
               onClick={save}
               disabled={saving || rotation === 0}

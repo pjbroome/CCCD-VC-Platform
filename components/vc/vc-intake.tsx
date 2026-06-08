@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { uploadPhoto, createVCRequest } from "@/lib/api"
 import type { PhotoUploadResponse } from "@/lib/api"
@@ -98,6 +98,10 @@ export function VCIntake() {
       /* ignore */
     }
   }, [])
+
+  // Object URLs for extra-photo thumbnails — created once per file set, revoked on change/unmount
+  const extraPreviews = useMemo(() => extras.map((f) => URL.createObjectURL(f)), [extras])
+  useEffect(() => () => { extraPreviews.forEach((u) => URL.revokeObjectURL(u)) }, [extraPreviews])
 
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -407,9 +411,9 @@ export function VCIntake() {
                 <p className="mb-1.5 text-[10px] font-medium text-zinc-500 sm:text-xs">Optional — add up to 4 more (different angles, retracted, side profile)</p>
                 <div className="flex flex-wrap items-center gap-2">
                   {extras.map((f, i) => (
-                    <div key={i} className="relative size-16 overflow-hidden rounded-lg border border-zinc-200">
+                    <div key={`${f.name}-${f.size}-${f.lastModified}`} className="relative size-16 overflow-hidden rounded-lg border border-zinc-200">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(f)} alt="" className="size-full object-cover" />
+                      <img src={extraPreviews[i]} alt="" className="size-full object-cover" />
                       <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
                     </div>
                   ))}

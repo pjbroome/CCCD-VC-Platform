@@ -304,12 +304,9 @@ export default function RequestDetail() {
                 const idx = editingPhoto
                 const newPhotos = [...(request.photos || [])]
                 newPhotos[idx] = newPath
-                try {
-                  const updated = await updateVCRequest(request.id, { photos: newPhotos })
-                  setRequest(updated)
-                } catch {
-                  setRequest({ ...request, photos: newPhotos })
-                }
+                // Let failures propagate to the editor (it keeps the modal open + shows an error)
+                const updated = await updateVCRequest(request.id, { photos: newPhotos })
+                setRequest(updated)
                 setEditingPhoto(null)
               }}
             />
