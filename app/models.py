@@ -57,6 +57,8 @@ class VCRequestCreate(BaseModel):
     concern: str = Field(..., min_length=1, description="Dental concern / consult reason")
     consent_acknowledged: bool = Field(..., description="Patient consent acknowledgement")
     photos: list[str] = Field(default_factory=list, description="List of uploaded photo file paths/URLs")
+    referral_source: Optional[str] = Field(None, max_length=200, description="How the patient heard about us")
+    source_url: Optional[str] = Field(None, max_length=500, description="Referrer / landing URL for attribution")
     website: Optional[str] = Field("", description="Honeypot — must stay empty; bots fill it")
 
 
@@ -74,6 +76,7 @@ class VCRequestUpdate(BaseModel):
     notes: Optional[str] = Field(None, description="Internal staff notes")
     deck_id: Optional[int] = Field(None, description="Associated recording deck ID")
     consultation_id: Optional[int] = Field(None, description="Associated consultation/video ID")
+    photos: Optional[list[str]] = Field(None, description="Patient photo paths (e.g. after staff rotate/resize)")
 
 
 class VCRequestRecord(BaseModel):
