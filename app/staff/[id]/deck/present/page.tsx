@@ -476,7 +476,7 @@ export default function PresenterViewPage() {
       } catch {
         emailNote = " (review link ready)."
       }
-      setUploadMsg(`Consultation #${consultation.id} saved${emailNote} Review: /consultation/${consultation.id}`)
+      setUploadMsg(`Consultation #${consultation.id} saved${emailNote} Review: /consultation/${consultation.token ?? consultation.id}`)
       stopCamera() // done sending → release the webcam so the light turns off
     } catch (err) {
       setUploadMsg(`Upload failed: ${err instanceof Error ? err.message : "unknown error"}`)

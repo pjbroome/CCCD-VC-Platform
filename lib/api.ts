@@ -334,6 +334,8 @@ export interface Consultation {
   follow_up_dates?: string[];
   created_at: string;
   updated_at?: string;
+  token?: string;
+  token_expires_at?: string | null;
 }
 
 export async function uploadVideo(file: File): Promise<VideoUploadResponse> {
@@ -442,6 +444,34 @@ export async function recordConsultationWatch(id: number): Promise<Consultation>
 
 export async function recordConsultationPlay(id: number): Promise<{ play_count: number; last_played_at: string | null }> {
   const res = await fetch(`${API_BASE}/vc/consultations/${id}/play`, { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to record play (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+/* ── Patient-facing access via unguessable token (no sequential-ID enumeration) ── */
+export async function getConsultationByToken(token: string): Promise<Consultation> {
+  const res = await fetch(`${API_BASE}/vc/consultations/by-token/${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to load consultation (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function recordConsultationWatchByToken(token: string): Promise<Consultation> {
+  const res = await fetch(`${API_BASE}/vc/consultations/by-token/${encodeURIComponent(token)}/watch`, { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to record watch (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function recordConsultationPlayByToken(token: string): Promise<{ play_count: number; last_played_at: string | null }> {
+  const res = await fetch(`${API_BASE}/vc/consultations/by-token/${encodeURIComponent(token)}/play`, { method: "POST" });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to record play (${res.status}): ${text}`);

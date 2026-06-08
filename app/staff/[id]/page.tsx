@@ -318,13 +318,13 @@ export default function RequestDetail() {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Patient receipt link</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Link
-                    href={`/consultation/${consultation.id}`}
+                    href={`/consultation/${consultation.token ?? consultation.id}`}
                     target="_blank"
                     className="inline-flex items-center gap-1 rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-zinc-700"
                   >
                     Open patient video page
                   </Link>
-                  <span className="truncate text-[10px] text-zinc-500">/consultation/{consultation.id}</span>
+                  <span className="truncate text-[10px] text-zinc-500">/consultation/{consultation.token ?? consultation.id}</span>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
@@ -474,7 +474,7 @@ export default function RequestDetail() {
                           const { consultation: c, request: r } = await sendConsultation(consultation.id, request.id)
                           setRequest(r)
                           setConsultation(c)
-                          setReviewMsg(`Consultation sent to patient (${request.email}) · receipt page: /consultation/${c.id}`)
+                          setReviewMsg(`Consultation sent to patient (${request.email}) · receipt page: /consultation/${c.token ?? c.id}`)
                         } catch (err) {
                           setReviewMsg(`Send failed: ${err instanceof Error ? err.message : "unknown"}`)
                         } finally {

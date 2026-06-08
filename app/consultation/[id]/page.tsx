@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { getConsultation, recordConsultationWatch, recordConsultationPlay, videoUrl } from "@/lib/api"
+import { getConsultationByToken, recordConsultationWatchByToken, recordConsultationPlayByToken, videoUrl } from "@/lib/api"
 import type { Consultation } from "@/lib/api"
 import { VideoPlayer } from "@/components/vc/VideoPlayer"
 
@@ -20,7 +20,8 @@ function formatDate(value?: string | null) {
 
 export default function ConsultationReceiptPage() {
   const params = useParams()
-  const consultationId = Number(params.id)
+  // The [id] route segment now carries an unguessable share token, not a numeric ID.
+  const token = String(params.id || "")
 
   const [consultation, setConsultation] = useState<Consultation | null>(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +34,7 @@ export default function ConsultationReceiptPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await getConsultation(consultationId)
+        const data = await getConsultationByToken(token)
         if ((data as unknown as { error?: string }).error) {
           throw new Error((data as unknown as { error?: string }).error)
         }
@@ -41,7 +42,7 @@ export default function ConsultationReceiptPage() {
         if (!hasOpened.current) {
           hasOpened.current = true
           try {
-            const opened = await recordConsultationWatch(data.id)
+            const opened = await recordConsultationWatchByToken(token)
             setConsultation(opened)
           } catch {
             /* ignore open-tracking errors */
@@ -54,14 +55,14 @@ export default function ConsultationReceiptPage() {
       }
     }
 
-    if (!Number.isFinite(consultationId) || consultationId <= 0) {
+    if (!token) {
       setError("Invalid consultation link")
       setLoading(false)
       return
     }
 
     load()
-  }, [consultationId])
+  }, [token])
 
   const recommendationItems = useMemo(() => {
     return consultation?.summary_slide_data?.items ?? []
@@ -71,7 +72,7 @@ export default function ConsultationReceiptPage() {
     if (!consultation || hasPlayed.current) return
     hasPlayed.current = true
     try {
-      const r = await recordConsultationPlay(consultation.id)
+      const r = await recordConsultationPlayByToken(token)
       setConsultation((prev) => (prev ? { ...prev, play_count: r.play_count, last_played_at: r.last_played_at } : prev))
     } catch {
       hasPlayed.current = false
