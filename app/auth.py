@@ -21,8 +21,35 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 VC_ADMIN_PASSWORD = os.environ.get("VC_ADMIN_PASSWORD", "")
 TOKEN_EXPIRY_HOURS = 24
 
-# --- In-memory session store (MVP) ---
-_active_sessions: dict[str, dict] = {}
+# --- Session store (persisted to the volume so logins survive restarts) ---
+try:
+    from app.slide_sorter import _VC_DIR as _vc_dir
+    _SESSIONS_FILE = _vc_dir / "admin_sessions.json"
+except Exception:  # pragma: no cover - fallback if volume module unavailable
+    _SESSIONS_FILE = None
+
+
+def _load_sessions() -> dict:
+    if _SESSIONS_FILE and _SESSIONS_FILE.exists():
+        try:
+            import json
+            return json.loads(_SESSIONS_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_sessions() -> None:
+    if not _SESSIONS_FILE:
+        return
+    try:
+        import json
+        _SESSIONS_FILE.write_text(json.dumps(_active_sessions))
+    except Exception:
+        pass
+
+
+_active_sessions: dict[str, dict] = _load_sessions()
 
 security = HTTPBearer(auto_error=False)
 
@@ -56,6 +83,7 @@ def create_session() -> dict:
         "is_valid": True,
     }
     _active_sessions[token] = session
+    _save_sessions()
     return session
 
 
@@ -81,6 +109,7 @@ def invalidate_session(token: str) -> bool:
     session = _active_sessions.get(token)
     if session:
         session["is_valid"] = False
+        _save_sessions()
         return True
     return False
 
