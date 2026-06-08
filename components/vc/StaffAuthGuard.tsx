@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { isAuthed } from "@/lib/api"
+import { isAuthed, getAdminSession, clearAuthToken } from "@/lib/api"
 
 /**
  * Gates all /staff pages behind a stored auth token. The /staff/login route is
@@ -20,12 +20,27 @@ export function StaffAuthGuard({ children }: { children: React.ReactNode }) {
       setReady(true)
       return
     }
+    const toLogin = () => router.replace(`/staff/login?returnTo=${encodeURIComponent(pathname || "/staff")}`)
     if (!isAuthed()) {
-      const returnTo = encodeURIComponent(pathname || "/staff")
-      router.replace(`/staff/login?returnTo=${returnTo}`)
+      toLogin()
       return
     }
-    setReady(true)
+    // Validate the stored token server-side; a stale/expired token (e.g. after a
+    // backend restart or 24h expiry) redirects to login instead of erroring.
+    let cancelled = false
+    ;(async () => {
+      const { valid } = await getAdminSession()
+      if (cancelled) return
+      if (!valid) {
+        clearAuthToken()
+        toLogin()
+        return
+      }
+      setReady(true)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [isLogin, pathname, router])
 
   if (isLogin) return <>{children}</>
