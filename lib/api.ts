@@ -105,12 +105,28 @@ export interface VCRequestListResponse {
   requests: VCRequestListItem[];
 }
 
+/* ── Staff auth token — persisted + auto-attached to staff calls ─────────── */
+const AUTH_TOKEN_KEY = "vc-staff-token";
+
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try { return window.localStorage.getItem(AUTH_TOKEN_KEY); } catch { return null; }
+}
+export function setAuthToken(token: string): void {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(AUTH_TOKEN_KEY, token); } catch { /* ignore */ }
+}
+export function clearAuthToken(): void {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* ignore */ }
+}
+export function isAuthed(): boolean {
+  return !!getAuthToken();
+}
+
 function authHeaders(token?: string): Record<string, string> {
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  return headers;
+  const t = token ?? getAuthToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
 export async function adminLogin(password: string): Promise<{ token: string; expires_at: string }> {
@@ -123,7 +139,25 @@ export async function adminLogin(password: string): Promise<{ token: string; exp
     const text = await res.text();
     throw new Error(`Login failed (${res.status}): ${text}`);
   }
-  return res.json();
+  const data = await res.json();
+  if (data?.token) setAuthToken(data.token);
+  return data;
+}
+
+export async function adminLogout(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/admin/logout`, { method: "POST", headers: authHeaders() });
+  } catch { /* ignore */ }
+  clearAuthToken();
+}
+
+export async function getAdminSession(): Promise<{ valid: boolean }> {
+  try {
+    const res = await fetch(`${API_BASE}/admin/session`, { headers: authHeaders() });
+    return { valid: res.ok };
+  } catch {
+    return { valid: false };
+  }
 }
 
 export async function listVCRequests(
@@ -211,7 +245,7 @@ export function slideImageUrl(filename: string): string {
 }
 
 export async function listAllSlides(): Promise<{ total: number; slides: SlideItem[] }> {
-  const res = await fetch(`${API_BASE}/slides`);
+  const res = await fetch(`${API_BASE}/slides`, { headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to list slides (${res.status}): ${text}`);
@@ -246,7 +280,7 @@ export async function getSlideDetail(slideNumber: number): Promise<SlideItem> {
 }
 
 export async function deleteSlide(slideNumber: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/slides/${slideNumber}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/slides/${slideNumber}`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to delete slide (${res.status}): ${text}`);
@@ -256,7 +290,7 @@ export async function deleteSlide(slideNumber: number): Promise<void> {
 export async function uploadSlides(files: File[]): Promise<{ created: SlideItem[]; count: number }> {
   const formData = new FormData();
   files.forEach((f) => formData.append("files", f));
-  const res = await fetch(`${API_BASE}/slides/upload`, { method: "POST", body: formData });
+  const res = await fetch(`${API_BASE}/slides/upload`, { method: "POST", headers: authHeaders(), body: formData });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Slide upload failed (${res.status}): ${text}`);
@@ -265,7 +299,7 @@ export async function uploadSlides(files: File[]): Promise<{ created: SlideItem[
 }
 
 export async function listRecordingDecks(): Promise<{ total: number; decks: RecordingDeck[] }> {
-  const res = await fetch(`${API_BASE}/recording-decks`);
+  const res = await fetch(`${API_BASE}/recording-decks`, { headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to list decks (${res.status}): ${text}`);
@@ -279,7 +313,7 @@ export async function createRecordingDeck(
 ): Promise<RecordingDeck> {
   const res = await fetch(`${API_BASE}/recording-decks`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ name, slide_numbers: slideNumbers }),
   });
   if (!res.ok) {
@@ -292,6 +326,7 @@ export async function createRecordingDeck(
 export async function deleteRecordingDeck(deckId: number): Promise<void> {
   const res = await fetch(`${API_BASE}/recording-decks/${deckId}`, {
     method: "DELETE",
+    headers: authHeaders(),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -343,6 +378,7 @@ export async function uploadVideo(file: File): Promise<VideoUploadResponse> {
   formData.append("file", file);
   const res = await fetch(`${API_BASE}/vc/videos/upload`, {
     method: "POST",
+    headers: authHeaders(),
     body: formData,
   });
   if (!res.ok) {
@@ -371,7 +407,7 @@ export async function createConsultation(data: {
 }): Promise<Consultation> {
   const res = await fetch(`${API_BASE}/vc/consultations`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -382,7 +418,7 @@ export async function createConsultation(data: {
 }
 
 export async function getConsultation(id: number): Promise<Consultation> {
-  const res = await fetch(`${API_BASE}/vc/consultations/${id}`);
+  const res = await fetch(`${API_BASE}/vc/consultations/${id}`, { headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to get consultation (${res.status}): ${text}`);
@@ -398,6 +434,7 @@ export function videoUrl(path: string): string {
 export async function approveConsultation(id: number): Promise<Consultation> {
   const res = await fetch(`${API_BASE}/vc/consultations/${id}/approve-script`, {
     method: "POST",
+    headers: authHeaders(),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -412,7 +449,7 @@ export async function sendConsultation(consultationId: number, requestId: number
   const req = await updateVCRequest(requestId, { status: "sent" });
   const consultRes = await fetch(`${API_BASE}/vc/consultations/${consultationId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString() }),
   });
   if (!consultRes.ok) throw new Error(`Failed to update consultation: ${await consultRes.text()}`);
@@ -423,6 +460,7 @@ export async function sendConsultation(consultationId: number, requestId: number
 export async function resendConsultation(id: number): Promise<Consultation> {
   const res = await fetch(`${API_BASE}/vc/consultations/${id}/resend`, {
     method: "POST",
+    headers: authHeaders(),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -434,6 +472,7 @@ export async function resendConsultation(id: number): Promise<Consultation> {
 export async function recordConsultationWatch(id: number): Promise<Consultation> {
   const res = await fetch(`${API_BASE}/vc/consultations/${id}/watch`, {
     method: "POST",
+    headers: authHeaders(),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -443,7 +482,7 @@ export async function recordConsultationWatch(id: number): Promise<Consultation>
 }
 
 export async function recordConsultationPlay(id: number): Promise<{ play_count: number; last_played_at: string | null }> {
-  const res = await fetch(`${API_BASE}/vc/consultations/${id}/play`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/vc/consultations/${id}/play`, { method: "POST", headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to record play (${res.status}): ${text}`);
@@ -480,7 +519,7 @@ export async function recordConsultationPlayByToken(token: string): Promise<{ pl
 }
 
 export async function emailConsultationReview(consultationId: number): Promise<{ sent: boolean; email: string; link: string }> {
-  const res = await fetch(`${API_BASE}/vc/consultations/${consultationId}/email-review`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/vc/consultations/${consultationId}/email-review`, { method: "POST", headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to email review (${res.status}): ${text}`);

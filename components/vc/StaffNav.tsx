@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ThemeSwitcher } from "@/components/vc/ThemeSwitcher"
+import { adminLogout } from "@/lib/api"
 
 export type StaffStep = "dashboard" | "profile" | "deck" | "record"
 
@@ -31,6 +33,7 @@ export function StaffNav({
   patientName?: string
   actions?: React.ReactNode
 }) {
+  const router = useRouter()
   return (
     <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--k-line)] bg-white/90 px-4 py-2.5 backdrop-blur sm:px-6">
       {/* left: logo + breadcrumb */}
@@ -91,6 +94,14 @@ export function StaffNav({
         {actions}
         <ThemeSwitcher />
         <span className="hidden size-8 items-center justify-center rounded-full text-xs font-bold text-white sm:flex" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>PB</span>
+        <button
+          type="button"
+          onClick={async () => { await adminLogout(); router.replace("/staff/login") }}
+          title="Sign out"
+          className="flex size-8 items-center justify-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+        >
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>
+        </button>
       </div>
     </header>
   )
