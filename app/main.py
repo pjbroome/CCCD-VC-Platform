@@ -3356,9 +3356,30 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
 
 @app.get("/vc/requests")
 async def list_vc_requests(status: Optional[str] = None, session: dict = Depends(require_admin)):
-    """List all VC requests, optionally filtered by status. Admin-protected."""
+    """List all VC requests, optionally filtered by status. Admin-protected.
+
+    Each request is enriched with `video_state` (not_sent | sent | seen) derived
+    from its linked consultation, so the dashboard can show delivery + engagement
+    ('Video Seen') at a glance without N extra calls.
+    """
+    from app.slide_sorter import get_consultations as _get_consults
     requests = get_vc_requests(status)
-    return {"total": len(requests), "requests": requests}
+    consults_list = _get_consults()
+    by_id = {c.get("id"): c for c in consults_list}
+    by_req = {c.get("request_id"): c for c in consults_list if c.get("request_id") is not None}
+    out = []
+    for r in requests:
+        rr = dict(r)
+        c = by_id.get(rr.get("consultation_id")) or by_req.get(rr.get("id"))
+        state = "not_sent"
+        if c:
+            if (c.get("watch_count") or 0) or (c.get("play_count") or 0):
+                state = "seen"
+            elif c.get("video_url") or c.get("status") == "sent":
+                state = "sent"
+        rr["video_state"] = state
+        out.append(rr)
+    return {"total": len(out), "requests": out}
 
 
 @app.get("/vc/requests/schema")
