@@ -96,6 +96,7 @@ export interface VCRequestListItem {
   notes?: string;
   deck_id?: number | null;
   consultation_id?: number | null;
+  video_state?: "not_sent" | "sent" | "seen";
   created_at?: string;
   submitted_at?: string;
   updated_at?: string;

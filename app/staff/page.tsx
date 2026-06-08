@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
-import { listVCRequests, updateVCRequest } from "@/lib/api"
+import { listVCRequests, updateVCRequest, photoUrl } from "@/lib/api"
 import type { VCRequestListItem } from "@/lib/api"
 import { useTheme } from "@/components/vc/ThemeProvider"
 import { ThemeSwitcher } from "@/components/vc/ThemeSwitcher"
@@ -61,6 +61,7 @@ export default function StaffDashboard() {
   const [activeFilter, setActiveFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
@@ -86,7 +87,12 @@ export default function StaffDashboard() {
   }, [allRequests])
 
   const total = allRequests.length
-  const filtered = activeFilter === "all" ? allRequests : allRequests.filter((r) => r.status === activeFilter)
+  const filtered = useMemo(() => {
+    let r = activeFilter === "all" ? allRequests : allRequests.filter((x) => x.status === activeFilter)
+    const q = search.trim().toLowerCase()
+    if (q) r = r.filter((x) => `${getDisplayName(x)} ${x.email ?? ""}`.toLowerCase().includes(q))
+    return r
+  }, [allRequests, activeFilter, search])
 
   const kpis = [
     { label: "Total Requests", value: total, sub: "all time", icon: "inbox" },
@@ -187,6 +193,20 @@ export default function StaffDashboard() {
             ))}
           </div>
 
+          {/* Search */}
+          <div className="mt-6">
+            <div className="relative w-full max-w-sm">
+              <svg className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M17 11a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" /></svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name or email…"
+                className="w-full rounded-full border border-[var(--k-line)] bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-[var(--k-accent)] focus:ring-2 focus:ring-[var(--k-accent-soft)]"
+              />
+            </div>
+          </div>
+
           {/* Mobile filter chips */}
           <div className="mt-6 flex flex-wrap gap-2 lg:hidden">
             {STATUS_FILTERS.map((f) => {
@@ -251,6 +271,7 @@ export default function StaffDashboard() {
                       <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Patient</th>
                       <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Submitted</th>
                       <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Status</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Video</th>
                       <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Contact</th>
                       <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Photos</th>
                       <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Action</th>
@@ -262,9 +283,13 @@ export default function StaffDashboard() {
                         <td className="px-4 py-3 font-mono text-xs text-zinc-400">#{req.id}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
-                              {initials(req)}
-                            </span>
+                            {req.photos?.[0] ? (
+                              <img src={photoUrl(req.photos[0])} alt="" className="size-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--k-line)]" />
+                            ) : (
+                              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
+                                {initials(req)}
+                              </span>
+                            )}
                             <div>
                               <p className="font-medium text-zinc-900">{getDisplayName(req)}</p>
                               {(req.city || req.state) && (
@@ -291,6 +316,17 @@ export default function StaffDashboard() {
                               <option key={s} value={s}>{statusLabel(s)}</option>
                             ))}
                           </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          {req.video_state === "seen" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              <span className="size-1.5 rounded-full bg-emerald-500" /> Seen
+                            </span>
+                          ) : req.video_state === "sent" ? (
+                            <span className="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-semibold text-sky-700">Sent</span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-[10px] font-medium text-zinc-400">Not sent</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <p className="text-xs text-zinc-600">{req.email}</p>
