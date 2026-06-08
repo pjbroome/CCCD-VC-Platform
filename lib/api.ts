@@ -18,6 +18,7 @@ export interface VCRequestPayload {
   concern: string;
   consent_acknowledged: boolean;
   photos: string[];
+  website?: string; // honeypot — always empty for real users
 }
 
 export interface VCRequestResponse {

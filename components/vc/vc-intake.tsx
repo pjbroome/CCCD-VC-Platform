@@ -69,6 +69,7 @@ export function VCIntake() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitState, setSubmitState] = useState<SubmitState>("idle")
   const [requestId, setRequestId] = useState<number | null>(null)
+  const [honeypot, setHoneypot] = useState("") // bot trap — must stay empty for real users
 
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -141,6 +142,7 @@ export function VCIntake() {
         concern: form.concern.trim(),
         consent_acknowledged: form.consentAcknowledged,
         photos: photoUrls,
+        website: honeypot,
       })
 
       setRequestId(response.id)
@@ -248,6 +250,11 @@ export function VCIntake() {
             ref={formRef}
             className="flex flex-1 flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_2px_20px_-6px_rgba(0,0,0,0.06)] ring-1 ring-zinc-950/[0.04] sm:rounded-3xl sm:p-6"
           >
+            {/* Honeypot — hidden from humans; bots fill it and are silently dropped. */}
+            <div aria-hidden="true" className="pointer-events-none absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
+              <label>Website<input type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} /></label>
+            </div>
+
             {/* Global submit error */}
             <AnimatePresence>
               {errors.submit && (
