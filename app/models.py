@@ -57,6 +57,7 @@ class VCRequestCreate(BaseModel):
     concern: str = Field(..., min_length=1, description="Dental concern / consult reason")
     consent_acknowledged: bool = Field(..., description="Patient consent acknowledgement")
     photos: list[str] = Field(default_factory=list, description="List of uploaded photo file paths/URLs")
+    website: Optional[str] = Field("", description="Honeypot — must stay empty; bots fill it")
 
 
 class VCRequestUpdate(BaseModel):

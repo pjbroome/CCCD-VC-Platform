@@ -85,6 +85,54 @@ app.add_middleware(
 )
 
 
+import time as _time
+
+# --- Lightweight per-IP rate limiting for public write endpoints ---
+_rate_buckets: dict[str, list[float]] = {}
+_RATE_LIMITS = {              # exact path -> (window seconds, max hits per IP)
+    "/vc/requests": (60, 12),        # patient intake submissions
+    "/vc/photos/upload": (60, 30),   # intake photo uploads
+    "/admin/login": (60, 8),         # staff login brute-force
+}
+
+
+def _client_ip(request) -> str:
+    return (
+        request.headers.get("fly-client-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "?")
+    )
+
+
+def _is_rate_limited(request) -> bool:
+    if request.method != "POST":
+        return False
+    rule = _RATE_LIMITS.get(request.url.path)
+    if not rule:
+        return False
+    window, limit = rule
+    now = _time.time()
+    key = f"{_client_ip(request)}|{request.url.path}"
+    hits = [t for t in _rate_buckets.get(key, []) if now - t < window]
+    if len(hits) >= limit:
+        _rate_buckets[key] = hits
+        return True
+    hits.append(now)
+    _rate_buckets[key] = hits
+    return False
+
+
+def _validate_upload(content_type: Optional[str], size: int, kind: str, max_mb: int) -> None:
+    """Reject uploads with the wrong content type, empty body, or over size limit."""
+    from fastapi import HTTPException
+    if size == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if content_type and not content_type.lower().startswith(kind):
+        raise HTTPException(status_code=400, detail=f"Invalid file type (expected {kind}*)")
+    if size > max_mb * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"File too large (max {max_mb} MB)")
+
+
 def _is_public_path(path: str, method: str) -> bool:
     """Allowlist of routes reachable without a staff token. Everything else is
     gated once VC_ADMIN_PASSWORD is set. Patient/media routes use unguessable
@@ -117,6 +165,15 @@ async def staff_auth_gate(request, call_next):
     """When VC_ADMIN_PASSWORD is set, require a valid staff token for every
     non-public route (this single gate covers the whole admin/Sutton/VC surface).
     When it's unset (dev mode), it's a pass-through — zero behavior change."""
+    from fastapi.responses import JSONResponse
+    # Rate limiting applies regardless of auth mode (protects intake + login).
+    if _is_rate_limited(request):
+        resp = JSONResponse({"error": "rate_limited", "detail": "Too many requests — please wait a moment and try again."}, status_code=429)
+        origin = request.headers.get("origin")
+        if origin:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
     from app.auth import VC_ADMIN_PASSWORD as _pw, validate_token as _validate
     if not _pw:
         return await call_next(request)
@@ -3041,6 +3098,7 @@ async def upload_slide_endpoint(
         data = await f.read()
         if not data:
             continue
+        _validate_upload(f.content_type, len(data), "image/", 20)
         created.append(add_slide(f.filename or "slide", data))
     return {"created": created, "count": len(created)}
 
@@ -3191,14 +3249,13 @@ async def upload_patient_photo(file: UploadFile = File(...)):
     MVP: stored on local filesystem under app/vc_slides/patient_photos/
     HIPAA upgrade: replace with S3/GCS pre-signed URL upload with encryption at rest.
     """
+    content = await file.read()
+    _validate_upload(file.content_type, len(content), "image/", 15)
     # Generate unique filename to prevent collisions
     ext = Path(file.filename or "photo.jpg").suffix or ".jpg"
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = _PHOTOS_DIR / unique_name
-
-    # Save file
     with open(file_path, "wb") as f:
-        content = await file.read()
         f.write(content)
 
     photo_url = f"/vc/photos/{unique_name}"
@@ -3248,12 +3305,12 @@ async def upload_consult_video(file: UploadFile = File(...), session: dict = Dep
     MVP: stored on local filesystem under app/vc_slides/consult_videos/
     HIPAA upgrade: replace with S3/GCS pre-signed URL upload with encryption at rest.
     """
+    content = await file.read()
+    _validate_upload(file.content_type, len(content), "video/", 300)
     ext = Path(file.filename or "video.mp4").suffix or ".mp4"
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = _VIDEOS_DIR / unique_name
-
     with open(file_path, "wb") as f:
-        content = await file.read()
         f.write(content)
 
     video_url = f"/vc/videos/{unique_name}"
@@ -3285,10 +3342,14 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
     Required fields: first_name, last_name, email, phone, concern, consent_acknowledged
     Optional: date_of_birth, city, state, photos
     """
+    # Honeypot: bots fill the hidden 'website' field — silently accept without storing.
+    if (req.website or "").strip():
+        return {"id": 0, "status": "received"}
     if not req.consent_acknowledged:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Consent acknowledgement is required")
     data = req.model_dump()
+    data.pop("website", None)
     result = create_vc_request(data)
     return result
 
