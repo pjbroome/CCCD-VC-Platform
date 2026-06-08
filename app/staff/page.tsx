@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
-import { listVCRequests, updateVCRequest, photoUrl } from "@/lib/api"
+import { listVCRequests, updateVCRequest, photoUrl, createVCRequest } from "@/lib/api"
 import type { VCRequestListItem } from "@/lib/api"
 import { useTheme } from "@/components/vc/ThemeProvider"
 import { ThemeSwitcher } from "@/components/vc/ThemeSwitcher"
@@ -62,6 +62,10 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [showAdd, setShowAdd] = useState(false)
+  const [addForm, setAddForm] = useState({ firstName: "", lastName: "", email: "", phone: "", concern: "" })
+  const [addBusy, setAddBusy] = useState(false)
+  const [addErr, setAddErr] = useState<string | null>(null)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
@@ -93,6 +97,37 @@ export default function StaffDashboard() {
     if (q) r = r.filter((x) => `${getDisplayName(x)} ${x.email ?? ""}`.toLowerCase().includes(q))
     return r
   }, [allRequests, activeFilter, search])
+
+  async function addPatient() {
+    if (!addForm.firstName.trim() || !addForm.email.trim()) {
+      setAddErr("First name and email are required")
+      return
+    }
+    setAddBusy(true)
+    setAddErr(null)
+    try {
+      await createVCRequest({
+        first_name: addForm.firstName.trim(),
+        last_name: addForm.lastName.trim(),
+        email: addForm.email.trim(),
+        phone: addForm.phone.trim(),
+        date_of_birth: null,
+        city: null,
+        state: null,
+        concern: addForm.concern.trim() || "(added by staff)",
+        consent_acknowledged: true,
+        photos: [],
+        referral_source: "Staff added",
+      })
+      setShowAdd(false)
+      setAddForm({ firstName: "", lastName: "", email: "", phone: "", concern: "" })
+      fetchRequests()
+    } catch (e) {
+      setAddErr(e instanceof Error ? e.message : "Could not add patient")
+    } finally {
+      setAddBusy(false)
+    }
+  }
 
   const kpis = [
     { label: "Total Requests", value: total, sub: "all time", icon: "inbox" },
@@ -194,8 +229,8 @@ export default function StaffDashboard() {
           </div>
 
           {/* Search */}
-          <div className="mt-6">
-            <div className="relative w-full max-w-sm">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="relative w-full max-w-sm flex-1">
               <svg className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M17 11a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" /></svg>
               <input
                 type="text"
@@ -205,6 +240,14 @@ export default function StaffDashboard() {
                 className="w-full rounded-full border border-[var(--k-line)] bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-[var(--k-accent)] focus:ring-2 focus:ring-[var(--k-accent-soft)]"
               />
             </div>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105"
+              style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              Add Patient
+            </button>
           </div>
 
           {/* Mobile filter chips */}
@@ -360,6 +403,34 @@ export default function StaffDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {showAdd && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAdd(false)}>
+              <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="mb-1 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-zinc-900">Add Patient</h3>
+                  <button onClick={() => setShowAdd(false)} className="flex size-8 items-center justify-center rounded-full text-zinc-400 transition hover:bg-zinc-100">
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <p className="mb-4 text-xs text-zinc-400">For phone or walk‑in inquiries. You&apos;re attesting the patient gave verbal consent.</p>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input value={addForm.firstName} onChange={(e) => setAddForm({ ...addForm, firstName: e.target.value })} placeholder="First name *" className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:border-[var(--k-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--k-accent-soft)]" />
+                    <input value={addForm.lastName} onChange={(e) => setAddForm({ ...addForm, lastName: e.target.value })} placeholder="Last name" className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:border-[var(--k-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--k-accent-soft)]" />
+                  </div>
+                  <input value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} placeholder="Email *" type="email" className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:border-[var(--k-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--k-accent-soft)]" />
+                  <input value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} placeholder="Phone" type="tel" className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:border-[var(--k-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--k-accent-soft)]" />
+                  <textarea value={addForm.concern} onChange={(e) => setAddForm({ ...addForm, concern: e.target.value })} placeholder="What they want to change (optional)" rows={3} className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:border-[var(--k-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--k-accent-soft)]" />
+                  {addErr && <p className="text-xs font-medium text-red-600">{addErr}</p>}
+                </div>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button onClick={() => setShowAdd(false)} className="rounded-full px-4 py-2 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100">Cancel</button>
+                  <button onClick={addPatient} disabled={addBusy} className="rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-50" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>{addBusy ? "Adding…" : "Add Patient"}</button>
+                </div>
               </div>
             </div>
           )}

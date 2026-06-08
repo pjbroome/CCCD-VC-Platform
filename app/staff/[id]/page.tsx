@@ -18,6 +18,7 @@ import {
 import type { VCRequestListItem, Consultation } from "@/lib/api"
 import { StaffNav } from "@/components/vc/StaffNav"
 import { StaffStepNav } from "@/components/vc/StaffStepNav"
+import { PhotoEditor } from "@/components/vc/PhotoEditor"
 
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-100 text-blue-700",
@@ -75,6 +76,7 @@ export default function RequestDetail() {
   const params = useParams()
   const id = Number(params.id)
   const [request, setRequest] = useState<VCRequestListItem | null>(null)
+  const [editingPhoto, setEditingPhoto] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -239,6 +241,8 @@ export default function RequestDetail() {
             />
             <InfoRow label="Submitted" value={formatDate(request.created_at || request.submitted_at)} />
             <InfoRow label="Last Updated" value={formatDate(request.updated_at)} />
+            <InfoRow label="Referral Source" value={request.referral_source || "—"} />
+            <InfoRow label="Source URL" value={request.source_url || "—"} />
           </div>
         </div>
 
@@ -258,7 +262,16 @@ export default function RequestDetail() {
           {request.photos && request.photos.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {request.photos.map((photo, i) => (
-                <div key={i} className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                <div key={i} className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingPhoto(i)}
+                    className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 opacity-0 shadow-sm backdrop-blur transition group-hover:opacity-100"
+                    title="Rotate / edit photo"
+                  >
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                    Edit
+                  </button>
                   <img
                     src={photoUrl(photo)}
                     alt={`Patient photo ${i + 1}`}
@@ -281,6 +294,25 @@ export default function RequestDetail() {
             </div>
           ) : (
             <p className="text-sm text-zinc-400">No photos uploaded</p>
+          )}
+          {editingPhoto !== null && request.photos?.[editingPhoto] && (
+            <PhotoEditor
+              photoPath={request.photos[editingPhoto]}
+              label={`Photo ${editingPhoto + 1}`}
+              onClose={() => setEditingPhoto(null)}
+              onSaved={async (newPath) => {
+                const idx = editingPhoto
+                const newPhotos = [...(request.photos || [])]
+                newPhotos[idx] = newPath
+                try {
+                  const updated = await updateVCRequest(request.id, { photos: newPhotos })
+                  setRequest(updated)
+                } catch {
+                  setRequest({ ...request, photos: newPhotos })
+                }
+                setEditingPhoto(null)
+              }}
+            />
           )}
         </div>
 

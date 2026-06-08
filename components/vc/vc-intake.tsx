@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { uploadPhoto, createVCRequest } from "@/lib/api"
 import type { PhotoUploadResponse } from "@/lib/api"
@@ -48,9 +48,21 @@ interface FormErrors {
   consent?: string
   photos?: string
   submit?: string
+  referral?: string
 }
 
 type SubmitState = "idle" | "uploading" | "submitting" | "success" | "error"
+
+const REFERRAL_SOURCES = [
+  "Friend or family referral",
+  "Existing patient",
+  "Google search",
+  "Instagram",
+  "Facebook",
+  "TikTok",
+  "Saw a patient's results",
+  "Other",
+]
 
 export function VCIntake() {
   const [form, setForm] = useState<FormData>({
@@ -70,6 +82,22 @@ export function VCIntake() {
   const [submitState, setSubmitState] = useState<SubmitState>("idle")
   const [requestId, setRequestId] = useState<number | null>(null)
   const [honeypot, setHoneypot] = useState("") // bot trap — must stay empty for real users
+  const [referralSource, setReferralSource] = useState("")
+  const [referralOther, setReferralOther] = useState("")
+  const [sourceUrl, setSourceUrl] = useState("")
+  const [extras, setExtras] = useState<File[]>([])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const utm = params.get("utm_source") || params.get("source")
+      const ref = document.referrer || window.location.href
+      setSourceUrl(utm ? `${utm} (${ref})` : ref)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -103,7 +131,9 @@ export function VCIntake() {
     }
     if (!form.concern.trim()) e.concern = "Please describe your dental concern"
     if (!form.consentAcknowledged) e.consent = "You must acknowledge consent to proceed"
-    if (!fullFace && !closeUp) e.photos = "Please upload at least one photo"
+    if (!fullFace) e.photos = "A full-face selfie is required"
+    else if (!closeUp) e.photos = "A close-up smile photo is required"
+    if (referralSource === "Other" && !referralOther.trim()) e.referral = "Please tell us how you heard about us"
     return e
   }
 
@@ -129,6 +159,10 @@ export function VCIntake() {
         const result: PhotoUploadResponse = await uploadPhoto(closeUp)
         photoUrls.push(result.url)
       }
+      for (const extra of extras.slice(0, 4)) {
+        const result: PhotoUploadResponse = await uploadPhoto(extra)
+        photoUrls.push(result.url)
+      }
 
       setSubmitState("submitting")
       const response = await createVCRequest({
@@ -142,6 +176,8 @@ export function VCIntake() {
         concern: form.concern.trim(),
         consent_acknowledged: form.consentAcknowledged,
         photos: photoUrls,
+        referral_source: referralSource === "Other" ? referralOther.trim() : referralSource || undefined,
+        source_url: sourceUrl || undefined,
         website: honeypot,
       })
 
@@ -209,6 +245,9 @@ export function VCIntake() {
               setForm({ firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", city: "", state: "", concern: "", consentAcknowledged: false })
               setFullFace(null)
               setCloseUp(null)
+              setExtras([])
+              setReferralSource("")
+              setReferralOther("")
               setRequestId(null)
             }}
             className="mt-6 text-sm font-medium text-[#c4a052] underline underline-offset-4 transition-colors hover:text-[#b8933f]"
@@ -302,12 +341,33 @@ export function VCIntake() {
                   </select>
                 </div>
               </div>
+              <div className="mt-2.5 sm:mt-3">
+                <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">How did you hear about us?</label>
+                <select
+                  value={referralSource}
+                  onChange={(e) => { setReferralSource(e.target.value); if (errors.referral) setErrors((p) => { const n = { ...p }; delete n.referral; return n }) }}
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm"
+                >
+                  <option value="">--</option>
+                  {REFERRAL_SOURCES.map((r) => (<option key={r} value={r}>{r}</option>))}
+                </select>
+                {referralSource === "Other" && (
+                  <input
+                    type="text"
+                    value={referralOther}
+                    onChange={(e) => { setReferralOther(e.target.value); if (errors.referral) setErrors((p) => { const n = { ...p }; delete n.referral; return n }) }}
+                    placeholder="Please tell us how"
+                    className="mt-2 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm"
+                  />
+                )}
+                {errors.referral && <p className="mt-1 text-[10px] text-red-500">{errors.referral}</p>}
+              </div>
             </div>
 
             {/* Step 2 - Photos */}
             <div>
               <p className="mb-2 text-xs font-semibold text-zinc-900 sm:text-sm">
-                <StepBadge n={2} /> Upload Two Photos
+                <StepBadge n={2} /> Upload Your Photos
               </p>
               {errors.photos && <p className="mb-2 text-[10px] text-red-500">{errors.photos}</p>}
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -342,6 +402,28 @@ export function VCIntake() {
                     />
                   }
                 />
+              </div>
+              <div className="mt-3">
+                <p className="mb-1.5 text-[10px] font-medium text-zinc-500 sm:text-xs">Optional — add up to 4 more (different angles, retracted, side profile)</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {extras.map((f, i) => (
+                    <div key={i} className="relative size-16 overflow-hidden rounded-lg border border-zinc-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={URL.createObjectURL(f)} alt="" className="size-full object-cover" />
+                      <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
+                    </div>
+                  ))}
+                  {extras.length < 4 && (
+                    <label className="flex size-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 text-zinc-400 transition hover:border-[#c4a052]/50 hover:text-[#c4a052]">
+                      <span className="text-xl leading-none">+</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        setExtras((p) => [...p, ...files].slice(0, 4))
+                        e.currentTarget.value = ""
+                      }} />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
 

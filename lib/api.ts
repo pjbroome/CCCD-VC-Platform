@@ -18,6 +18,8 @@ export interface VCRequestPayload {
   concern: string;
   consent_acknowledged: boolean;
   photos: string[];
+  referral_source?: string;
+  source_url?: string;
   website?: string; // honeypot — always empty for real users
 }
 
@@ -93,6 +95,8 @@ export interface VCRequestListItem {
   consent_acknowledged?: boolean;
   photos: string[];
   status: string;
+  referral_source?: string;
+  source_url?: string;
   notes?: string;
   deck_id?: number | null;
   consultation_id?: number | null;
