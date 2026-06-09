@@ -3166,6 +3166,46 @@ async def email_consultation_review(consultation_id: int, session: dict = Depend
     return {"sent": sent, "email": review_email, "link": link}
 
 
+@app.post("/vc/consultations/{consultation_id}/notify-patient")
+async def notify_patient(consultation_id: int, session: dict = Depends(require_admin)):
+    """Email the PATIENT their personalized consultation video link, and mark sent.
+    PHI-minimal body (first name + tokenized link only). Provider-agnostic; no-op
+    with a logged warning until RESEND_API_KEY or SMTP_HOST is configured."""
+    import datetime as _dt
+    from fastapi import HTTPException
+    from app.slide_sorter import get_consultation, update_consultation
+    c = get_consultation(consultation_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    to_email = (c.get("email") or "").strip()
+    if not to_email:
+        raise HTTPException(status_code=400, detail="No patient email on file")
+    token = c.get("token") or ""
+    if not token:
+        raise HTTPException(status_code=400, detail="Consultation has no share token")
+    base = os.environ.get("PUBLIC_BASE_URL", "https://v0-kleon-samples.vercel.app").rstrip("/")
+    link = f"{base}/consultation/{token}"
+    first = (c.get("patient_name") or "there").split(" ")[0]
+    practice = os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry")
+    html = (
+        "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222'>"
+        f"<p>Hi {first},</p>"
+        f"<p>Thank you for your virtual consultation request. Your personalized video reply "
+        f"from {practice} is ready to view.</p>"
+        f"<p style='margin:26px 0'><a href='{link}' style='background:#c4a052;color:#fff;"
+        "padding:13px 24px;border-radius:8px;text-decoration:none;font-weight:600'>Watch your consultation</a></p>"
+        f"<p style='color:#666;font-size:13px'>Or paste this link into your browser:<br>{link}</p>"
+        "<p style='color:#999;font-size:12px'>This personalized link is just for you. Questions? "
+        "Reply to this email or call our office.</p></div>"
+    )
+    sent = _send_review_email(to_email, "Your personalized consultation video is ready", html)
+    try:
+        update_consultation(consultation_id, {"status": "sent", "sent_at": _dt.datetime.now(_dt.timezone.utc).isoformat()})
+    except Exception:
+        pass
+    return {"sent": sent, "email": to_email, "link": link}
+
+
 @app.post("/vc/consultations/{consultation_id}/play")
 async def play_consultation(consultation_id: int):
     """Record that the patient pressed play (distinct from opening the page)."""
