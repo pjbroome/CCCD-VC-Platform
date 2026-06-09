@@ -13,7 +13,22 @@ honeypot + rate‑limiting + upload validation, staff login (enforced), dashboar
 thumbnails, video‑seen badge, Add Patient), slide library (145), deck builder, recorder, create
 consultation, **patient‑notify email (link verified; fires when key added)**, token patient video
 page, watch/play tracking, CORS lock, security headers, path‑traversal guard, persistent sessions,
-PHI on volume.
+PHI on volume, **HIPAA access audit log** (`/data/vc/audit.log` + stdout — verified writing),
+**intake confirmation email** (env‑gated), **Turnstile bot challenge** (env‑gated), **media‑retention
+job** (env‑gated, `/vc/maintenance/cleanup`).
+
+## ⚙️ Environment variables (one place — all the flips)
+| Var | Where | Purpose | Default |
+|---|---|---|---|
+| `VC_ADMIN_PASSWORD` | Fly secret | staff login (already set) | — (auth enforced) |
+| `RESEND_API_KEY` *or* `SMTP_HOST/USER/PASS` | Fly secret | send patient + confirmation emails | unset = no email |
+| `EMAIL_FROM` | Fly secret | sender address | `onboarding@resend.dev` → set `info@destinationsmile.com` |
+| `PUBLIC_BASE_URL` | Fly secret | base for patient links in emails | Vercel URL → custom domain |
+| `PRACTICE_NAME` | Fly secret | name in emails | "Charlotte Center for Cosmetic Dentistry" |
+| `TURNSTILE_SECRET` | Fly secret | backend bot verify | unset = challenge off |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Vercel env | renders the bot challenge | unset = challenge off |
+| `VIDEO_RETENTION_DAYS` | Fly secret | auto-delete consult videos older than N days | `0` = keep forever |
+| `CORS_ALLOWED_ORIGINS` | Fly secret | lock API to the frontend origin(s) | current Vercel URL |
 
 ## 🔧 Go‑live steps (each is a flip; I run the commands)
 
