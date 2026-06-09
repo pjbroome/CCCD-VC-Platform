@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { uploadPhoto, createVCRequest } from "@/lib/api"
+import { Turnstile, TURNSTILE_ENABLED } from "@/components/vc/Turnstile"
 import type { PhotoUploadResponse } from "@/lib/api"
 
 const spring = { type: "spring" as const, stiffness: 100, damping: 20 }
@@ -86,6 +87,7 @@ export function VCIntake() {
   const [referralOther, setReferralOther] = useState("")
   const [sourceUrl, setSourceUrl] = useState("")
   const [extras, setExtras] = useState<File[]>([])
+  const [turnstileToken, setTurnstileToken] = useState("")
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -138,6 +140,7 @@ export function VCIntake() {
     if (!fullFace) e.photos = "A full-face selfie is required"
     else if (!closeUp) e.photos = "A close-up smile photo is required"
     if (referralSource === "Other" && !referralOther.trim()) e.referral = "Please tell us how you heard about us"
+    if (TURNSTILE_ENABLED && !turnstileToken) e.submit = "Please complete the verification below."
     return e
   }
 
@@ -183,6 +186,7 @@ export function VCIntake() {
         referral_source: referralSource === "Other" ? referralOther.trim() : referralSource || undefined,
         source_url: sourceUrl || undefined,
         website: honeypot,
+        turnstile_token: turnstileToken || undefined,
       })
 
       setRequestId(response.id)
@@ -250,6 +254,7 @@ export function VCIntake() {
               setFullFace(null)
               setCloseUp(null)
               setExtras([])
+              setTurnstileToken("")
               setReferralSource("")
               setReferralOther("")
               setRequestId(null)
@@ -462,6 +467,9 @@ export function VCIntake() {
                 </span>
               </label>
               {errors.consent && <p className="mt-1 text-[10px] text-red-500">{errors.consent}</p>}
+
+              {/* Bot challenge — renders only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set */}
+              <Turnstile onToken={setTurnstileToken} />
 
               <motion.button
                 type="button"

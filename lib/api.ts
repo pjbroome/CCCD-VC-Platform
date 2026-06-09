@@ -21,6 +21,7 @@ export interface VCRequestPayload {
   referral_source?: string;
   source_url?: string;
   website?: string; // honeypot — always empty for real users
+  turnstile_token?: string; // Cloudflare Turnstile (when enabled)
 }
 
 export interface VCRequestResponse {
