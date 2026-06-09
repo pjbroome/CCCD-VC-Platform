@@ -459,6 +459,19 @@ export default function RequestDetail() {
                   <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 ring-1 ring-emerald-200">
                     <p className="text-xs font-medium text-emerald-700">Consultation sent to patient</p>
                     <p className="mt-0.5 text-[10px] text-emerald-600">Sent: {formatDate(consultation.sent_at)}{consultation.watch_count ? ` · Viewed ${consultation.watch_count} time${consultation.watch_count !== 1 ? "s" : ""}` : ""}</p>
+                    {consultation.token && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(`${window.location.origin}/consultation/${consultation.token}`)
+                          setReviewMsg("Patient link copied to clipboard")
+                        }}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-300 transition hover:bg-emerald-100"
+                      >
+                        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5l.415-.207a.75.75 0 0 1 1.085.67V10.5m0 0h6m-6 0h-1.5m1.5 0v5.25m0-5.25a.75.75 0 0 0-.75-.75H6.75m0 0H6a.75.75 0 0 0-.75.75v9.75c0 .414.336.75.75.75h10.5a.75.75 0 0 0 .75-.75V15M9 7.5V6a2.25 2.25 0 0 1 2.25-2.25h6A2.25 2.25 0 0 1 19.5 6v9a2.25 2.25 0 0 1-2.25 2.25H15" /></svg>
+                        Copy patient link
+                      </button>
+                    )}
                   </div>
                 )}
 
