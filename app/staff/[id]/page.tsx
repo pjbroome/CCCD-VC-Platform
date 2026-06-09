@@ -500,10 +500,14 @@ export default function RequestDetail() {
                         setReviewAction(true)
                         setReviewMsg(null)
                         try {
-                          const { consultation: c, request: r } = await sendConsultation(consultation.id, request.id)
+                          const { consultation: c, request: r, emailed } = await sendConsultation(consultation.id, request.id)
                           setRequest(r)
                           setConsultation(c)
-                          setReviewMsg(`Consultation sent to patient (${request.email}) · receipt page: /consultation/${c.token ?? c.id}`)
+                          setReviewMsg(
+                            emailed
+                              ? `Sent — patient emailed their video link (${request.email}).`
+                              : `Marked sent, but email is not configured yet — copy the patient's link: /consultation/${c.token ?? c.id}`
+                          )
                         } catch (err) {
                           setReviewMsg(`Send failed: ${err instanceof Error ? err.message : "unknown"}`)
                         } finally {

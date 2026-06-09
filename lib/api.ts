@@ -450,9 +450,19 @@ export async function approveConsultation(id: number): Promise<Consultation> {
   return data.consultation || data;
 }
 
-export async function sendConsultation(consultationId: number, requestId: number): Promise<{ consultation: Consultation; request: VCRequestListItem }> {
-  // Sequential: advance request status first, then mark consultation as sent
+export async function sendConsultation(consultationId: number, requestId: number): Promise<{ consultation: Consultation; request: VCRequestListItem; emailed: boolean }> {
+  // Advance the request, then email the patient their link (best-effort) + mark sent.
   const req = await updateVCRequest(requestId, { status: "sent" });
+  let emailed = false;
+  try {
+    const res = await fetch(`${API_BASE}/vc/consultations/${consultationId}/notify-patient`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (res.ok) emailed = !!(await res.json()).sent;
+  } catch {
+    /* email is best-effort; the send below still marks it sent */
+  }
   const consultRes = await fetch(`${API_BASE}/vc/consultations/${consultationId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -460,7 +470,7 @@ export async function sendConsultation(consultationId: number, requestId: number
   });
   if (!consultRes.ok) throw new Error(`Failed to update consultation: ${await consultRes.text()}`);
   const consult = await consultRes.json() as Consultation;
-  return { consultation: consult, request: req };
+  return { consultation: consult, request: req, emailed };
 }
 
 export async function resendConsultation(id: number): Promise<Consultation> {

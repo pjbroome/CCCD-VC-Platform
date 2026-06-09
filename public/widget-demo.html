@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VC Widget Demo</title>
+  <style>
+    body{margin:0;font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#222;background:#faf9f6;}
+    header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid #eee;background:#fff;}
+    .brand{font-weight:700;letter-spacing:.04em;color:#5a4632;}
+    .hbtn{background:#c4a052;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600;font-size:14px;}
+    main{max-width:760px;margin:60px auto;padding:0 24px;}
+    h1{font-size:34px;color:#3a2f22;}
+    .muted{color:#888;}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">CHARLOTTE CENTER for COSMETIC DENTISTRY</span>
+    <!-- this existing-style button also opens the popup via the widget -->
+    <a class="hbtn" href="#virtual-consult">Get a Virtual Consultation</a>
+  </header>
+  <main>
+    <h1>Widget demo page</h1>
+    <p class="muted">This page simulates destinationsmile.com. The floating button
+      (bottom‑right) and the header button above both open the Virtual Consultation
+      intake in a popup. This is exactly what Goldman installs.</p>
+  </main>
+
+  <!-- THE WIDGET (served from this same portal) -->
+  <script src="/widget.js" async
+          data-label="Virtual Consultation"
+          data-color="#c4a052"
+          data-position="bottom-right"></script>
+</body>
+</html>
