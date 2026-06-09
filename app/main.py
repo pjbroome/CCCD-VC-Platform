@@ -160,6 +160,44 @@ def _is_public_path(path: str, method: str) -> bool:
     return False
 
 
+_AUDIT_FILE = None
+
+
+def _audit_log(event, request, extra="", outcome="ok"):
+    """HIPAA access-audit line — metadata only, NO PHI (no names/photos/content).
+    Written to stdout (captured by Fly logs) + appended to the volume best-effort."""
+    try:
+        import datetime as _dt
+        ts = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        line = (
+            f"AUDIT {ts} event={event} ip={_client_ip(request)} "
+            f"method={request.method} path={request.url.path} outcome={outcome}"
+            + (f" {extra}" if extra else "")
+        )
+        print(line, flush=True)
+        global _AUDIT_FILE
+        if _AUDIT_FILE is None:
+            try:
+                from app.slide_sorter import _VC_DIR
+                _AUDIT_FILE = _VC_DIR / "audit.log"
+            except Exception:
+                _AUDIT_FILE = False
+        if _AUDIT_FILE:
+            with open(_AUDIT_FILE, "a") as _f:
+                _f.write(line + "\n")
+    except Exception:
+        pass
+
+
+def _is_phi_public(path, method):
+    """Public routes that still expose PHI (a patient's own view) — audit these."""
+    if path.startswith("/vc/consultations/by-token/"):
+        return True
+    if method == "GET" and (path.startswith("/vc/photos/") or path.startswith("/vc/videos/")):
+        return True
+    return False
+
+
 @app.middleware("http")
 async def staff_auth_gate(request, call_next):
     """When VC_ADMIN_PASSWORD is set, require a valid staff token for every
@@ -168,12 +206,16 @@ async def staff_auth_gate(request, call_next):
     from fastapi.responses import JSONResponse
     # Rate limiting applies regardless of auth mode (protects intake + login).
     if _is_rate_limited(request):
+        _audit_log("rate_limited", request, outcome="429")
         resp = JSONResponse({"error": "rate_limited", "detail": "Too many requests — please wait a moment and try again."}, status_code=429)
         origin = request.headers.get("origin")
         if origin:
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Access-Control-Allow-Credentials"] = "true"
         return resp
+    # Audit patient-side PHI access (by-token consult + media) in any mode.
+    if _is_phi_public(request.url.path, request.method):
+        _audit_log("patient_access", request)
     from app.auth import VC_ADMIN_PASSWORD as _pw, validate_token as _validate
     if not _pw:
         return await call_next(request)
@@ -182,8 +224,9 @@ async def staff_auth_gate(request, call_next):
     auth = request.headers.get("authorization", "")
     token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
     if token and _validate(token):
+        _audit_log("staff_access", request, extra=f"sid={token[:8]}")
         return await call_next(request)
-    from fastapi.responses import JSONResponse
+    _audit_log("denied", request, outcome="401")
     resp = JSONResponse({"error": "authentication required"}, status_code=401)
     origin = request.headers.get("origin")
     if origin:  # keep the 401 readable cross-origin for the SPA
@@ -3206,6 +3249,40 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
     return {"sent": sent, "email": to_email, "link": link}
 
 
+def _cleanup_old_media(days: int) -> dict:
+    """Delete consult video files older than `days` (0 = disabled). Returns counts.
+    Volume-based retention for the Fly storage path; off by default."""
+    import time as _t
+    out = {"days": days, "deleted": 0, "bytes_freed": 0, "scanned": 0}
+    if not days or days <= 0:
+        return out
+    cutoff = _t.time() - days * 86400
+    try:
+        for f in _VIDEOS_DIR.glob("*"):
+            if not f.is_file():
+                continue
+            out["scanned"] += 1
+            try:
+                if f.stat().st_mtime < cutoff:
+                    sz = f.stat().st_size
+                    f.unlink()
+                    out["deleted"] += 1
+                    out["bytes_freed"] += sz
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return out
+
+
+@app.post("/vc/maintenance/cleanup")
+async def maintenance_cleanup(session: dict = Depends(require_admin)):
+    """Run media retention now (delete consult videos older than VIDEO_RETENTION_DAYS).
+    Off unless VIDEO_RETENTION_DAYS is set. Safe to call from a scheduled job."""
+    days = int(os.environ.get("VIDEO_RETENTION_DAYS", "0") or "0")
+    return _cleanup_old_media(days)
+
+
 @app.post("/vc/consultations/{consultation_id}/play")
 async def play_consultation(consultation_id: int):
     """Record that the patient pressed play (distinct from opening the page)."""
@@ -3242,12 +3319,14 @@ async def remove_recording_deck(deck_id: int):
 # --- Admin Auth Endpoints ---
 
 @app.post("/admin/login")
-async def admin_login(req: AdminLoginRequest):
+async def admin_login(req: AdminLoginRequest, request: Request):
     """Login to get an admin bearer token for protected routes."""
     if not verify_admin_password(req.password):
+        _audit_log("login_failed", request, outcome="401")
         from fastapi import HTTPException
         raise HTTPException(status_code=401, detail="Invalid password")
     session = create_session()
+    _audit_log("login_success", request, extra=f"sid={session['token'][:8]}")
     return AdminLoginResponse(
         token=session["token"],
         expires_at=session["expires_at"],
@@ -3375,22 +3454,60 @@ async def serve_consult_video(filename: str):
 
 # --- VC Request (Patient Intake CRM) Endpoints ---
 
+def _verify_turnstile(token: str, secret: str) -> bool:
+    """Verify a Cloudflare Turnstile token server-side. Returns False on any failure."""
+    if not token:
+        return False
+    try:
+        import urllib.request
+        import urllib.parse
+        body = urllib.parse.urlencode({"secret": secret, "response": token}).encode()
+        req = urllib.request.Request("https://challenges.cloudflare.com/turnstile/v0/siteverify", data=body)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return bool(json.loads(r.read()).get("success"))
+    except Exception:
+        return False
+
+
 @app.post("/vc/requests")
 async def create_vc_request_endpoint(req: VCRequestCreate):
     """Submit a new VC request from patient intake.
-    
+
     Required fields: first_name, last_name, email, phone, concern, consent_acknowledged
     Optional: date_of_birth, city, state, photos
     """
     # Honeypot: bots fill the hidden 'website' field — silently accept without storing.
     if (req.website or "").strip():
         return {"id": 0, "status": "received"}
+    # Bot verification — active only when TURNSTILE_SECRET is configured.
+    _ts_secret = os.environ.get("TURNSTILE_SECRET", "")
+    if _ts_secret and not _verify_turnstile((req.turnstile_token or "").strip(), _ts_secret):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Bot verification failed — please retry.")
     if not req.consent_acknowledged:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Consent acknowledgement is required")
     data = req.model_dump()
     data.pop("website", None)
+    data.pop("turnstile_token", None)
     result = create_vc_request(data)
+    # Best-effort confirmation email to the patient (no-op until email is configured).
+    try:
+        to = (data.get("email") or "").strip()
+        if to:
+            practice = os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry")
+            first = (data.get("first_name") or "there").strip() or "there"
+            _send_review_email(
+                to,
+                "We received your virtual consultation request",
+                "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222'>"
+                f"<p>Hi {first},</p><p>Thank you for your virtual consultation request with {practice}. "
+                "Dr. Broome will personally review your photos and send a personalized video reply, typically "
+                "within 24 hours — watch for an email with your private link.</p>"
+                "<p style='color:#999;font-size:12px'>If you didn't submit this, you can safely ignore this email.</p></div>",
+            )
+    except Exception:
+        pass
     return result
 
 

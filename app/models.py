@@ -60,6 +60,7 @@ class VCRequestCreate(BaseModel):
     referral_source: Optional[str] = Field(None, max_length=200, description="How the patient heard about us")
     source_url: Optional[str] = Field(None, max_length=500, description="Referrer / landing URL for attribution")
     website: Optional[str] = Field("", description="Honeypot — must stay empty; bots fill it")
+    turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token (verified when TURNSTILE_SECRET is set)")
 
 
 class VCRequestUpdate(BaseModel):
