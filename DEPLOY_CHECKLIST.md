@@ -27,7 +27,8 @@ job** (env‑gated, `/vc/maintenance/cleanup`).
 | `PRACTICE_NAME` | Fly secret | name in emails | "Charlotte Center for Cosmetic Dentistry" |
 | `TURNSTILE_SECRET` | Fly secret | backend bot verify | unset = challenge off |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Vercel env | renders the bot challenge | unset = challenge off |
-| `VIDEO_RETENTION_DAYS` | Fly secret | auto-delete consult videos older than N days | `0` = keep forever |
+| `VIDEO_RETENTION_DAYS` | Fly secret | auto-delete consult videos older than N days (runs via the daily GitHub Action) | `0` = keep forever |
+| `CRON_SECRET` | Fly secret **+** GitHub repo secret (same value) | authenticates the daily retention job to `/vc/maintenance/cleanup` | Fly: **set ✓** — add the matching GitHub repo secret to activate |
 | `CORS_ALLOWED_ORIGINS` | Fly secret | lock API to the frontend origin(s) | current Vercel URL |
 
 ## 🔧 Go‑live steps (each is a flip; I run the commands)
@@ -40,8 +41,16 @@ Pick one and give me the credentials; I set the Fly secrets:
 
 ### 2. Storage — pick at go‑live (suggestions)
 At ~20/day you'll write ~20 GB/mo (photos + video). Options:
-- **Extend Fly volume + 90‑day video retention (simplest, covered by Fly BAA):** `fly volumes extend <id> -s 100 -a cccd-vc-backend`; I enable `VIDEO_RETENTION_DAYS=90`.
+- **Extend Fly volume + 90‑day video retention (simplest, covered by Fly BAA):** `fly volumes extend <id> -s 100 -a cccd-vc-backend`; then set `VIDEO_RETENTION_DAYS=90`.
 - **AWS S3 + BAA (scales forever):** I build the S3 upload/serve adapter; you sign the AWS BAA.
+
+**Retention now runs on a schedule** (no longer a manual no‑op). A daily GitHub Action
+(PR [sutton-api#21](https://github.com/pjbroome/sutton-api/pull/21)) POSTs to `/vc/maintenance/cleanup`
+with an `X-Cron-Secret` header — verified working. To activate at go‑live: **(a)** merge PR #21,
+**(b)** add the **`CRON_SECRET`** GitHub repo secret (same value as the Fly secret — already set),
+**(c)** set **`VIDEO_RETENTION_DAYS=90`** on Fly. Dormant/no‑op until all three. *(Fly‑native
+alternative if you prefer no GitHub: `fly machine run curlimages/curl --schedule daily -a cccd-vc-backend
+-e CS=<secret> --command "curl -X POST -H \"X-Cron-Secret: $CS\" https://cccd-vc-backend.fly.dev/vc/maintenance/cleanup"`.)*
 
 ### 3. Fly machine — reliability for video uploads
 `fly scale memory 1024 -a cccd-vc-backend` (512→1024 MB). Optional always‑on (no cold start): set `min_machines_running = 1` in `fly.vc.toml`.
