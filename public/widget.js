@@ -58,7 +58,8 @@
   btn.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M12 5.5c-2-1.6-5.5-1.8-5.5 1.7 0 2.2 1.2 4 2.2 6.4.6 1.4.8 3.4 2 3.4s1.4-1.3 1.3-2.6c0-.7.5-.7.5 0 0 1.3.1 2.6 1.3 2.6s1.4-2 2-3.4c1-2.4 2.2-4.2 2.2-6.4 0-3.5-3.5-3.3-5.5-1.7Z"/>' +
-    "</svg><span>" + LABEL + "</span>";
+    "</svg><span></span>";
+  btn.querySelector("span").textContent = LABEL; // avoid HTML injection via data-label
 
   // --- overlay + modal (iframe lazy-loaded on first open) ------------------
   var ov = document.createElement("div");

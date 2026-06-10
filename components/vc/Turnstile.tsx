@@ -37,6 +37,7 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
       })
     }
 
+    const onLoad = () => render()
     if (window.turnstile) {
       render()
     } else {
@@ -49,11 +50,17 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
         s.defer = true
         document.head.appendChild(s)
       }
-      s.addEventListener("load", render)
+      s.addEventListener("load", onLoad)
     }
 
     return () => {
       cancelled = true
+      const s = document.getElementById("cf-turnstile-script")
+      if (s) s.removeEventListener("load", onLoad)
+      if (widgetId.current && window.turnstile) {
+        try { window.turnstile.remove(widgetId.current) } catch { /* ignore */ }
+        widgetId.current = null
+      }
     }
   }, [onToken])
 
