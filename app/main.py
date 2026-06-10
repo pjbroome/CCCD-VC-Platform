@@ -157,6 +157,9 @@ def _is_public_path(path: str, method: str) -> bool:
     # Non-PHI case library used to assemble decks
     if path.startswith("/vc/slides/") or path == "/vc/presentation":
         return True
+    # Maintenance cleanup self-authorizes (X-Cron-Secret or admin) inside the endpoint.
+    if method == "POST" and path == "/vc/maintenance/cleanup":
+        return True
     return False
 
 
@@ -3228,8 +3231,9 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
         raise HTTPException(status_code=400, detail="Consultation has no share token")
     base = os.environ.get("PUBLIC_BASE_URL", "https://v0-kleon-samples.vercel.app").rstrip("/")
     link = f"{base}/consultation/{token}"
-    first = (c.get("patient_name") or "there").split(" ")[0]
-    practice = os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry")
+    import html as _html
+    first = _html.escape((c.get("patient_name") or "there").split(" ")[0])
+    practice = _html.escape(os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry"))
     html = (
         "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222'>"
         f"<p>Hi {first},</p>"
@@ -3258,7 +3262,9 @@ def _cleanup_old_media(days: int) -> dict:
         return out
     cutoff = _t.time() - days * 86400
     try:
-        for f in _VIDEOS_DIR.glob("*"):
+        from app.slide_sorter import _VC_DIR as _vc
+        videos_dir = _vc / "consult_videos"
+        for f in videos_dir.glob("*"):
             if not f.is_file():
                 continue
             out["scanned"] += 1
@@ -3276,11 +3282,28 @@ def _cleanup_old_media(days: int) -> dict:
 
 
 @app.post("/vc/maintenance/cleanup")
-async def maintenance_cleanup(session: dict = Depends(require_admin)):
-    """Run media retention now (delete consult videos older than VIDEO_RETENTION_DAYS).
-    Off unless VIDEO_RETENTION_DAYS is set. Safe to call from a scheduled job."""
+async def maintenance_cleanup(request: Request):
+    """Run media retention (delete consult videos older than VIDEO_RETENTION_DAYS).
+
+    Auth: an `X-Cron-Secret` header matching CRON_SECRET (for the scheduled M2M caller —
+    the daily GitHub Action) OR a valid admin session. No-op (days=0) until
+    VIDEO_RETENTION_DAYS is set; the cron path is disabled until CRON_SECRET is set."""
+    import hmac as _hmac
+    from fastapi import HTTPException
+    from app.auth import validate_token as _validate, VC_ADMIN_PASSWORD as _pw
+    cron_secret = os.environ.get("CRON_SECRET", "")
+    provided = request.headers.get("x-cron-secret", "")
+    authed = bool(cron_secret) and bool(provided) and _hmac.compare_digest(provided, cron_secret)
+    if not authed:
+        auth = request.headers.get("authorization", "")
+        tok = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+        authed = (not _pw) or (bool(tok) and bool(_validate(tok)))
+    if not authed:
+        raise HTTPException(status_code=401, detail="unauthorized")
     days = int(os.environ.get("VIDEO_RETENTION_DAYS", "0") or "0")
-    return _cleanup_old_media(days)
+    result = _cleanup_old_media(days)
+    _audit_log("cleanup_run", request, extra=f"days={days} deleted={result.get('deleted')}")
+    return result
 
 
 @app.post("/vc/consultations/{consultation_id}/play")
@@ -3495,8 +3518,9 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
     try:
         to = (data.get("email") or "").strip()
         if to:
-            practice = os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry")
-            first = (data.get("first_name") or "there").strip() or "there"
+            import html as _html
+            practice = _html.escape(os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry"))
+            first = _html.escape((data.get("first_name") or "there").strip() or "there")
             _send_review_email(
                 to,
                 "We received your virtual consultation request",
@@ -3703,7 +3727,24 @@ async def get_consultation_by_token_endpoint(token: str):
                 return JSONResponse({"error": "expired"}, status_code=410)
         except Exception:
             pass
-    return c
+    # Data minimization: return only patient-safe fields (no staff notes/script,
+    # no email/phone/request_id/internal IDs) on this public token endpoint.
+    return {
+        "id": c.get("id"),
+        "patient_name": c.get("patient_name"),
+        "video_url": c.get("video_url"),
+        "video_source": c.get("video_source"),
+        "status": c.get("status"),
+        "summary_slide_data": c.get("summary_slide_data"),
+        "sent_at": c.get("sent_at"),
+        "watch_count": c.get("watch_count"),
+        "last_watched_at": c.get("last_watched_at"),
+        "play_count": c.get("play_count"),
+        "last_played_at": c.get("last_played_at"),
+        "token": c.get("token"),
+        "token_expires_at": c.get("token_expires_at"),
+        "created_at": c.get("created_at"),
+    }
 
 
 @app.post("/vc/consultations/by-token/{token}/watch")

@@ -491,9 +491,17 @@ def _load_decks():
         _decks = []
 
 
+def _atomic_write_json(path, data):
+    """Write JSON atomically (temp + os.replace) so a crash mid-write can't corrupt PHI."""
+    import os as _os
+    tmp = f"{path}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+    _os.replace(tmp, path)
+
+
 def _save_decks():
-    with open(_DECKS_PATH, "w") as f:
-        json.dump(_decks, f, indent=2)
+    _atomic_write_json(_DECKS_PATH, _decks)
 
 
 def save_recording_deck(name: str, slide_numbers: list[int]) -> dict:
@@ -543,8 +551,7 @@ def _load_requests():
 
 
 def _save_requests():
-    with open(_REQUESTS_PATH, "w") as f:
-        json.dump(_requests, f, indent=2)
+    _atomic_write_json(_REQUESTS_PATH, _requests)
 
 
 def create_vc_request(data: dict) -> dict:
@@ -651,8 +658,7 @@ def _load_consultations():
 
 
 def _save_consultations():
-    with open(_CONSULTATIONS_PATH, "w") as f:
-        json.dump(_consultations, f, indent=2)
+    _atomic_write_json(_CONSULTATIONS_PATH, _consultations)
 
 
 def create_consultation(data: dict) -> dict:
