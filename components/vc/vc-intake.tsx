@@ -263,6 +263,12 @@ export function VCIntake() {
           >
             Submit another consultation
           </button>
+          <a
+            href="/feedback"
+            className="mt-3 block text-xs font-medium text-zinc-400 underline underline-offset-4 transition-colors hover:text-[#c4a052]"
+          >
+            Testing for us? Take the 60‑second feedback survey →
+          </a>
         </motion.div>
         <p className="mt-8 text-center text-[10px] text-zinc-300">
           {"Charlotte Center for Cosmetic Dentistry \u00b7 Dr.\u00a0Patrick Broome \u00b7 Charlotte,\u00a0NC"}

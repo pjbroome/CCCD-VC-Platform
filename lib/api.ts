@@ -543,3 +543,42 @@ export async function emailConsultationReview(consultationId: number): Promise<{
   }
   return res.json();
 }
+
+// --- Tester feedback survey (real-world UX testing) ---
+export interface FeedbackPayload {
+  role?: string;
+  device?: string;
+  ease?: number;
+  photo_ease?: number;
+  clarity?: number;
+  trust?: number;
+  nps?: number;
+  comfortable?: string;
+  liked?: string;
+  confusing?: string;
+  suggestions?: string;
+  name?: string;
+  email?: string;
+  website?: string; // honeypot
+}
+
+export async function submitFeedback(payload: FeedbackPayload): Promise<{ ok: boolean; id?: number }> {
+  const res = await fetch(`${API_BASE}/vc/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Feedback submission failed (${res.status})`);
+  return res.json();
+}
+
+export interface FeedbackItem extends FeedbackPayload {
+  id: number;
+  created_at: string;
+}
+
+export async function listFeedback(): Promise<{ total: number; feedback: FeedbackItem[] }> {
+  const res = await fetch(`${API_BASE}/vc/feedback`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Failed to load feedback (${res.status})`);
+  return res.json();
+}
