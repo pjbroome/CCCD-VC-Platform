@@ -63,6 +63,24 @@ class VCRequestCreate(BaseModel):
     turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token (verified when TURNSTILE_SECRET is set)")
 
 
+class VCFeedbackCreate(BaseModel):
+    """Tester feedback survey submission (real-world UX testing). All optional."""
+    role: Optional[str] = Field(None, description="staff | friend | patient | other")
+    device: Optional[str] = Field(None, description="mobile | desktop | tablet")
+    ease: Optional[int] = Field(None, ge=1, le=5, description="overall ease of use")
+    photo_ease: Optional[int] = Field(None, ge=1, le=5, description="ease of uploading photos")
+    clarity: Optional[int] = Field(None, ge=1, le=5, description="clarity of instructions")
+    trust: Optional[int] = Field(None, ge=1, le=5, description="looked trustworthy/professional")
+    nps: Optional[int] = Field(None, ge=0, le=10, description="likelihood to recommend (0-10)")
+    comfortable: Optional[str] = Field(None, description="comfortable using for a real consult: yes|maybe|no")
+    liked: Optional[str] = Field(None, max_length=4000)
+    confusing: Optional[str] = Field(None, max_length=4000)
+    suggestions: Optional[str] = Field(None, max_length=4000)
+    name: Optional[str] = Field(None, max_length=120)
+    email: Optional[str] = Field(None, max_length=200)
+    website: Optional[str] = Field("", description="Honeypot — must stay empty")
+
+
 class VCRequestUpdate(BaseModel):
     """Schema for updating a VC request (staff actions)."""
     status: Optional[RequestStatus] = Field(None, description="New workflow status")

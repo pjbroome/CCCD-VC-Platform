@@ -43,10 +43,13 @@ from app.slide_sorter import (
     get_consultation,
     update_consultation,
     record_watch,
+    save_feedback,
+    get_feedback,
 )
 from app.models import (
     RequestStatus,
     VCRequestCreate,
+    VCFeedbackCreate,
     VCRequestUpdate,
     VCRequestRecord,
     ConsultationCreate,
@@ -93,6 +96,7 @@ _RATE_LIMITS = {              # exact path -> (window seconds, max hits per IP)
     "/vc/requests": (60, 12),        # patient intake submissions
     "/vc/photos/upload": (60, 30),   # intake photo uploads
     "/admin/login": (60, 8),         # staff login brute-force
+    "/vc/feedback": (60, 10),        # tester feedback survey
 }
 
 
@@ -149,7 +153,7 @@ def _is_public_path(path: str, method: str) -> bool:
     ):
         return True
     # Public patient intake (write-only front door)
-    if method == "POST" and path in ("/vc/requests", "/vc/photos/upload"):
+    if method == "POST" and path in ("/vc/requests", "/vc/photos/upload", "/vc/feedback"):
         return True
     # Patient consult page via unguessable token
     if path.startswith("/vc/consultations/by-token/"):
@@ -3533,6 +3537,24 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
     except Exception:
         pass
     return result
+
+
+@app.post("/vc/feedback")
+async def submit_feedback(fb: VCFeedbackCreate):
+    """Public tester-feedback survey submission (rate-limited + honeypot)."""
+    if (fb.website or "").strip():
+        return {"ok": True}  # honeypot — silently drop
+    data = fb.model_dump()
+    data.pop("website", None)
+    entry = save_feedback(data)
+    return {"ok": True, "id": entry["id"]}
+
+
+@app.get("/vc/feedback")
+async def list_feedback(session: dict = Depends(require_admin)):
+    """Staff view of all tester feedback (admin-only)."""
+    rows = get_feedback()
+    return {"total": len(rows), "feedback": rows}
 
 
 @app.get("/vc/requests")

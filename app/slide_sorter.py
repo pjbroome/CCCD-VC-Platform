@@ -554,6 +554,38 @@ def _save_requests():
     _atomic_write_json(_REQUESTS_PATH, _requests)
 
 
+# --- Tester feedback (real-world UX testing survey) ---
+_FEEDBACK_PATH = _resolve_path("vc_feedback.json")
+_FEEDBACK_FIELDS = (
+    "role", "device", "ease", "photo_ease", "clarity", "trust", "nps",
+    "comfortable", "liked", "confusing", "suggestions", "name", "email",
+)
+
+
+def save_feedback(data: dict) -> dict:
+    import datetime
+    rows = get_feedback()
+    entry = {
+        "id": max((r.get("id", 0) for r in rows), default=0) + 1,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    for k in _FEEDBACK_FIELDS:
+        entry[k] = data.get(k)
+    rows.append(entry)
+    _atomic_write_json(_FEEDBACK_PATH, rows)
+    return entry
+
+
+def get_feedback() -> list[dict]:
+    if _FEEDBACK_PATH.exists():
+        try:
+            with open(_FEEDBACK_PATH) as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+
 def create_vc_request(data: dict) -> dict:
     """Create a new VC request from patient intake.
     
