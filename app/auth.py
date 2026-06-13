@@ -10,6 +10,7 @@ Storage decisions:
 """
 import os
 import uuid
+import secrets
 import hashlib
 import hmac
 from datetime import datetime, timezone, timedelta
@@ -19,6 +20,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # --- Configuration ---
 VC_ADMIN_PASSWORD = os.environ.get("VC_ADMIN_PASSWORD", "")
+# When VC_ENV=production, auth fails CLOSED if no password is configured — a missing
+# secret must never silently expose PHI. Outside production, an unset password = dev mode.
+VC_ENV = os.environ.get("VC_ENV", "").strip().lower()
+IS_PRODUCTION = VC_ENV in ("production", "prod")
 TOKEN_EXPIRY_HOURS = 24
 
 # --- Session store (persisted to the volume so logins survive restarts) ---
@@ -65,8 +70,9 @@ def _hash_password(password: str) -> str:
 def verify_admin_password(password: str) -> bool:
     """Verify the admin password against the stored hash."""
     if not VC_ADMIN_PASSWORD:
-        # If no password is set, allow access (dev mode)
-        return True
+        # No password configured: allow only outside production (dev mode).
+        # In production this returns False — never authenticate without a real secret.
+        return not IS_PRODUCTION
     return hmac.compare_digest(
         _hash_password(password),
         _hash_password(VC_ADMIN_PASSWORD),
@@ -75,7 +81,7 @@ def verify_admin_password(password: str) -> bool:
 
 def create_session() -> dict:
     """Create a new admin session and return the token + expiry."""
-    token = str(uuid.uuid4())
+    token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=TOKEN_EXPIRY_HOURS)
 
@@ -129,8 +135,14 @@ async def require_admin(
     
     If VC_ADMIN_PASSWORD is not set, all requests are allowed (dev mode).
     """
-    # Dev mode: no password configured, allow all
+    # No password configured. Outside production this is dev-mode (allow all);
+    # in production, fail CLOSED so a missing secret can never expose PHI.
     if not VC_ADMIN_PASSWORD:
+        if IS_PRODUCTION:
+            raise HTTPException(
+                status_code=503,
+                detail="Server authentication is not configured.",
+            )
         return {"token": "dev-mode", "is_valid": True, "dev_mode": True}
 
     if not credentials:

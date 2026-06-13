@@ -223,8 +223,14 @@ async def staff_auth_gate(request, call_next):
     # Audit patient-side PHI access (by-token consult + media) in any mode.
     if _is_phi_public(request.url.path, request.method):
         _audit_log("patient_access", request)
-    from app.auth import VC_ADMIN_PASSWORD as _pw, validate_token as _validate
+    from app.auth import VC_ADMIN_PASSWORD as _pw, validate_token as _validate, IS_PRODUCTION as _prod
     if not _pw:
+        # No staff password configured. In production, fail CLOSED for non-public
+        # (PHI/staff) routes so a missing/empty secret can never silently expose
+        # patient data; outside production this stays a dev-mode pass-through.
+        if _prod and not _is_public_path(request.url.path, request.method):
+            _audit_log("denied_no_auth_config", request, outcome="503")
+            return JSONResponse({"error": "authentication not configured"}, status_code=503)
         return await call_next(request)
     if _is_public_path(request.url.path, request.method):
         return await call_next(request)
@@ -239,6 +245,22 @@ async def staff_auth_gate(request, call_next):
     if origin:  # keep the 401 readable cross-origin for the SPA
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    """Baseline security headers on every response (force_https is set in fly.toml).
+    The backend is never framed (the embeddable widget lives on the Vercel frontend),
+    so frame-ancestors 'none' is safe and blocks clickjacking of API/media responses.
+    PHI media + consultation JSON are marked private/no-store so proxies don't cache them."""
+    resp = await call_next(request)
+    resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
+    if request.url.path.startswith(("/vc/photos/", "/vc/videos/", "/vc/consultations/")):
+        resp.headers.setdefault("Cache-Control", "private, no-store")
     return resp
 
 
@@ -3207,9 +3229,11 @@ async def email_consultation_review(consultation_id: int, session: dict = Depend
     token = c.get("token") or ""
     path = f"/consultation/{token}" if token else f"/consultation/{consultation_id}"
     link = f"{base}{path}" if base else path
+    import html as _html
     name = c.get("patient_name", "patient")
+    safe_name = _html.escape(name)
     html = (
-        f"<p>A virtual consultation video is ready to review for <b>{name}</b>.</p>"
+        f"<p>A virtual consultation video is ready to review for <b>{safe_name}</b>.</p>"
         f"<p><a href=\"{link}\">Open the consultation</a> to watch what the patient will see.</p>"
     )
     sent = _send_review_email(review_email, f"VC review — {name} (#{consultation_id})", html)
@@ -3311,8 +3335,8 @@ async def maintenance_cleanup(request: Request):
 
 
 @app.post("/vc/consultations/{consultation_id}/play")
-async def play_consultation(consultation_id: int):
-    """Record that the patient pressed play (distinct from opening the page)."""
+async def play_consultation(consultation_id: int, session: dict = Depends(require_admin)):
+    """Staff-only integer-id play recorder (patients use the by-token route)."""
     from app.slide_sorter import record_play
     c = record_play(consultation_id)
     if not c:
@@ -3776,7 +3800,14 @@ async def record_watch_by_token_endpoint(token: str):
     result = record_watch_by_token(token)
     if not result:
         return JSONResponse({"error": "not_found"}, status_code=404)
-    return result
+    # Data-minimized: this is a PUBLIC token-only route — never echo PHI
+    # (email/phone/script/notes). Mirror the /play tracking response shape.
+    return {
+        "watch_count": result.get("watch_count", 0),
+        "last_watched_at": result.get("last_watched_at"),
+        "play_count": result.get("play_count", 0),
+        "last_played_at": result.get("last_played_at"),
+    }
 
 
 @app.post("/vc/consultations/by-token/{token}/play")
@@ -3809,8 +3840,8 @@ async def update_consultation_endpoint(consultation_id: int, req: ConsultationUp
 
 
 @app.post("/vc/consultations/{consultation_id}/watch")
-async def record_watch_endpoint(consultation_id: int):
-    """Record that a patient watched their consultation video."""
+async def record_watch_endpoint(consultation_id: int, session: dict = Depends(require_admin)):
+    """Staff-only integer-id watch recorder (patients use the by-token route)."""
     result = record_watch(consultation_id)
     if not result:
         return {"error": f"Consultation {consultation_id} not found"}
@@ -3818,7 +3849,7 @@ async def record_watch_endpoint(consultation_id: int):
 
 
 @app.post("/vc/consultations/{consultation_id}/resend")
-async def resend_consultation(consultation_id: int):
+async def resend_consultation(consultation_id: int, session: dict = Depends(require_admin)):
     """Mark a consultation as resent and update follow-up dates."""
     import datetime
     consult = get_consultation(consultation_id)
@@ -3843,7 +3874,7 @@ class ScriptGenerateRequest(BaseModel):
 
 
 @app.post("/vc/consultations/{consultation_id}/generate-script")
-async def generate_script(consultation_id: int, req: ScriptGenerateRequest):
+async def generate_script(consultation_id: int, req: ScriptGenerateRequest, session: dict = Depends(require_admin)):
     """AI Clone agent hook: generate a video script from patient data + slides.
     
     The AI Clone agent will call this endpoint to produce a draft script.
@@ -3871,7 +3902,7 @@ async def generate_script(consultation_id: int, req: ScriptGenerateRequest):
 
 
 @app.post("/vc/consultations/{consultation_id}/approve-script")
-async def approve_script(consultation_id: int):
+async def approve_script(consultation_id: int, session: dict = Depends(require_admin)):
     """HITL step: Dr. Broome approves the AI-generated script."""
     consult = get_consultation(consultation_id)
     if not consult:
@@ -3883,7 +3914,7 @@ async def approve_script(consultation_id: int):
 
 
 @app.post("/vc/consultations/{consultation_id}/reject-script")
-async def reject_script(consultation_id: int):
+async def reject_script(consultation_id: int, session: dict = Depends(require_admin)):
     """HITL step: Dr. Broome rejects the AI-generated script for revision."""
     consult = get_consultation(consultation_id)
     if not consult:
@@ -3896,7 +3927,7 @@ async def reject_script(consultation_id: int):
 
 
 @app.post("/vc/consultations/{consultation_id}/clone-video")
-async def generate_clone_video(consultation_id: int):
+async def generate_clone_video(consultation_id: int, session: dict = Depends(require_admin)):
     """AI Clone agent hook: generate video from approved script + slides.
     
     The AI Clone agent will call this endpoint to produce the clone video.
