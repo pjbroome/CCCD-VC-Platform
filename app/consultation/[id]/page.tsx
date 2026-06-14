@@ -94,16 +94,21 @@ export default function ConsultationReceiptPage() {
   }
 
   if (error || !consultation) {
+    const expired = (error || "").toLowerCase().includes("expired")
+    const heading = expired ? "This link has expired" : "Consultation unavailable"
+    const detail = expired
+      ? "For your privacy, consultation links expire after a period of time. Please contact our office and we’ll be glad to send you a fresh link."
+      : "We could not find that consultation video. Please check the link in your email, or contact our office for help."
     return (
       <div className="flex min-h-dvh items-center justify-center bg-[#f7f6f3] px-4">
-        <div className="max-w-lg rounded-3xl border border-red-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+        <div className="max-w-lg rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#c4a052]/10 text-[#c4a052]">
             <svg className="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 16.5h.008v.008H12V16.5Z" />
             </svg>
           </div>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900">Consultation unavailable</h1>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-500">{error || "We could not find that consultation video."}</p>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900">{heading}</h1>
+          <p className="mt-3 text-sm leading-relaxed text-zinc-500">{detail}</p>
           <Link href="/" className="mt-6 inline-flex rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700">
             Return to Virtual Consultation
           </Link>
@@ -203,11 +208,18 @@ export default function ConsultationReceiptPage() {
               <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">Need help scheduling?</h2>
                 <p className="mt-3 text-sm leading-relaxed text-zinc-500">
-                  If you are ready to move forward, reply to the email that delivered this video or contact the Destination Smile team so they can help you plan the right next appointment.
+                  If you are ready to move forward, simply reply to the email that delivered this video, or reach our team and we’ll help you plan the right next appointment.
                 </p>
-                <div className="mt-4 space-y-2 text-sm text-zinc-600">
-                  {consultation.email && <p><span className="font-medium text-zinc-900">Email:</span> {consultation.email}</p>}
-                  {consultation.phone && <p><span className="font-medium text-zinc-900">Phone:</span> {consultation.phone}</p>}
+                <div className="mt-4 text-sm text-zinc-600">
+                  <p>
+                    <span className="font-medium text-zinc-900">Email:</span>{" "}
+                    <a href="mailto:info@destinationsmile.com" className="text-[#c4a052] underline-offset-2 hover:underline">info@destinationsmile.com</a>
+                  </p>
+                </div>
+                <div className="mt-5 border-t border-zinc-100 pt-4">
+                  <Link href="/feedback" className="text-xs font-medium text-zinc-400 underline-offset-2 transition hover:text-[#c4a052] hover:underline">
+                    Tell us what you thought of your consultation →
+                  </Link>
                 </div>
               </div>
             </aside>

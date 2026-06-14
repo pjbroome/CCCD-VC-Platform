@@ -389,7 +389,7 @@ export function VCIntake() {
                 <UploadCard
                   label="Full Face Selfie"
                   file={fullFace}
-                  onFile={(f) => { setFullFace(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
+                  onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setFullFace(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
                   icon={
                     <path
                       strokeLinecap="round"
@@ -408,7 +408,7 @@ export function VCIntake() {
                 <UploadCard
                   label="Close-up Smile"
                   file={closeUp}
-                  onFile={(f) => { setCloseUp(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
+                  onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setCloseUp(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
                   icon={
                     <path
                       strokeLinecap="round"
@@ -432,8 +432,10 @@ export function VCIntake() {
                     <label className="flex size-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 text-zinc-400 transition hover:border-[#c4a052]/50 hover:text-[#c4a052]">
                       <span className="text-xl leading-none">+</span>
                       <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                        const files = Array.from(e.target.files || [])
-                        setExtras((p) => [...p, ...files].slice(0, 4))
+                        const all = Array.from(e.target.files || [])
+                        const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
+                        if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
+                        setExtras((p) => [...p, ...ok].slice(0, 4))
                         e.currentTarget.value = ""
                       }} />
                     </label>
