@@ -31,6 +31,10 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
       if (cancelled || !ref.current || !window.turnstile || widgetId.current) return
       widgetId.current = window.turnstile.render(ref.current, {
         sitekey: SITE_KEY,
+        // interaction-only: stay invisible for visitors who auto-pass (luxury look),
+        // and only surface a challenge when Cloudflare needs one — so a flagged real
+        // patient gets a quick 1-click check instead of being silently blocked.
+        appearance: "interaction-only",
         callback: (t: string) => onToken(t),
         "expired-callback": () => onToken(""),
         "error-callback": () => onToken(""),
