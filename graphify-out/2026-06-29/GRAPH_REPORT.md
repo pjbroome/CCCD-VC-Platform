@@ -1,13 +1,18 @@
-# Graph Report - sutton-api  (2026-06-21)
+# Graph Report - sutton-api  (2026-06-29)
 
 ## Corpus Check
-- 16 files · ~801,521 words
+- 16 files · ~801,755 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 688 nodes · 1269 edges · 76 communities (74 shown, 2 thin omitted)
+- 689 nodes · 1270 edges · 68 communities (66 shown, 2 thin omitted)
 - Extraction: 79% EXTRACTED · 21% INFERRED · 0% AMBIGUOUS · INFERRED: 263 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `59843817`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_VC Request Management|VC Request Management]]
@@ -49,24 +54,18 @@
 - [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 42|Community 42]]
-- [[_COMMUNITY_Community 43|Community 43]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
-- [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
 - [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
-- [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
-- [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
 - [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
-- [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
 - [[_COMMUNITY_Community 63|Community 63]]
@@ -76,12 +75,10 @@
 - [[_COMMUNITY_Community 67|Community 67]]
 - [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 76|Community 76]]
-- [[_COMMUNITY_Community 80|Community 80]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `RequestStatus` - 30 edges
@@ -110,27 +107,27 @@
 ## Import Cycles
 - None detected.
 
-## Communities (76 total, 2 thin omitted)
+## Communities (68 total, 2 thin omitted)
 
 ### Community 0 - "VC Request Management"
-Cohesion: 0.22
-Nodes (9): email_consultation_review(), notify_patient(), Send a review email via Resend (RESEND_API_KEY) or SMTP (SMTP_HOST...).     Retu, Send a review email via Resend (RESEND_API_KEY) or SMTP (SMTP_HOST...).     Retu, Email the consultation review link to the doctor's review address (default pjbro, Email the PATIENT their personalized consultation video link, and mark sent., Email the consultation review link to the doctor's review address (default pjbro, Email the PATIENT their personalized consultation video link, and mark sent. (+1 more)
+Cohesion: 0.05
+Nodes (49): approve_script(), email_consultation_review(), generate_clone_video(), generate_script(), get_consultation_endpoint(), list_consultations(), notify_patient(), Submit Dr. Broome's feedback — generates learning rules for BOTH Sutton and her (+41 more)
 
 ### Community 1 - "API Data Models"
-Cohesion: 0.12
-Nodes (74): AdminLoginRequest, chat(), ChatRequest, ChatResponse, FeedbackRequest, HealthResponse, Path, Send a message to Sutton with Watchdog protection.     Watchdog provides: timeou (+66 more)
+Cohesion: 0.13
+Nodes (71): AdminLoginRequest, ChatRequest, ChatResponse, FeedbackRequest, HealthResponse, Path, Upload a consultation video. Returns the file path for linking to a consultation, Request body for AI Clone script generation. (+63 more)
 
 ### Community 2 - "Slide Library Management"
-Cohesion: 0.33
-Nodes (6): Build a curated VC presentation deck for a specific guest., Build a curated VC presentation deck for a specific guest., vc_build_presentation(), get_slides_for_vc_presentation(), Build a curated slide deck for a VC presentation.      Returns intro slides, rel, Build a curated slide deck for a VC presentation.      Returns intro slides, rel
+Cohesion: 0.18
+Nodes (11): Search slides by treatment type, concern, complexity, cost, etc., Build a curated VC presentation deck for a specific guest., Build a curated VC presentation deck for a specific guest., vc_build_presentation(), vc_slide_search(), get_slides_for_vc_presentation(), Search slides by treatment type, concern, complexity, cost, etc.      Args:, Search slides by treatment type, concern, complexity, cost, etc.      Args: (+3 more)
 
 ### Community 3 - "RAG Search Engine"
 Cohesion: 0.08
 Nodes (34): _build_inverted_index(), _build_inverted_index_from_chunks(), _chunk_text(), _cosine_similarity_sparse(), _get_chunk_text(), _get_chunk_texts(), get_context_for_query(), _get_embedding() (+26 more)
 
 ### Community 4 - "Admin API Endpoints"
-Cohesion: 0.22
-Nodes (9): generate_clone_video(), generate_script(), get_consultation_endpoint(), Staff-only: full details of a consultation by internal ID (patients use the toke, Staff-only: full details of a consultation by internal ID (patients use the toke, AI Clone agent hook: generate a video script from patient data + slides., AI Clone agent hook: generate a video script from patient data + slides., AI Clone agent hook: generate video from approved script + slides.          The (+1 more)
+Cohesion: 0.33
+Nodes (6): add_slide(), Persist the catalog back to disk., Persist the catalog back to disk., Add a new slide to the library from uploaded image bytes., Add a new slide to the library from uploaded image bytes., _save_catalog()
 
 ### Community 5 - "Consultation Review Workflow"
 Cohesion: 0.67
@@ -141,8 +138,8 @@ Cohesion: 0.10
 Nodes (23): cleanup_expired_sessions(), create_session(), _hash_password(), invalidate_session(), VC Portal MVP — Admin authentication and route protection.  MVP approach: shared, Validate a bearer token and return the session if valid., Invalidate (logout) a session., FastAPI dependency that requires valid admin authentication.          Usage: (+15 more)
 
 ### Community 7 - "Training and Testing"
-Cohesion: 0.06
-Nodes (34): add_training_content(), _canary_scheduler(), _get_model_distribution(), _load_chat_history(), load_dr_broome_rules(), load_saved_patches(), load_training_content(), Load chat_history from Supabase on startup. (+26 more)
+Cohesion: 0.05
+Nodes (38): add_training_content(), _canary_scheduler(), _get_model_distribution(), _load_chat_history(), load_dr_broome_rules(), load_saved_patches(), load_training_content(), Load chat_history from Supabase on startup. (+30 more)
 
 ### Community 8 - "Frontend UI Components"
 Cohesion: 0.14
@@ -150,11 +147,11 @@ Nodes (13): App(), CAM_SIZES, Consultation, getFullSlideUrl(), RecordingDeck, Sa
 
 ### Community 9 - "Chat Security and Safety"
 Cohesion: 0.06
-Nodes (32): add_to_conversation(), _build_incident(), chat_stream(), _check_message_safety(), clear_conversation(), _get_client_ip(), _is_ip_banned(), _persist_chat_history() (+24 more)
+Nodes (35): add_to_conversation(), _build_incident(), chat(), chat_stream(), _check_message_safety(), clear_conversation(), _get_client_ip(), _is_ip_banned() (+27 more)
 
 ### Community 10 - "LLM Response Generation"
-Cohesion: 0.18
-Nodes (11): _ensure_tokens(), get_consultations(), _load_consultations(), Get all consultations, optionally filtered by status., Get all consultations, optionally filtered by status., Get all consultations, optionally filtered by status., Backfill an unguessable token for any legacy consultation missing one., Backfill an unguessable token for any legacy consultation missing one. (+3 more)
+Cohesion: 0.33
+Nodes (6): get_consultations(), _load_consultations(), Get all consultations, optionally filtered by status., Get all consultations, optionally filtered by status., Get all consultations, optionally filtered by status., Get all consultations, optionally filtered by status.
 
 ### Community 11 - "LLM Provider Integration"
 Cohesion: 0.33
@@ -165,8 +162,8 @@ Cohesion: 0.07
 Nodes (28): get_request_schema(), get_vc_request_endpoint(), list_vc_requests(), List all VC requests, optionally filtered by status. Admin-protected.      Each, List all VC requests, optionally filtered by status. Admin-protected.      Each, Return the VC request schema and valid workflow statuses., Get full details of a VC request. Admin-protected., Return the VC request schema and valid workflow statuses. (+20 more)
 
 ### Community 13 - "File Upload Service"
-Cohesion: 0.06
-Nodes (34): admin_logout(), create_vc_request_endpoint(), Reject uploads with the wrong content type, empty body, or over size limit., Reject uploads with the wrong content type, empty body, or over size limit., Add one or more new slides to the library from uploaded images., Add one or more new slides to the library from uploaded images., Invalidate the current admin session., Upload a patient photo. Returns the file path for linking to a request. (+26 more)
+Cohesion: 0.07
+Nodes (31): admin_logout(), create_vc_request_endpoint(), Reject uploads with the wrong content type, empty body, or over size limit., Reject uploads with the wrong content type, empty body, or over size limit., Add one or more new slides to the library from uploaded images., Add one or more new slides to the library from uploaded images., Invalidate the current admin session., Upload a patient photo. Returns the file path for linking to a request. (+23 more)
 
 ### Community 14 - "System Infrastructure"
 Cohesion: 0.40
@@ -190,7 +187,7 @@ Nodes (9): clear_incidents(), get_canary_results(), Clear the security incident 
 
 ### Community 19 - "Model Usage Metrics"
 Cohesion: 0.33
-Nodes (6): delete_slide(), Persist the catalog back to disk., Persist the catalog back to disk., Remove a slide from the catalog and best-effort delete its image files., Remove a slide from the catalog and best-effort delete its image files., _save_catalog()
+Nodes (6): delete_slide_endpoint(), Delete a slide from the library (removes catalog entry + image file)., Delete a slide from the library (removes catalog entry + image file)., delete_slide(), Remove a slide from the catalog and best-effort delete its image files., Remove a slide from the catalog and best-effort delete its image files.
 
 ### Community 20 - "Community 20"
 Cohesion: 0.33
@@ -201,8 +198,8 @@ Cohesion: 0.29
 Nodes (7): Path, Return (catalog_dir, images_dir), preferring a mounted /data volume., Return (catalog_dir, images_dir), preferring a mounted /data volume., Return path on persistent volume, seeding from app dir if needed., Return path on persistent volume, seeding from app dir if needed., _resolve_path(), _resolve_vc_dir()
 
 ### Community 23 - "Community 23"
-Cohesion: 0.21
-Nodes (14): _atomic_write_json(), create_vc_request(), delete_vc_request(), get_feedback(), _load_requests(), VC Slide Sorter — indexes Dr. Broome's case library for the VC agent.  The VC ag, Write JSON atomically (temp + os.replace) so a crash mid-write can't corrupt PHI, Create a new VC request from patient intake.          Required fields (Phase 2 s (+6 more)
+Cohesion: 0.13
+Nodes (17): delete_vc_request_endpoint(), Delete a VC request. Admin-protected., Delete a VC request. Admin-protected., create_vc_request(), delete_vc_request(), _load_requests(), Create a new VC request from patient intake.          Required fields (Phase 2 s, Create a new VC request from patient intake.          Required fields (Phase 2 s (+9 more)
 
 ### Community 24 - "Competency Test Results"
 Cohesion: 0.33
@@ -213,16 +210,16 @@ Cohesion: 0.22
 Nodes (9): create_consultation_endpoint(), Save a completed consultation to the archive., Save a completed consultation to the archive., create_consultation(), Save a completed consultation to the archive., Save a completed consultation to the archive., Save a completed consultation to the archive., Save a completed consultation to the archive. (+1 more)
 
 ### Community 26 - "Content Scanning Service"
-Cohesion: 0.25
-Nodes (5): _client_ip(), content_monitor_process(), _is_rate_limited(), Process registered content: analyze with Gemini and extract skills., Process registered content: analyze with Gemini and extract skills.
+Cohesion: 0.67
+Nodes (3): content_monitor_process(), Process registered content: analyze with Gemini and extract skills., Process registered content: analyze with Gemini and extract skills.
 
 ### Community 27 - "Community 27"
 Cohesion: 0.67
 Nodes (3): _load_catalog(), Load the indexed slide catalog from disk., Load the indexed slide catalog from disk.
 
 ### Community 28 - "Community 28"
-Cohesion: 0.25
-Nodes (8): record_play_by_token_endpoint(), Record that the patient pressed PLAY on their consultation video., Record that the patient pressed PLAY on their consultation video., Record that the patient pressed PLAY on their consultation video., Record that the patient pressed PLAY on their consultation video., Record that the patient pressed PLAY on their consultation video., record_play(), record_play_by_token()
+Cohesion: 0.17
+Nodes (12): play_consultation(), Staff-only integer-id play recorder (patients use the by-token route)., Delete a recording deck by ID., Staff-only integer-id play recorder (patients use the by-token route)., Delete a recording deck by ID., remove_recording_deck(), Record that the patient pressed PLAY on their consultation video., Record that the patient pressed PLAY on their consultation video. (+4 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.33
@@ -233,16 +230,16 @@ Cohesion: 0.67
 Nodes (3): deactivate_training_content(), Deactivate a training content update (soft delete)., Deactivate a training content update (soft delete).
 
 ### Community 31 - "Training Session Logging"
-Cohesion: 0.25
-Nodes (8): Staff-only integer-id watch recorder (patients use the by-token route)., Staff-only integer-id watch recorder (patients use the by-token route)., record_watch_endpoint(), Record that a patient OPENED their consultation page., Record that a patient OPENED their consultation page., Record that a patient OPENED their consultation page., Record that a patient OPENED their consultation page., record_watch()
+Cohesion: 0.15
+Nodes (14): Staff-only integer-id watch recorder (patients use the by-token route)., Staff-only integer-id watch recorder (patients use the by-token route)., record_watch_endpoint(), _ensure_tokens(), Backfill an unguessable token for any legacy consultation missing one., Backfill an unguessable token for any legacy consultation missing one., Backfill an unguessable token for any legacy consultation missing one., Backfill an unguessable token for any legacy consultation missing one. (+6 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.67
 Nodes (3): content_monitor_scan(), Scan Crown Council for new content (compares against known catalog)., Scan Crown Council for new content (compares against known catalog).
 
 ### Community 33 - "Community 33"
-Cohesion: 0.22
-Nodes (9): _is_phi_public(), _is_public_path(), Allowlist of routes reachable without a staff token. Everything else is     gate, Allowlist of routes reachable without a staff token. Everything else is     gate, Public routes that still expose PHI (a patient's own view) — audit these., When VC_ADMIN_PASSWORD is set, require a valid staff token for every     non-pub, Public routes that still expose PHI (a patient's own view) — audit these., When VC_ADMIN_PASSWORD is set, require a valid staff token for every     non-pub (+1 more)
+Cohesion: 0.15
+Nodes (14): _audit_log(), _client_ip(), _is_phi_public(), _is_public_path(), _is_rate_limited(), Allowlist of routes reachable without a staff token. Everything else is     gate, Allowlist of routes reachable without a staff token. Everything else is     gate, HIPAA access-audit line — metadata only, NO PHI (no names/photos/content).     W (+6 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.33
@@ -260,21 +257,13 @@ Nodes (3): Start a Dr. Broome training session timer., Start a Dr. Broome traini
 Cohesion: 0.67
 Nodes (3): rag_status(), Get RAG system status and stats., Get RAG system status and stats.
 
-### Community 43 - "Community 43"
-Cohesion: 0.22
-Nodes (9): Update a consultation., Update a consultation., update_consultation_endpoint(), Update a consultation (watch status, resend, etc.)., Update a consultation (watch status, resend, etc.)., Update a consultation (watch status, resend, etc.)., Update a consultation (watch status, resend, etc.)., Update a consultation (watch status, resend, etc.). (+1 more)
-
 ### Community 44 - "Community 44"
 Cohesion: 0.67
 Nodes (3): Get Dr. Broome's total training time and session history., Get Dr. Broome's total training time and session history., training_stats()
 
 ### Community 45 - "Community 45"
-Cohesion: 0.22
-Nodes (9): delete_slide_endpoint(), list_all_slides(), Get all slides with full metadata for the manager UI., Delete a slide from the library (removes catalog entry + image file)., Get all slides with full metadata for the manager UI., Delete a slide from the library (removes catalog entry + image file)., get_all_slides(), Return all slides with full metadata for the manager UI. (+1 more)
-
-### Community 46 - "Community 46"
-Cohesion: 0.29
-Nodes (7): approve_script(), Mark a consultation as resent and update follow-up dates., HITL step: Dr. Broome approves the AI-generated script., HITL step: Dr. Broome approves the AI-generated script., Watchdog operational status — last 100 response metrics, averages, health., Watchdog operational status — last 100 response metrics, averages, health., watchdog_status()
+Cohesion: 0.33
+Nodes (6): list_all_slides(), Get all slides with full metadata for the manager UI., Get all slides with full metadata for the manager UI., get_all_slides(), Return all slides with full metadata for the manager UI., Return all slides with full metadata for the manager UI.
 
 ### Community 47 - "Community 47"
 Cohesion: 0.67
@@ -284,25 +273,13 @@ Nodes (3): Remove an IP from the ban list. Admin use only., Remove an IP from th
 Cohesion: 0.29
 Nodes (7): create_recording_deck(), Save a named recording deck (ordered list of slide numbers)., Save a named recording deck (ordered list of slide numbers)., Save a named recording deck (ordered list of slide numbers)., Save a named recording deck (ordered list of slide numbers)., Save a named recording deck (ordered list of slide numbers)., save_recording_deck()
 
-### Community 49 - "Community 49"
-Cohesion: 0.29
-Nodes (7): Submit Dr. Broome's feedback — generates learning rules for BOTH Sutton and her, Submit Dr. Broome's feedback — generates learning rules for BOTH Sutton and her, Public tester-feedback survey submission (rate-limited + honeypot)., Public tester-feedback survey submission (rate-limited + honeypot)., Mark a consultation as resent and update follow-up dates., resend_consultation(), submit_feedback()
-
 ### Community 50 - "Community 50"
 Cohesion: 0.33
 Nodes (6): Search slides by treatment type, concern, complexity, cost, etc., Smart match -- describe guest concerns in natural language, get relevant slides., vc_slide_match(), match_guest_to_slides(), Smart matching — given a guest's description of their concerns,     find the mos, Smart matching — given a guest's description of their concerns,     find the mos
 
-### Community 51 - "Community 51"
-Cohesion: 0.33
-Nodes (6): Update a VC request (status, notes, etc.)., Update a VC request (status, notes, etc.)., Update a VC request (status, notes, etc.)., Update a VC request (status, notes, etc.)., Update a VC request (status, notes, etc.)., update_vc_request()
-
 ### Community 52 - "Community 52"
 Cohesion: 0.40
 Nodes (5): dashboard_stats(), dashboard_trends(), Returns live ToPS evaluation stats for the dashboard., Returns live ToPS evaluation stats for the dashboard., Returns daily average scores for trend charts.
-
-### Community 53 - "Community 53"
-Cohesion: 0.40
-Nodes (5): Search slides by treatment type, concern, complexity, cost, etc., vc_slide_search(), Search slides by treatment type, concern, complexity, cost, etc.      Args:, Search slides by treatment type, concern, complexity, cost, etc.      Args:, search_slides()
 
 ### Community 54 - "Community 54"
 Cohesion: 0.50
@@ -328,13 +305,9 @@ Nodes (3): dashboard_full(), Combined dashboard data: ToPS scores + training tim
 Cohesion: 0.67
 Nodes (3): External monitoring endpoint. Returns degraded if avg quality drops below 70., External monitoring endpoint. Returns degraded if avg quality drops below 70., watchdog_health()
 
-### Community 60 - "Community 60"
-Cohesion: 0.67
-Nodes (3): delete_vc_request_endpoint(), Delete a VC request. Admin-protected., Delete a VC request. Admin-protected.
-
 ### Community 61 - "Community 61"
-Cohesion: 0.18
-Nodes (11): play_consultation(), Staff-only integer-id play recorder (patients use the by-token route)., Delete a recording deck by ID., Staff-only integer-id play recorder (patients use the by-token route)., Delete a recording deck by ID., remove_recording_deck(), delete_recording_deck(), Delete a recording deck by ID. (+3 more)
+Cohesion: 0.25
+Nodes (10): _atomic_write_json(), delete_recording_deck(), get_feedback(), VC Slide Sorter — indexes Dr. Broome's case library for the VC agent.  The VC ag, Write JSON atomically (temp + os.replace) so a crash mid-write can't corrupt PHI, Delete a recording deck by ID., Delete a recording deck by ID., Delete a recording deck by ID. (+2 more)
 
 ### Community 62 - "Community 62"
 Cohesion: 0.67
@@ -349,8 +322,8 @@ Cohesion: 0.05
 Nodes (47): _clean_corporate_filler(), competency_test(), _generate_openrouter_reply(), _generate_openrouter_reply_async(), _generate_reply_with_watchdog(), generate_sutton_reply(), _generate_with_model(), _generate_with_timeout() (+39 more)
 
 ### Community 65 - "Community 65"
-Cohesion: 0.20
-Nodes (10): get_consultation_by_token_endpoint(), Public patient view via an unguessable token — no sequential-ID enumeration., Public patient view via an unguessable token — no sequential-ID enumeration., record_watch_by_token_endpoint(), get_consultation_by_token(), Get a single consultation by its unguessable share token., Get a single consultation by its unguessable share token., Get a single consultation by its unguessable share token. (+2 more)
+Cohesion: 0.17
+Nodes (12): get_consultation_by_token_endpoint(), Public patient view via an unguessable token — no sequential-ID enumeration., Public patient view via an unguessable token — no sequential-ID enumeration., record_play_by_token_endpoint(), record_watch_by_token_endpoint(), get_consultation_by_token(), Get a single consultation by its unguessable share token., Get a single consultation by its unguessable share token. (+4 more)
 
 ### Community 66 - "Community 66"
 Cohesion: 0.67
@@ -361,16 +334,12 @@ Cohesion: 0.67
 Nodes (3): rag_search(), Test RAG search with a query., Test RAG search with a query.
 
 ### Community 68 - "Community 68"
-Cohesion: 0.22
-Nodes (9): _audit_log(), _cleanup_old_media(), maintenance_cleanup(), HIPAA access-audit line — metadata only, NO PHI (no names/photos/content).     W, HIPAA access-audit line — metadata only, NO PHI (no names/photos/content).     W, Delete consult video files older than `days` (0 = disabled). Returns counts., Run media retention (delete consult videos older than VIDEO_RETENTION_DAYS)., Delete consult video files older than `days` (0 = disabled). Returns counts. (+1 more)
+Cohesion: 0.33
+Nodes (6): _cleanup_old_media(), maintenance_cleanup(), Delete consult video files older than `days` (0 = disabled). Returns counts., Run media retention (delete consult videos older than VIDEO_RETENTION_DAYS)., Delete consult video files older than `days` (0 = disabled). Returns counts., Run media retention (delete consult videos older than VIDEO_RETENTION_DAYS).
 
 ### Community 69 - "Community 69"
 Cohesion: 0.67
 Nodes (3): Baseline security headers on every response (force_https is set in fly.toml)., Baseline security headers on every response (force_https is set in fly.toml)., security_headers()
-
-### Community 70 - "Community 70"
-Cohesion: 0.67
-Nodes (3): HITL step: Dr. Broome rejects the AI-generated script for revision., HITL step: Dr. Broome rejects the AI-generated script for revision., reject_script()
 
 ### Community 71 - "Community 71"
 Cohesion: 0.67
@@ -388,23 +357,19 @@ Nodes (3): Visual HTML dashboard for Watchdog canary results and system health.,
 Cohesion: 0.67
 Nodes (3): Stop a Dr. Broome training session timer and log duration., Stop a Dr. Broome training session timer and log duration., training_stop()
 
-### Community 80 - "Community 80"
-Cohesion: 0.22
-Nodes (9): list_consultations(), List all consultations, optionally filtered by status., List all consultations, optionally filtered by status., get_consultation(), Get a single consultation by ID., Get all consultations, optionally filtered by status., Get a single consultation by ID., Get a single consultation by ID. (+1 more)
-
 ## Knowledge Gaps
-- **19 isolated node(s):** `PreToolUse`, `HTTPAuthorizationCredentials`, `ndarray`, `token`, `created_at` (+14 more)
+- **20 isolated node(s):** `graphify`, `SECURITY — Patient input is UNTRUSTED (prompt-injection discipline) — MANDATORY`, `PreToolUse`, `HTTPAuthorizationCredentials`, `ndarray` (+15 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `get_consultation()` connect `Community 80` to `VC Request Management`, `Admin API Endpoints`, `Community 70`, `LLM Response Generation`, `Community 46`, `Community 49`, `Community 23`, `Content Scanning Service`?**
+- **Why does `get_consultation()` connect `VC Request Management` to `Community 65`, `LLM Response Generation`, `Community 61`, `Training Session Logging`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `update_consultation()` connect `Community 43` to `VC Request Management`, `API Data Models`, `Admin API Endpoints`, `Community 70`, `LLM Response Generation`, `Community 46`, `Community 49`, `Community 23`, `Content Scanning Service`?**
+- **Why does `update_consultation()` connect `VC Request Management` to `Community 65`, `API Data Models`, `LLM Response Generation`, `Community 61`, `Training Session Logging`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `create_consultation()` connect `Community 25` to `API Data Models`, `LLM Response Generation`, `Community 51`, `Community 23`, `Content Scanning Service`?**
+- **Why does `create_consultation()` connect `Community 25` to `Community 65`, `API Data Models`, `LLM Response Generation`, `Community 23`, `Community 61`, `Training Session Logging`?**
   _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **Are the 22 inferred relationships involving `RequestStatus` (e.g. with `AdminLoginRequest` and `ChatRequest`) actually correct?**
   _`RequestStatus` has 22 INFERRED edges - model-reasoned connections that need verification._

@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1780769351.6748989,
-    "ast_hash": "82efb97a359f5c7290bf2513d14686be",
+    "mtime": 1782740250.1483674,
+    "ast_hash": "99463dfd21083c21ca00ec8a12e08e22",
     "semantic_hash": ""
   },
   "tests/test_media_path_traversal.py": {
