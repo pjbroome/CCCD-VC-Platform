@@ -3,7 +3,7 @@
 Replaces the current **Smile Virtual** "Get a Virtual Consultation" widget on
 destinationsmile.com with Charlotte Center for Cosmetic Dentistry's own portal.
 
-**Portal URL (current):** `https://v0-kleon-samples.vercel.app`
+**Portal URL (current):** `https://destination-smile-consult.vercel.app`
 *(A branded custom domain — e.g. `consult.destinationsmile.com` — will be provided before go‑live;
 just swap the URL below when we send it. Everything else stays the same.)*
 
@@ -13,7 +13,7 @@ just swap the URL below when we send it. Everything else stays the same.)*
 Change the current "GET A VIRTUAL CONSULTATION" header button's link to:
 
 ```
-https://v0-kleon-samples.vercel.app/embed
+https://destination-smile-consult.vercel.app/embed
 ```
 
 Set it to open in the same tab or a new tab — your call. Done. The patient sees the
@@ -23,7 +23,7 @@ intake form; submissions flow straight into the practice dashboard.
 Paste this once, just before `</body>` on every page (or in the site‑wide footer):
 
 ```html
-<script src="https://v0-kleon-samples.vercel.app/widget.js" async
+<script src="https://destination-smile-consult.vercel.app/widget.js" async
         data-label="Virtual Consultation"
         data-color="#c4a052"
         data-position="bottom-right"></script>

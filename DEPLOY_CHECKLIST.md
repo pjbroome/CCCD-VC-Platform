@@ -3,7 +3,7 @@
 **Status: built, deployed, and verified end‑to‑end.** Everything below is code‑complete.
 Going live = flipping on the paid/account items in this list. Nothing here bills until you say go.
 
-- Frontend (Vercel): `https://v0-kleon-samples.vercel.app` (custom domain at go‑live)
+- Frontend (Vercel): `https://destination-smile-consult.vercel.app` (custom domain at go‑live)
 - Backend (Fly): `cccd-vc-backend` (`https://cccd-vc-backend.fly.dev`)
 - Widget install guide for Goldman: `WIDGET_INSTALL.md`
 

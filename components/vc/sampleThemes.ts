@@ -1,11 +1,11 @@
 /**
- * 5 color explorations of the patient consult page in the REAL Kleon style:
+ * 5 color explorations of the patient consult page:
  * light editorial layout, white double-bezel cards, AuroraText headlines,
  * BorderBeam glow on the video, gold/accent gradient pill buttons, motion.
- * Only the COLOR changes between variants — the Kleon structure stays.
+ * Only the COLOR changes between variants — the structure stays.
  *
  * Accent hexes are tuned for contrast on white; aurora/beam arrays use the
- * Kleon template accent family (globals.css --color-1..5) where relevant.
+ * Accent family (globals.css --color-1..5) where relevant.
  */
 
 export type PaletteSwatch = { hex: string; label: string }
@@ -35,7 +35,7 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-const KLEON_PALETTE: PaletteSwatch[] = [
+const BASE_PALETTE: PaletteSwatch[] = [
   { hex: "#E85C6B", label: "C1 Coral" },
   { hex: "#9D4EDD", label: "C2 Purple" },
   { hex: "#6488EC", label: "C3 Blue" },
@@ -57,12 +57,12 @@ export const SAMPLE_THEMES: SampleTheme[] = [
     posterFrom: "#2a2414",
     posterTo: "#0c0c10",
     swatch: "linear-gradient(135deg,#c4a052,#e8c972)",
-    palette: KLEON_PALETTE,
+    palette: BASE_PALETTE,
   },
   {
     id: 2,
     name: "Aurora",
-    vibe: "Full Kleon rainbow headline · violet accent",
+    vibe: "Full rainbow headline · violet accent",
     accent: "#8a5cf0",
     aurora: ["#E85C6B", "#9D4EDD", "#6488EC", "#63C7EA", "#BEE847"],
     buttonFrom: "#9D4EDD",
@@ -72,7 +72,7 @@ export const SAMPLE_THEMES: SampleTheme[] = [
     posterFrom: "#1a1430",
     posterTo: "#0b0b14",
     swatch: "linear-gradient(135deg,#E85C6B,#9D4EDD,#6488EC,#63C7EA,#BEE847)",
-    palette: KLEON_PALETTE,
+    palette: BASE_PALETTE,
   },
   {
     id: 3,
@@ -87,7 +87,7 @@ export const SAMPLE_THEMES: SampleTheme[] = [
     posterFrom: "#0f1a33",
     posterTo: "#0a0d18",
     swatch: "linear-gradient(135deg,#6488EC,#63C7EA)",
-    palette: KLEON_PALETTE,
+    palette: BASE_PALETTE,
   },
   {
     id: 4,
@@ -102,7 +102,7 @@ export const SAMPLE_THEMES: SampleTheme[] = [
     posterFrom: "#20143a",
     posterTo: "#0c0a16",
     swatch: "linear-gradient(135deg,#9D4EDD,#E85C6B)",
-    palette: KLEON_PALETTE,
+    palette: BASE_PALETTE,
   },
   {
     id: 5,
@@ -117,6 +117,6 @@ export const SAMPLE_THEMES: SampleTheme[] = [
     posterFrom: "#0c2620",
     posterTo: "#0a1512",
     swatch: "linear-gradient(135deg,#14b88a,#BEE847)",
-    palette: KLEON_PALETTE,
+    palette: BASE_PALETTE,
   },
 ]
