@@ -1,0 +1,77 @@
+{
+  "app/__init__.py": {
+    "mtime": 1780599104.5742443,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "app/auth.py": {
+    "mtime": 1780616147.0429225,
+    "ast_hash": "c9857cb39518e5b479f982b5602e0cfd",
+    "semantic_hash": "c9857cb39518e5b479f982b5602e0cfd"
+  },
+  "app/main.py": {
+    "mtime": 1780620642.8518467,
+    "ast_hash": "8eea5daa34d913cc647f10cf961995d4",
+    "semantic_hash": "8eea5daa34d913cc647f10cf961995d4"
+  },
+  "app/models.py": {
+    "mtime": 1780616147.044637,
+    "ast_hash": "53346e733953a816865af59357d09e1e",
+    "semantic_hash": "53346e733953a816865af59357d09e1e"
+  },
+  "app/rag.py": {
+    "mtime": 1780599104.5752778,
+    "ast_hash": "54b35e8d8c9752307969bc4767e8f58a",
+    "semantic_hash": "54b35e8d8c9752307969bc4767e8f58a"
+  },
+  "app/slide_sorter.py": {
+    "mtime": 1780620622.4429982,
+    "ast_hash": "666390523730b7f751a9b144ab9b5122",
+    "semantic_hash": "666390523730b7f751a9b144ab9b5122"
+  },
+  "app/vc_slides/indexed_catalog.json": {
+    "mtime": 1780686088.7661777,
+    "ast_hash": "f072bfa1b016b3367475226d1b97ae35",
+    "semantic_hash": "f072bfa1b016b3367475226d1b97ae35"
+  },
+  "app/vc_slides/vc_consultations.json": {
+    "mtime": 1780621315.9671843,
+    "ast_hash": "58e0494c51d30eb3494f7c9198986bb9",
+    "semantic_hash": "58e0494c51d30eb3494f7c9198986bb9"
+  },
+  "app/vc_slides/vc_requests.json": {
+    "mtime": 1780621315.9675026,
+    "ast_hash": "502c90c9486ce5502bf814647ecf9c1f",
+    "semantic_hash": "502c90c9486ce5502bf814647ecf9c1f"
+  },
+  "generate_embeddings.py": {
+    "mtime": 1780599104.5765457,
+    "ast_hash": "c507dd66f6e49e16029651165190b6d2",
+    "semantic_hash": "c507dd66f6e49e16029651165190b6d2"
+  },
+  "rag_chunks.json": {
+    "mtime": 1780599104.585146,
+    "ast_hash": "3aa6d142ae7c8bc13bd6a4d9d3886a43",
+    "semantic_hash": "3aa6d142ae7c8bc13bd6a4d9d3886a43"
+  },
+  "tests/__init__.py": {
+    "mtime": 1780599104.597994,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "vc-slide-manager-src/App.tsx": {
+    "mtime": 1780616147.0557244,
+    "ast_hash": "0ef11d1f6ab917c36ed3d664344d2bd5",
+    "semantic_hash": "0ef11d1f6ab917c36ed3d664344d2bd5"
+  },
+  "README.md": {
+    "mtime": 1780599104.574153,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1780599104.5763752,
+    "ast_hash": "50067865297cf726255d659b1cb82ecb",
+    "semantic_hash": ""
+  }
+}

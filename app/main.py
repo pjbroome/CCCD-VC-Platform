@@ -76,16 +76,46 @@ app = FastAPI(title="Sutton AI Brand Ambassador API", version="1.0.0")
 
 # CORS — restricted to the VC Portal frontend (prod + Vercel previews + local dev).
 # Override with CORS_ALLOWED_ORIGINS (comma-separated) per deployment.
-_default_cors_origins = "https://v0-kleon-samples.vercel.app,http://localhost:3000,http://localhost:3001"
+_default_cors_origins = "https://destination-smile-consult.vercel.app,https://v0-kleon-samples.vercel.app,http://localhost:3000,http://localhost:3001"
 _cors_origins = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", _default_cors_origins).split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_origin_regex=r"https://v0-kleon-samples[a-z0-9-]*\.vercel\.app",  # Vercel preview deploys
+    allow_origin_regex=r"https://(destination-smile-consult|v0-kleon-samples)[a-z0-9-]*\.vercel\.app",  # Vercel preview deploys
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- HIPAA PHI-access audit log (append-only JSONL on the persistent volume) ---
+# Records every request to a PHI-bearing path: who (staff token tail / public),
+# what (method + path, which encodes the record/photo/video id), status, ip, time.
+# Best-effort: never breaks a request. Read with: fly ssh console -C "tail /data/vc/phi_audit.jsonl".
+@app.middleware("http")
+async def _phi_audit_middleware(request, call_next):
+    response = await call_next(request)
+    try:
+        path = request.url.path
+        if path.startswith(("/vc/requests", "/vc/photos/", "/vc/videos/", "/vc/consultations", "/vc/feedback")):
+            import datetime as _dt, json as _auj
+            from app.slide_sorter import _VC_DIR as _audit_dir
+            auth = request.headers.get("authorization", "")
+            actor = ("staff:" + auth[-8:]) if auth[:7].lower() == "bearer " else "public"
+            ip = request.headers.get("fly-client-ip") or (request.client.host if request.client else "?")
+            entry = {
+                "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+                "method": request.method,
+                "path": path,
+                "status": response.status_code,
+                "actor": actor,
+                "ip": ip,
+            }
+            with open(_audit_dir / "phi_audit.jsonl", "a") as _f:
+                _f.write(_auj.dumps(entry) + "\n")
+    except Exception:
+        pass
+    return response
 
 
 import time as _time
