@@ -232,9 +232,8 @@ export default function RequestDetail() {
           <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow label="Email" value={request.email} />
             <InfoRow label="Phone" value={request.phone} />
-            <InfoRow label="Date of Birth" value={request.date_of_birth || "—"} />
             <InfoRow
-              label="Location"
+              label="Zip Code"
               value={
                 [request.city, request.state].filter(Boolean).join(", ") || "—"
               }

@@ -4,7 +4,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { uploadPhoto, createVCRequest } from "@/lib/api"
 import { Turnstile, TURNSTILE_ENABLED } from "@/components/vc/Turnstile"
-import type { PhotoUploadResponse } from "@/lib/api"
+import type { TurnstileHandle } from "@/components/vc/Turnstile"
+import type { PhotoUploadResponse, VCRequestPayload } from "@/lib/api"
 
 const spring = { type: "spring" as const, stiffness: 100, damping: 20 }
 
@@ -21,23 +22,13 @@ const fadeIn = {
   show: { opacity: 1, y: 0, transition: { ...spring } },
 }
 
-const US_STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
-  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
-  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
-  "VA","WA","WV","WI","WY","DC",
-]
-
 interface FormData {
   firstName: string
   lastName: string
   email: string
   phone: string
-  dateOfBirth: string
-  city: string
-  state: string
+  zip: string
   concern: string
-  consentAcknowledged: boolean
 }
 
 interface FormErrors {
@@ -45,8 +36,8 @@ interface FormErrors {
   lastName?: string
   email?: string
   phone?: string
+  zip?: string
   concern?: string
-  consent?: string
   photos?: string
   submit?: string
   referral?: string
@@ -71,11 +62,8 @@ export function VCIntake() {
     lastName: "",
     email: "",
     phone: "",
-    dateOfBirth: "",
-    city: "",
-    state: "",
+    zip: "",
     concern: "",
-    consentAcknowledged: false,
   })
   const [fullFace, setFullFace] = useState<File | null>(null)
   const [closeUp, setCloseUp] = useState<File | null>(null)
@@ -87,7 +75,37 @@ export function VCIntake() {
   const [referralOther, setReferralOther] = useState("")
   const [sourceUrl, setSourceUrl] = useState("")
   const [extras, setExtras] = useState<File[]>([])
-  const [turnstileToken, setTurnstileToken] = useState("")
+
+  // Turnstile tokens expire after ~5 min — longer than a careful patient takes to
+  // fill this form. Track the latest token + its age in refs so we can mint a
+  // fresh one at submit time instead of sending a stale token (which the backend
+  // rejects as "Bot verification failed" even though every field is valid).
+  const turnstileRef = useRef<TurnstileHandle | null>(null)
+  const tokenRef = useRef("")
+  const tokenIssuedAt = useRef(0)
+  const handleTurnstileToken = useCallback((t: string) => {
+    tokenRef.current = t
+    tokenIssuedAt.current = t ? Date.now() : 0
+  }, [])
+
+  const TOKEN_MAX_AGE_MS = 120_000
+  const TOKEN_WAIT_MS = 20_000
+
+  const freshTurnstileToken = async (forceReset = false): Promise<string> => {
+    if (!TURNSTILE_ENABLED) return ""
+    const isFresh = tokenRef.current && Date.now() - tokenIssuedAt.current < TOKEN_MAX_AGE_MS
+    if (isFresh && !forceReset) return tokenRef.current
+    tokenRef.current = ""
+    turnstileRef.current?.reset()
+    // Wait for the widget callback — instant when Cloudflare auto-passes, longer
+    // if it decides to show the visitor a 1-click interactive check.
+    const deadline = Date.now() + TOKEN_WAIT_MS
+    while (Date.now() < deadline) {
+      if (tokenRef.current) return tokenRef.current
+      await new Promise((r) => setTimeout(r, 250))
+    }
+    return ""
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -101,7 +119,11 @@ export function VCIntake() {
     }
   }, [])
 
-  // Object URLs for extra-photo thumbnails — created once per file set, revoked on change/unmount
+  // Object URLs for photo thumbnails — created per file, revoked on change/unmount
+  const fullFacePreview = useMemo(() => (fullFace ? URL.createObjectURL(fullFace) : null), [fullFace])
+  useEffect(() => () => { if (fullFacePreview) URL.revokeObjectURL(fullFacePreview) }, [fullFacePreview])
+  const closeUpPreview = useMemo(() => (closeUp ? URL.createObjectURL(closeUp) : null), [closeUp])
+  useEffect(() => () => { if (closeUpPreview) URL.revokeObjectURL(closeUpPreview) }, [closeUpPreview])
   const extraPreviews = useMemo(() => extras.map((f) => URL.createObjectURL(f)), [extras])
   useEffect(() => () => { extraPreviews.forEach((u) => URL.revokeObjectURL(u)) }, [extraPreviews])
 
@@ -135,12 +157,15 @@ export function VCIntake() {
     } else if (!/^[\d\s()+-]{7,20}$/.test(form.phone)) {
       e.phone = "Please enter a valid phone number"
     }
+    if (!form.zip.trim()) {
+      e.zip = "Zip code is required"
+    } else if (!/^\d{5}$/.test(form.zip.trim())) {
+      e.zip = "Enter a 5-digit zip code"
+    }
     if (!form.concern.trim()) e.concern = "Please describe your dental concern"
-    if (!form.consentAcknowledged) e.consent = "You must acknowledge consent to proceed"
     if (!fullFace) e.photos = "A full-face selfie is required"
     else if (!closeUp) e.photos = "A close-up smile photo is required"
     if (referralSource === "Other" && !referralOther.trim()) e.referral = "Please tell us how you heard about us"
-    if (TURNSTILE_ENABLED && !turnstileToken) e.submit = "Please complete the verification below."
     return e
   }
 
@@ -172,22 +197,47 @@ export function VCIntake() {
       }
 
       setSubmitState("submitting")
-      const response = await createVCRequest({
+
+      // Mint the bot-check token *after* the (possibly slow) photo uploads so it
+      // can't expire between page load and submission.
+      const token = await freshTurnstileToken()
+      if (TURNSTILE_ENABLED && !token) {
+        setErrors({ submit: "Our security check didn't load. Please refresh the page and try again — your photos are fine to re-select." })
+        setSubmitState("error")
+        return
+      }
+
+      const payload: VCRequestPayload = {
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        date_of_birth: form.dateOfBirth || null,
-        city: form.city.trim() || null,
-        state: form.state || null,
+        date_of_birth: null,
+        // No dedicated ZIP column on the backend yet — store it in the location field.
+        city: form.zip.trim() || null,
+        state: null,
         concern: form.concern.trim(),
-        consent_acknowledged: form.consentAcknowledged,
+        // Consent statement removed from the form (per staff feedback); contract still expects a boolean.
+        consent_acknowledged: true,
         photos: photoUrls,
         referral_source: referralSource === "Other" ? referralOther.trim() : referralSource || undefined,
         source_url: sourceUrl || undefined,
         website: honeypot,
-        turnstile_token: turnstileToken || undefined,
-      })
+        turnstile_token: token || undefined,
+      }
+
+      let response
+      try {
+        response = await createVCRequest(payload)
+      } catch (err) {
+        // A token can still go stale in transit — retry exactly once with a
+        // forced-fresh token before surfacing an error to the patient.
+        const isBotRejection = err instanceof Error && /bot verification/i.test(err.message)
+        if (!TURNSTILE_ENABLED || !isBotRejection) throw err
+        const retryToken = await freshTurnstileToken(true)
+        if (!retryToken) throw err
+        response = await createVCRequest({ ...payload, turnstile_token: retryToken })
+      }
 
       setRequestId(response.id)
       setSubmitState("success")
@@ -250,11 +300,11 @@ export function VCIntake() {
             type="button"
             onClick={() => {
               setSubmitState("idle")
-              setForm({ firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", city: "", state: "", concern: "", consentAcknowledged: false })
+              setForm({ firstName: "", lastName: "", email: "", phone: "", zip: "", concern: "" })
               setFullFace(null)
               setCloseUp(null)
               setExtras([])
-              setTurnstileToken("")
+              handleTurnstileToken("")
               setReferralSource("")
               setReferralOther("")
               setRequestId(null)
@@ -335,26 +385,9 @@ export function VCIntake() {
               <div className="mt-2.5 sm:mt-3">
                 <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
               </div>
-              <div className="mt-2.5 sm:mt-3">
+              <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
                 <InputField label="Mobile Phone" type="tel" value={form.phone} onChange={(v) => updateField("phone", v)} error={errors.phone} required autoComplete="tel" />
-              </div>
-              <div className="mt-2.5 grid grid-cols-3 gap-2.5 sm:mt-3 sm:gap-3">
-                <InputField label="Date of Birth" type="date" value={form.dateOfBirth} onChange={(v) => updateField("dateOfBirth", v)} autoComplete="bday" />
-                <InputField label="City" value={form.city} onChange={(v) => updateField("city", v)} autoComplete="address-level2" />
-                <div>
-                  <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">State</label>
-                  <select
-                    value={form.state}
-                    onChange={(e) => updateField("state", e.target.value)}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm"
-                    autoComplete="address-level1"
-                  >
-                    <option value="">--</option>
-                    {US_STATES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
+                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={5} value={form.zip} onChange={(v) => updateField("zip", v.replace(/\D/g, "").slice(0, 5))} error={errors.zip} required autoComplete="postal-code" />
               </div>
               <div className="mt-2.5 sm:mt-3">
                 <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">How did you hear about us?</label>
@@ -389,6 +422,7 @@ export function VCIntake() {
                 <UploadCard
                   label="Full Face Selfie"
                   file={fullFace}
+                  preview={fullFacePreview}
                   onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setFullFace(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
                   icon={
                     <path
@@ -408,6 +442,7 @@ export function VCIntake() {
                 <UploadCard
                   label="Close-up Smile"
                   file={closeUp}
+                  preview={closeUpPreview}
                   onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setCloseUp(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
                   icon={
                     <path
@@ -459,25 +494,10 @@ export function VCIntake() {
               />
             </div>
 
-            {/* Step 4 - Consent + Submit */}
+            {/* Step 4 - Submit */}
             <div>
-              <label className="flex cursor-pointer items-start gap-2.5">
-                <input
-                  type="checkbox"
-                  checked={form.consentAcknowledged}
-                  onChange={(e) => updateField("consentAcknowledged", e.target.checked)}
-                  className="mt-0.5 size-4 shrink-0 rounded border-zinc-300 text-[#c4a052] accent-[#c4a052] focus:ring-[#c4a052]/20"
-                />
-                <span className="text-[10px] leading-relaxed text-zinc-500 sm:text-xs">
-                  I consent to CCCD collecting my information and photos for the
-                  purpose of a virtual consultation. My data will be handled in
-                  accordance with HIPAA guidelines.
-                </span>
-              </label>
-              {errors.consent && <p className="mt-1 text-[10px] text-red-500">{errors.consent}</p>}
-
               {/* Bot challenge — renders only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set */}
-              <Turnstile onToken={setTurnstileToken} />
+              <Turnstile ref={turnstileRef} onToken={handleTurnstileToken} />
 
               <motion.button
                 type="button"
@@ -544,7 +564,7 @@ function StepBadge({ n }: { n: number }) {
 }
 
 function InputField({
-  label, value, onChange, error, type = "text", required, autoComplete,
+  label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength,
 }: {
   label: string
   value: string
@@ -553,6 +573,8 @@ function InputField({
   type?: string
   required?: boolean
   autoComplete?: string
+  inputMode?: "text" | "numeric" | "tel" | "email" | "url" | "search" | "none" | "decimal"
+  maxLength?: number
 }) {
   return (
     <div>
@@ -564,6 +586,8 @@ function InputField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className={`w-full rounded-lg border bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
       />
       {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
@@ -572,15 +596,48 @@ function InputField({
 }
 
 function UploadCard({
-  label, file, onFile, icon, icon2,
+  label, file, preview, onFile, icon, icon2,
 }: {
   label: string
   file: File | null
+  preview?: string | null
   onFile: (f: File | null) => void
   icon: React.ReactNode
   icon2?: React.ReactNode
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+
+  if (file && preview) {
+    return (
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl border border-emerald-500/30 bg-zinc-100 text-center transition-all duration-200 active:scale-[0.97] sm:rounded-2xl"
+        aria-label={`${label} — tap to change`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={preview} alt={`${label} preview`} className="size-full object-cover" />
+        {/* Corner check badge */}
+        <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-emerald-500 shadow-sm">
+          <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+        {/* Bottom label overlay */}
+        <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-left">
+          <span className="truncate text-[10px] font-semibold text-white sm:text-xs">{label}</span>
+          <span className="shrink-0 text-[9px] font-medium text-white/80 sm:text-[10px]">Tap to change</span>
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+      </button>
+    )
+  }
 
   return (
     <button
