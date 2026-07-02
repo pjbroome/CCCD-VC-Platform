@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react"
 
 declare global {
   interface Window {
     turnstile?: {
       render: (el: HTMLElement, opts: Record<string, unknown>) => string
       remove: (id: string) => void
+      reset: (id: string) => void
     }
   }
 }
@@ -14,14 +15,27 @@ declare global {
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
 export const TURNSTILE_ENABLED = !!SITE_KEY
 
+export interface TurnstileHandle {
+  /** Re-run the challenge to mint a fresh token (tokens expire after ~5 min). */
+  reset: () => void
+}
+
 /**
  * Cloudflare Turnstile bot challenge. Renders nothing unless
  * NEXT_PUBLIC_TURNSTILE_SITE_KEY is set, so it's a no-op until you add the
  * free key. Calls onToken with the verification token (or "" on expire/error).
  */
-export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
+export const Turnstile = forwardRef<TurnstileHandle, { onToken: (token: string) => void }>(function Turnstile({ onToken }, handle) {
   const ref = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
+
+  useImperativeHandle(handle, () => ({
+    reset: () => {
+      if (widgetId.current && window.turnstile) {
+        try { window.turnstile.reset(widgetId.current) } catch { /* ignore */ }
+      }
+    },
+  }), [])
 
   useEffect(() => {
     if (!SITE_KEY || !ref.current) return
@@ -70,4 +84,4 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
 
   if (!SITE_KEY) return null
   return <div ref={ref} className="my-2 flex justify-center" />
-}
+})
