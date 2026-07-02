@@ -17,10 +17,7 @@ Add a row. Keep it specific: what screen, what you did, what happened vs. what y
 ## Open feedback
 | # | Date | From | Area | Feedback (what / expected) | Severity | Status | Preview / PR |
 |---|------|------|------|-----------------------------|----------|--------|--------------|
-| 1 | 2026-07-01 | Staff (via Patrick) | intake | Can't see uploaded pics — want the image visible in the photo box | medium | preview-ready | [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26) · [preview](https://cccd-vc-intake-git-fix-intake-ph-279282-pjbroome-7395s-projects.vercel.app) |
-| 2 | 2026-07-01 | Staff (via Patrick) | intake | Error as if a required field was missing, though every field was complete and the consent box checked | high | preview-ready | [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26) · [preview](https://cccd-vc-intake-git-fix-intake-ph-279282-pjbroome-7395s-projects.vercel.app) |
-| 3 | 2026-07-01 | Patrick | intake | Remove the consent checkbox + entire data-collection statement | medium | preview-ready | [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26) · [preview](https://cccd-vc-intake-git-fix-intake-ph-279282-pjbroome-7395s-projects.vercel.app) |
-| 4 | 2026-07-01 | Patrick | intake | Drop Date of Birth; collect Zip instead of City — email + cell + zip is enough demographics | medium | preview-ready | [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26) · [preview](https://cccd-vc-intake-git-fix-intake-ph-279282-pjbroome-7395s-projects.vercel.app) |
+| — | | | | _(no open items — round 1 shipped 2026-07-01)_ | | | |
 
 ### Triage notes (items 1–4, 2026-07-01)
 - **#2 ROOT CAUSE FOUND (verified on live production, 2026-07-01):** the Cloudflare Turnstile **site key's domain allowlist does not include `destination-smile-consult.vercel.app`** — the invisible bot-check widget throws `Error: 110200` (domain not allowed) on every production page load, no verification token is ever minted, and the old code then demanded "Please complete the verification below" with nothing visible to complete. **Every production submit failed this way.** **FIXED 2026-07-01 (Claude, via Patrick's browser session):** the widget's allowlist had only `localhost` + the wrong Vercel *project* alias (`cccd-vc-intake-pjbroome-7395s-projects.vercel.app`) — never the real production domain. Both `destination-smile-consult.vercel.app` and the branch-preview hostname are now added (originals untouched). Verified live: production mints tokens (no more 110200), and a full end-to-end submit from the preview succeeded — request **#5** ("TEST Claude E2E", clearly marked, safe to delete from the dashboard). Two code-level defenses also shipped in PR #26: (a) the stale consent error-key bug is gone with the checkbox; (b) tokens are now minted at submit time with one automatic fresh-token retry and a clear, recoverable error message if the widget fails.
@@ -31,4 +28,7 @@ Add a row. Keep it specific: what screen, what you did, what happened vs. what y
 ## Resolved
 | # | Date | Area | Feedback | Fix / PR |
 |---|------|------|----------|----------|
-| — | | | _(items move here after staff re-test on the preview)_ | |
+| 1 | 2026-07-01 | intake | Can't see uploaded pics | Live photo thumbnails in the upload boxes — [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26), **merged to production 2026-07-01** |
+| 2 | 2026-07-01 | intake | Error though all fields complete + consent box checked | Root cause: Turnstile site-key domain allowlist lacked the production domain (Error 110200) → fixed in Cloudflare; plus stale consent-error bug and submit-time token hardening in [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26). Verified E2E (request #5) |
+| 3 | 2026-07-01 | intake | Remove consent checkbox + data statement | Removed — [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26), merged |
+| 4 | 2026-07-01 | intake | Drop DOB; zip instead of city | Done (required 5-digit zip, numeric keypad; stored in city field) — [PR #26](https://github.com/pjbroome/cccd-vc-intake/pull/26), merged |
