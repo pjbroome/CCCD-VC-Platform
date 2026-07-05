@@ -25,6 +25,11 @@ Add a row. Keep it specific: what screen, what you did, what happened vs. what y
 - ✅ **Preview CORS fixed (Patrick-approved, 2026-07-01):** preview origin added to `CORS_ALLOWED_ORIGINS` on Fly; preflight verified for both preview and production. Preview submits now reach the backend — they complete once the Turnstile domain fix (above) is in.
 - Verified: tsc clean, 16-agent adversarial review (0 confirmed defects), retry path proven against a mock of the production 400, mobile 375px layout checked.
 
+## Housekeeping notes
+- **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.
+- Claude's own orphan test PNG was removed 2026-07-05; all remaining photos are referenced by live requests.
+- Test record **#5** ("TEST Claude E2E") remains in the dashboard as a worked example — delete anytime.
+
 ## Resolved
 | # | Date | Area | Feedback | Fix / PR |
 |---|------|------|----------|----------|
