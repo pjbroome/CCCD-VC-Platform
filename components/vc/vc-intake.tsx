@@ -56,6 +56,21 @@ const REFERRAL_SOURCES = [
   "Other",
 ]
 
+// Selectable concern chips — tapping is far easier than composing an answer
+// from scratch, and the free-text box below stays available for nuance.
+const CONCERN_CHIPS = [
+  "Whiter smile",
+  "Straighter teeth",
+  "Fix a chip or gap",
+  "Replace old crowns or veneers",
+  "Full smile makeover",
+  "Not sure — show me my options",
+]
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^[\d\s()+-]{7,20}$/
+const ZIP_RE = /^\d{5}$/
+
 export function VCIntake() {
   const [form, setForm] = useState<FormData>({
     firstName: "",
@@ -65,6 +80,7 @@ export function VCIntake() {
     zip: "",
     concern: "",
   })
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([])
   const [fullFace, setFullFace] = useState<File | null>(null)
   const [closeUp, setCloseUp] = useState<File | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -143,26 +159,59 @@ export function VCIntake() {
     [errors]
   )
 
+  const toggleConcern = useCallback((chip: string) => {
+    setSelectedConcerns((prev) =>
+      prev.includes(chip) ? prev.filter((c) => c !== chip) : [...prev, chip]
+    )
+    setErrors((prev) => {
+      if (!prev.concern) return prev
+      const next = { ...prev }
+      delete next.concern
+      return next
+    })
+  }, [])
+
+  const concernSatisfied = selectedConcerns.length > 0 || form.concern.trim().length > 0
+
+  // Goal-gradient progress: arriving counts as the first step, so the meter
+  // never reads zero. Seven milestones fill the remaining 80%.
+  const milestones = [
+    form.firstName.trim().length > 0 && form.lastName.trim().length > 0,
+    EMAIL_RE.test(form.email),
+    PHONE_RE.test(form.phone),
+    ZIP_RE.test(form.zip.trim()),
+    !!fullFace,
+    !!closeUp,
+    concernSatisfied,
+  ]
+  const completed = milestones.filter(Boolean).length
+  const progressPct = Math.round(20 + (completed / milestones.length) * 80)
+  const progressLabel =
+    completed === milestones.length ? "Ready to send" : completed >= 4 ? "Almost there" : "Started"
+
+  const infoDone = milestones[0] && milestones[1] && milestones[2] && milestones[3]
+  const photosDone = !!fullFace && !!closeUp
+
   const validate = (): FormErrors => {
     const e: FormErrors = {}
     if (!form.firstName.trim()) e.firstName = "First name is required"
     if (!form.lastName.trim()) e.lastName = "Last name is required"
     if (!form.email.trim()) {
       e.email = "Email is required"
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    } else if (!EMAIL_RE.test(form.email)) {
       e.email = "Please enter a valid email"
     }
     if (!form.phone.trim()) {
       e.phone = "Phone number is required"
-    } else if (!/^[\d\s()+-]{7,20}$/.test(form.phone)) {
+    } else if (!PHONE_RE.test(form.phone)) {
       e.phone = "Please enter a valid phone number"
     }
     if (!form.zip.trim()) {
       e.zip = "Zip code is required"
-    } else if (!/^\d{5}$/.test(form.zip.trim())) {
+    } else if (!ZIP_RE.test(form.zip.trim())) {
       e.zip = "Enter a 5-digit zip code"
     }
-    if (!form.concern.trim()) e.concern = "Please describe your dental concern"
+    if (!concernSatisfied) e.concern = "Tap what you'd like to change — or tell us in your own words"
     if (!fullFace) e.photos = "A full-face selfie is required"
     else if (!closeUp) e.photos = "A close-up smile photo is required"
     if (referralSource === "Other" && !referralOther.trim()) e.referral = "Please tell us how you heard about us"
@@ -207,6 +256,11 @@ export function VCIntake() {
         return
       }
 
+      // Chips + free text combine into the single concern field the backend expects.
+      const concernText = [selectedConcerns.join(" · "), form.concern.trim()]
+        .filter(Boolean)
+        .join(" — ")
+
       const payload: VCRequestPayload = {
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
@@ -216,7 +270,7 @@ export function VCIntake() {
         // No dedicated ZIP column on the backend yet — store it in the location field.
         city: form.zip.trim() || null,
         state: null,
-        concern: form.concern.trim(),
+        concern: concernText,
         // Consent statement removed from the form (per staff feedback); contract still expects a boolean.
         consent_acknowledged: true,
         photos: photoUrls,
@@ -257,7 +311,7 @@ export function VCIntake() {
 
   if (submitState === "success") {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4 py-8">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[#faf8f4] px-4 py-8 [background-image:radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(196,160,82,0.10),transparent)]">
         <motion.div
           className="mx-auto w-full max-w-md text-center"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -275,10 +329,10 @@ export function VCIntake() {
           <p className="mt-3 text-sm leading-relaxed text-zinc-500">
             {"Thank you, " + form.firstName + "! Your consultation request" +
               (requestId ? ` (#${requestId})` : "") +
-              " has been received. Dr.\u00a0Broome will review your photos and send a personalized video reply within 24\u00a0hours."}
+              " has been received. Dr. Broome will review your photos and send a personalized video reply within 24 hours."}
           </p>
           <p className="mt-2 text-sm text-zinc-400">
-            {"We\u2019ll send your reply to "}
+            {"We’ll send your reply to "}
             <span className="font-medium text-zinc-600">{form.email}</span>
           </p>
           <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5">
@@ -291,7 +345,7 @@ export function VCIntake() {
               <div className="text-left">
                 <p className="text-sm font-semibold text-zinc-900">What happens next?</p>
                 <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                  {"Our AI Smile Agent will analyze your photos and scan Dr.\u00a0Broome\u2019s library of completed cases. You\u2019ll receive a personalized video reply with his treatment suggestions."}
+                  {"Our AI Smile Agent will analyze your photos and scan Dr. Broome’s library of completed cases. You’ll receive a personalized video reply with his treatment suggestions."}
                 </p>
               </div>
             </div>
@@ -301,6 +355,7 @@ export function VCIntake() {
             onClick={() => {
               setSubmitState("idle")
               setForm({ firstName: "", lastName: "", email: "", phone: "", zip: "", concern: "" })
+              setSelectedConcerns([])
               setFullFace(null)
               setCloseUp(null)
               setExtras([])
@@ -321,14 +376,14 @@ export function VCIntake() {
           </a>
         </motion.div>
         <p className="mt-8 text-center text-[10px] text-zinc-300">
-          {"Charlotte Center for Cosmetic Dentistry \u00b7 Dr.\u00a0Patrick Broome \u00b7 Charlotte,\u00a0NC"}
+          {"Charlotte Center for Cosmetic Dentistry · Dr. Patrick Broome · Charlotte, NC"}
         </p>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50 px-4 py-5 sm:px-6 sm:py-6">
+    <div className="flex min-h-dvh flex-col bg-[#faf8f4] px-4 py-5 [background-image:radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(196,160,82,0.10),transparent)] sm:px-6 sm:py-6">
       <motion.div
         className="mx-auto flex w-full max-w-lg flex-1 flex-col"
         variants={stagger}
@@ -340,23 +395,53 @@ export function VCIntake() {
           <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#c4a052]">
             Charlotte Center for Cosmetic Dentistry
           </p>
-          <h1 className="mt-1 text-xl font-bold tracking-tighter text-zinc-900 sm:text-2xl">
+          <h1 className="mt-1 text-2xl font-bold tracking-tighter text-zinc-900 sm:text-3xl">
             Virtual Consultation
           </h1>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-400 sm:text-sm">
-            {"Fill out the form below, upload your photos, and get a personal video reply within 24\u00a0hours."}
+          <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-zinc-500 sm:text-sm">
+            {"Two photos and a few taps — Dr. Broome replies with your personal video within 24 hours."}
           </p>
+          <div className="mt-3 flex items-center justify-center gap-1.5 sm:gap-2">
+            <TrustChip>100% free</TrustChip>
+            <TrustChip>2–3 minutes</TrustChip>
+            <TrustChip>Personal video reply</TrustChip>
+          </div>
         </motion.div>
 
         {/* Form card */}
         <motion.div variants={fadeIn} className="flex flex-1 flex-col">
           <div
             ref={formRef}
-            className="flex flex-1 flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_2px_20px_-6px_rgba(0,0,0,0.06)] ring-1 ring-zinc-950/[0.04] sm:rounded-3xl sm:p-6"
+            className="flex flex-1 flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_8px_40px_-12px_rgba(120,90,20,0.12)] ring-1 ring-[#c4a052]/15 sm:rounded-3xl sm:p-6"
           >
             {/* Honeypot — hidden from humans; bots fill it and are silently dropped. */}
             <div aria-hidden="true" className="pointer-events-none absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
               <label>Website<input type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} /></label>
+            </div>
+
+            {/* Progress — arriving counts as the first step, so it never reads 0% */}
+            <div>
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 sm:text-[11px]">
+                  Your consultation
+                </span>
+                <span className="text-[11px] font-semibold text-[#b8933f] sm:text-xs">
+                  {progressPct}% · {progressLabel}
+                </span>
+              </div>
+              <div
+                role="progressbar"
+                aria-valuenow={progressPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Consultation request progress"
+                className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100"
+              >
+                <div
+                  className="h-full origin-left rounded-full bg-gradient-to-r from-[#c4a052] to-[#d4b062] transition-transform duration-500 ease-out motion-reduce:transition-none"
+                  style={{ transform: `scaleX(${progressPct / 100})` }}
+                />
+              </div>
             </div>
 
             {/* Global submit error */}
@@ -376,14 +461,14 @@ export function VCIntake() {
             {/* Step 1 - Patient Info */}
             <div>
               <p className="mb-3 text-xs font-semibold text-zinc-900 sm:text-sm">
-                <StepBadge n={1} /> Your Information
+                <StepBadge n={1} done={infoDone} /> Tell us who you are
               </p>
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 <InputField label="First Name" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
                 <InputField label="Last Name" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
               </div>
               <div className="mt-2.5 sm:mt-3">
-                <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
+                <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" hint="Your video reply arrives here" />
               </div>
               <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
                 <InputField label="Mobile Phone" type="tel" value={form.phone} onChange={(v) => updateField("phone", v)} error={errors.phone} required autoComplete="tel" />
@@ -415,7 +500,7 @@ export function VCIntake() {
             {/* Step 2 - Photos */}
             <div>
               <p className="mb-2 text-xs font-semibold text-zinc-900 sm:text-sm">
-                <StepBadge n={2} /> Upload Your Photos
+                <StepBadge n={2} done={photosDone} /> Share two photos
               </p>
               {errors.photos && <p className="mb-2 text-[10px] text-red-500">{errors.photos}</p>}
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -453,6 +538,18 @@ export function VCIntake() {
                   }
                 />
               </div>
+              <AnimatePresence>
+                {photosDone && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-2 text-[10px] font-medium text-emerald-700 sm:text-xs"
+                  >
+                    {"Your photos are ready — finish below and they’re on their way to Dr. Broome."}
+                  </motion.p>
+                )}
+              </AnimatePresence>
               <div className="mt-3">
                 <p className="mb-1.5 text-[10px] font-medium text-zinc-500 sm:text-xs">Optional — add up to 4 more (different angles, retracted, side profile)</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -482,15 +579,37 @@ export function VCIntake() {
             {/* Step 3 - Concern */}
             <div className="flex min-h-0 flex-1 flex-col">
               <p className="mb-2 text-xs font-semibold text-zinc-900 sm:text-sm">
-                <StepBadge n={3} /> What Matters Most to You?
+                <StepBadge n={3} done={concernSatisfied} /> What would you love to change?
               </p>
-              {errors.concern && <p className="mb-1 text-[10px] text-red-500">{errors.concern}</p>}
+              {errors.concern && <p className="mb-1.5 text-[10px] text-red-500">{errors.concern}</p>}
+              <div className="mb-2.5 flex flex-wrap gap-1.5 sm:gap-2">
+                {CONCERN_CHIPS.map((chip) => {
+                  const selected = selectedConcerns.includes(chip)
+                  return (
+                    <motion.button
+                      key={chip}
+                      type="button"
+                      onClick={() => toggleConcern(chip)}
+                      aria-pressed={selected}
+                      whileTap={{ scale: 0.95 }}
+                      className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4a052]/50 sm:text-xs ${
+                        selected
+                          ? "border-[#c4a052] bg-[#c4a052]/10 text-[#8a6d2f]"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#c4a052]/40 hover:text-zinc-900"
+                      }`}
+                    >
+                      {selected && <span className="mr-1 text-[#b8933f]">✓</span>}
+                      {chip}
+                    </motion.button>
+                  )
+                })}
+              </div>
               <textarea
                 value={form.concern}
                 onChange={(e) => updateField("concern", e.target.value)}
-                placeholder="I'd love to know which options would suit my face shape..."
+                placeholder="Anything else you'd like Dr. Broome to know? (optional)"
                 className={`min-h-0 w-full flex-1 resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-400 transition-all duration-300 focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
-                rows={3}
+                rows={2}
               />
             </div>
 
@@ -513,14 +632,11 @@ export function VCIntake() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    {submitState === "uploading" ? "Uploading photos..." : "Submitting..."}
+                    {submitState === "uploading" ? "Sending your photos..." : "Almost done..."}
                   </>
                 ) : (
                   <>
-                    <span className="inline-flex size-4 items-center justify-center rounded-full bg-white/20 text-[9px] font-bold sm:size-5 sm:text-[10px]">
-                      4
-                    </span>
-                    Send My Consultation
+                    Get My Video Consultation
                     <svg
                       className="size-4"
                       fill="none"
@@ -537,6 +653,9 @@ export function VCIntake() {
                   </>
                 )}
               </motion.button>
+              <p className="mt-2 text-center text-[10px] text-zinc-400 sm:text-[11px]">
+                {"Takes 2–3 minutes · Dr. Broome personally reviews every request."}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -544,9 +663,9 @@ export function VCIntake() {
         {/* Footer */}
         <motion.p
           variants={fadeIn}
-          className="mt-3 text-center text-[10px] text-zinc-300 sm:mt-4"
+          className="mt-3 text-center text-[10px] text-zinc-400/70 sm:mt-4"
         >
-          {"100% Free \u00b7 Takes 2-3 Minutes \u00b7 Dr.\u00a0Patrick Broome \u00b7 Charlotte,\u00a0NC"}
+          {"Dr. Patrick Broome · Charlotte, NC"}
         </motion.p>
       </motion.div>
     </div>
@@ -555,7 +674,29 @@ export function VCIntake() {
 
 /* Reusable sub-components */
 
-function StepBadge({ n }: { n: number }) {
+function TrustChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-[#c4a052]/25 bg-white/70 px-2.5 py-1 text-[10px] font-medium text-[#8a6d2f] sm:text-[11px]">
+      {children}
+    </span>
+  )
+}
+
+function StepBadge({ n, done }: { n: number; done?: boolean }) {
+  if (done) {
+    return (
+      <motion.span
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={spring}
+        className="mr-1.5 inline-flex size-4 items-center justify-center rounded-full bg-gradient-to-r from-[#c4a052] to-[#d4b062] text-white sm:size-5"
+      >
+        <svg className="size-2.5 sm:size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </motion.span>
+    )
+  }
   return (
     <span className="mr-1.5 inline-flex size-4 items-center justify-center rounded-full bg-[#c4a052] text-[9px] font-bold text-white sm:size-5 sm:text-[10px]">
       {n}
@@ -564,7 +705,7 @@ function StepBadge({ n }: { n: number }) {
 }
 
 function InputField({
-  label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength,
+  label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength, hint,
 }: {
   label: string
   value: string
@@ -575,11 +716,13 @@ function InputField({
   autoComplete?: string
   inputMode?: "text" | "numeric" | "tel" | "email" | "url" | "search" | "none" | "decimal"
   maxLength?: number
+  hint?: string
 }) {
   return (
     <div>
       <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">
         {label}{required && <span className="ml-0.5 text-red-400">*</span>}
+        {hint && <span className="ml-1.5 font-normal text-zinc-400/80">· {hint}</span>}
       </label>
       <input
         type={type}
