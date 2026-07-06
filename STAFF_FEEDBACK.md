@@ -25,6 +25,16 @@ Add a row. Keep it specific: what screen, what you did, what happened vs. what y
 - ✅ **Preview CORS fixed (Patrick-approved, 2026-07-01):** preview origin added to `CORS_ALLOWED_ORIGINS` on Fly; preflight verified for both preview and production. Preview submits now reach the backend — they complete once the Turnstile domain fix (above) is in.
 - Verified: tsc clean, 16-agent adversarial review (0 confirmed defects), retry path proven against a mock of the production 400, mobile 375px layout checked.
 
+## Round 2 — conversion-psychology redesign (2026-07-06, preview-ready)
+Built from the new `conversion-ux` skill (20-video UX intelligence corpus). **All round-1 staff features kept.**
+- Progress bar that starts at 20% and fills to "Ready to send" (motivation: people finish what feels underway)
+- Tap-to-answer concern chips — typing now optional ("Whiter smile", "Full smile makeover", …)
+- Warmer copy + gold/cream luxury look; trust chips (100% free · 2–3 min · personal video); CTA "Get My Video Consultation"
+- Accessibility: 44px tap targets, focus rings, reduced-motion support
+- Preview for staff: https://cccd-vc-intake-git-fix-intake-ph-279282-pjbroome-7395s-projects.vercel.app (full submits work here)
+
+**Round-3 candidates (need Patrick/staff call — NOT built):** ask "what would you love to change?" FIRST before contact fields (investment-first ordering) · referral dropdown → tappable pills · Dr. Broome photo + checkpoint timeline on the thank-you screen · numeric "1 step left" progress label.
+
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.
 - Claude's own orphan test PNG was removed 2026-07-05; all remaining photos are referenced by live requests.
