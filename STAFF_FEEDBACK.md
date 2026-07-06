@@ -33,7 +33,7 @@ Built from the new `conversion-ux` skill (20-video UX intelligence corpus). **Al
 - Accessibility: 44px tap targets, focus rings, reduced-motion support
 - Preview for staff: https://cccd-vc-intake-git-fix-intake-ph-279282-pjbroome-7395s-projects.vercel.app (full submits work here)
 
-**Round-3 candidates (need Patrick/staff call — NOT built):** ask "what would you love to change?" FIRST before contact fields (investment-first ordering) · referral dropdown → tappable pills · Dr. Broome photo + checkpoint timeline on the thank-you screen · numeric "1 step left" progress label.
+**Round-3 shipped same day (Patrick's "go on all," 2026-07-06):** goals-first step order ("What would you love to change?" opens the form; contact details last under "Where should we send your video?") · referral dropdown → tappable pills · numeric progress label ("2 steps left" → "Ready to send"). **Still queued:** Dr. Broome photo + checkpoint timeline on the thank-you screen (needs a headshot asset + Patrick's pick).
 
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.
