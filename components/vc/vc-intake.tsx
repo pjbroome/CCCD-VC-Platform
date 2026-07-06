@@ -186,8 +186,9 @@ export function VCIntake() {
   ]
   const completed = milestones.filter(Boolean).length
   const progressPct = Math.round(20 + (completed / milestones.length) * 80)
+  const remaining = milestones.length - completed
   const progressLabel =
-    completed === milestones.length ? "Ready to send" : completed >= 4 ? "Almost there" : "Started"
+    remaining === 0 ? "Ready to send" : completed === 0 ? "Started" : remaining === 1 ? "1 step left" : `${remaining} steps left`
 
   const infoDone = milestones[0] && milestones[1] && milestones[2] && milestones[3]
   const photosDone = !!fullFace && !!closeUp
@@ -458,43 +459,41 @@ export function VCIntake() {
               )}
             </AnimatePresence>
 
-            {/* Step 1 - Patient Info */}
+            {/* Step 1 - Goals (investment-first: their wishes before our questions) */}
             <div>
-              <p className="mb-3 text-xs font-semibold text-zinc-900 sm:text-sm">
-                <StepBadge n={1} done={infoDone} /> Tell us who you are
+              <p className="mb-2 text-xs font-semibold text-zinc-900 sm:text-sm">
+                <StepBadge n={1} done={concernSatisfied} /> What would you love to change?
               </p>
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                <InputField label="First Name" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
-                <InputField label="Last Name" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
+              {errors.concern && <p className="mb-1.5 text-[10px] text-red-500">{errors.concern}</p>}
+              <div className="mb-2.5 flex flex-wrap gap-1.5 sm:gap-2">
+                {CONCERN_CHIPS.map((chip) => {
+                  const selected = selectedConcerns.includes(chip)
+                  return (
+                    <motion.button
+                      key={chip}
+                      type="button"
+                      onClick={() => toggleConcern(chip)}
+                      aria-pressed={selected}
+                      whileTap={{ scale: 0.95 }}
+                      className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4a052]/50 sm:text-xs ${
+                        selected
+                          ? "border-[#c4a052] bg-[#c4a052]/10 text-[#8a6d2f]"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#c4a052]/40 hover:text-zinc-900"
+                      }`}
+                    >
+                      {selected && <span className="mr-1 text-[#b8933f]">✓</span>}
+                      {chip}
+                    </motion.button>
+                  )
+                })}
               </div>
-              <div className="mt-2.5 sm:mt-3">
-                <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" hint="Your video reply arrives here" />
-              </div>
-              <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
-                <InputField label="Mobile Phone" type="tel" value={form.phone} onChange={(v) => updateField("phone", v)} error={errors.phone} required autoComplete="tel" />
-                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={5} value={form.zip} onChange={(v) => updateField("zip", v.replace(/\D/g, "").slice(0, 5))} error={errors.zip} required autoComplete="postal-code" />
-              </div>
-              <div className="mt-2.5 sm:mt-3">
-                <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">How did you hear about us?</label>
-                <select
-                  value={referralSource}
-                  onChange={(e) => { setReferralSource(e.target.value); if (errors.referral) setErrors((p) => { const n = { ...p }; delete n.referral; return n }) }}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm"
-                >
-                  <option value="">--</option>
-                  {REFERRAL_SOURCES.map((r) => (<option key={r} value={r}>{r}</option>))}
-                </select>
-                {referralSource === "Other" && (
-                  <input
-                    type="text"
-                    value={referralOther}
-                    onChange={(e) => { setReferralOther(e.target.value); if (errors.referral) setErrors((p) => { const n = { ...p }; delete n.referral; return n }) }}
-                    placeholder="Please tell us how"
-                    className="mt-2 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm"
-                  />
-                )}
-                {errors.referral && <p className="mt-1 text-[10px] text-red-500">{errors.referral}</p>}
-              </div>
+              <textarea
+                value={form.concern}
+                onChange={(e) => updateField("concern", e.target.value)}
+                placeholder="Anything else you'd like Dr. Broome to know? (optional)"
+                className={`w-full resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-400 transition-all duration-300 focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+                rows={2}
+              />
             </div>
 
             {/* Step 2 - Photos */}
@@ -576,41 +575,55 @@ export function VCIntake() {
               </div>
             </div>
 
-            {/* Step 3 - Concern */}
-            <div className="flex min-h-0 flex-1 flex-col">
-              <p className="mb-2 text-xs font-semibold text-zinc-900 sm:text-sm">
-                <StepBadge n={3} done={concernSatisfied} /> What would you love to change?
+            {/* Step 3 - Contact (asked last, after investment is built) */}
+            <div>
+              <p className="mb-3 text-xs font-semibold text-zinc-900 sm:text-sm">
+                <StepBadge n={3} done={infoDone} /> Where should we send your video?
               </p>
-              {errors.concern && <p className="mb-1.5 text-[10px] text-red-500">{errors.concern}</p>}
-              <div className="mb-2.5 flex flex-wrap gap-1.5 sm:gap-2">
-                {CONCERN_CHIPS.map((chip) => {
-                  const selected = selectedConcerns.includes(chip)
-                  return (
-                    <motion.button
-                      key={chip}
-                      type="button"
-                      onClick={() => toggleConcern(chip)}
-                      aria-pressed={selected}
-                      whileTap={{ scale: 0.95 }}
-                      className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4a052]/50 sm:text-xs ${
-                        selected
-                          ? "border-[#c4a052] bg-[#c4a052]/10 text-[#8a6d2f]"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#c4a052]/40 hover:text-zinc-900"
-                      }`}
-                    >
-                      {selected && <span className="mr-1 text-[#b8933f]">✓</span>}
-                      {chip}
-                    </motion.button>
-                  )
-                })}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                <InputField label="First Name" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
+                <InputField label="Last Name" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
               </div>
-              <textarea
-                value={form.concern}
-                onChange={(e) => updateField("concern", e.target.value)}
-                placeholder="Anything else you'd like Dr. Broome to know? (optional)"
-                className={`min-h-0 w-full flex-1 resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-400 transition-all duration-300 focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
-                rows={2}
-              />
+              <div className="mt-2.5 sm:mt-3">
+                <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" hint="Your video reply arrives here" />
+              </div>
+              <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
+                <InputField label="Mobile Phone" type="tel" value={form.phone} onChange={(v) => updateField("phone", v)} error={errors.phone} required autoComplete="tel" />
+                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={5} value={form.zip} onChange={(v) => updateField("zip", v.replace(/\D/g, "").slice(0, 5))} error={errors.zip} required autoComplete="postal-code" />
+              </div>
+              <div className="mt-2.5 sm:mt-3">
+                <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">How did you hear about us?</label>
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                  {REFERRAL_SOURCES.map((r) => {
+                    const selected = referralSource === r
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => { setReferralSource(selected ? "" : r); if (errors.referral) setErrors((p) => { const n = { ...p }; delete n.referral; return n }) }}
+                        className={`min-h-11 shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4a052]/50 sm:text-xs ${
+                          selected
+                            ? "border-[#c4a052] bg-[#c4a052]/10 text-[#8a6d2f]"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#c4a052]/40 hover:text-zinc-900"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    )
+                  })}
+                </div>
+                {referralSource === "Other" && (
+                  <input
+                    type="text"
+                    value={referralOther}
+                    onChange={(e) => { setReferralOther(e.target.value); if (errors.referral) setErrors((p) => { const n = { ...p }; delete n.referral; return n }) }}
+                    placeholder="Please tell us how"
+                    className="mt-2 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-[#c4a052]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c4a052]/10 sm:px-3 sm:py-2.5 sm:text-sm"
+                  />
+                )}
+                {errors.referral && <p className="mt-1 text-[10px] text-red-500">{errors.referral}</p>}
+              </div>
             </div>
 
             {/* Step 4 - Submit */}
