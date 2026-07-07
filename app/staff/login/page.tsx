@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { adminLogin } from "@/lib/api"
 
@@ -9,13 +9,22 @@ export default function StaffLoginPage() {
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    // Some password managers fill the field without firing a React-visible
+    // input event, leaving `password` state stale/empty while the box looks
+    // filled. Trust the live DOM value at submit time over stale state.
+    const livePassword = passwordRef.current?.value || password
+    if (!livePassword) {
+      setErr("Please enter your password.")
+      return
+    }
     setBusy(true)
     setErr(null)
     try {
-      await adminLogin(password)
+      await adminLogin(livePassword)
       let dest = "/staff"
       if (typeof window !== "undefined") {
         const rt = new URLSearchParams(window.location.search).get("returnTo")
@@ -48,10 +57,20 @@ export default function StaffLoginPage() {
           <label className="block">
             <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">Staff password</span>
             <input
+              ref={passwordRef}
               type="password"
+              name="password"
+              autoComplete="current-password"
               value={password}
               autoFocus
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); if (err) setErr(null) }}
+              // Chrome/Safari autofill sometimes only signals via this animation,
+              // not a real input event — catch it and sync state either way.
+              onAnimationStart={(e) => {
+                // Only fires when the browser's own :-webkit-autofill rule (globals.css)
+                // applies this animation — i.e. exactly when autofill happens.
+                if (e.animationName === "autofill-detect" && passwordRef.current) setPassword(passwordRef.current.value)
+              }}
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-[var(--k-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--k-accent-soft)]"
               placeholder="••••••••"
             />
@@ -61,7 +80,7 @@ export default function StaffLoginPage() {
 
           <button
             type="submit"
-            disabled={busy || !password}
+            disabled={busy}
             className="flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-50"
             style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}
           >

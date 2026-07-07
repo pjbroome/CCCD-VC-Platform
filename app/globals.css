@@ -177,3 +177,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Detect browser/password-manager autofill even when it skips the normal
+   input event, so React state (and any button gated on it) stays in sync. */
+@keyframes autofill-detect {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+input:-webkit-autofill {
+  animation-name: autofill-detect;
+}
