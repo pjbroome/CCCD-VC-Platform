@@ -501,19 +501,19 @@ export function VCIntake() {
           {/* Card 1 — details */}
           <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
             <p className="mb-3 flex items-center text-sm font-semibold text-zinc-900">
-              <StepBadge n={1} done={infoDone} /> Your details
+              <StepBadge n={1} done={infoDone} /> Step 1 · Your details
             </p>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              <InputField label="First Name" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
-              <InputField label="Last Name" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
+              <InputField label="First Name" placeholder="First" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
+              <InputField label="Last Name" placeholder="Last" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
             </div>
             <div className="mt-2.5 sm:mt-3">
-              <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
+              <InputField label="Email" type="email" placeholder="you@email.com" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
-              <InputField label="Mobile Phone" type="tel" inputMode="tel" maxLength={14} value={form.phone} onChange={(v) => updateField("phone", formatPhone(v))} error={errors.phone} required autoComplete="tel" />
+              <InputField label="Mobile Phone" type="tel" inputMode="tel" maxLength={14} placeholder="(704) 555-1234" value={form.phone} onChange={(v) => updateField("phone", formatPhone(v))} error={errors.phone} required autoComplete="tel" />
               <div>
-                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={10} value={form.zip} onChange={(v) => updateField("zip", formatZip(v))} error={errors.zip} required autoComplete="postal-code" />
+                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={10} placeholder="28211" value={form.zip} onChange={(v) => updateField("zip", formatZip(v))} error={errors.zip} required autoComplete="postal-code" />
                 {zipConfirmed && !errors.zip && (
                   <p className="mt-0.5 text-[10px] font-medium text-zinc-500 sm:text-[11px]">{zipConfirmed}</p>
                 )}
@@ -524,7 +524,7 @@ export function VCIntake() {
           {/* Card 2 — goals */}
           <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
             <p className="mb-2.5 flex items-center text-sm font-semibold text-zinc-900">
-              <StepBadge n={2} done={concernSatisfied} /> What would you love to change?
+              <StepBadge n={2} done={concernSatisfied} /> Step 2 · What would you love to change?
             </p>
             {errors.concern && <p className="mb-1.5 text-[10px] text-red-500">{errors.concern}</p>}
             <div className="mb-2.5 flex flex-wrap gap-1.5 sm:gap-2">
@@ -561,7 +561,7 @@ export function VCIntake() {
           {/* Card 3 — photos */}
           <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
             <p className="mb-2.5 flex items-center text-sm font-semibold text-zinc-900">
-              <StepBadge n={3} done={photosDone} /> Add your photos
+              <StepBadge n={3} done={photosDone} /> Step 3 · Add your photos
             </p>
             {errors.photos && <p className="mb-2 text-[10px] text-red-500">{errors.photos}</p>}
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -675,7 +675,7 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
 }
 
 function InputField({
-  label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength,
+  label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength, placeholder,
 }: {
   label: string
   value: string
@@ -686,6 +686,7 @@ function InputField({
   autoComplete?: string
   inputMode?: "text" | "numeric" | "tel" | "email" | "url" | "search" | "none" | "decimal"
   maxLength?: number
+  placeholder?: string
 }) {
   return (
     <div>
@@ -699,7 +700,8 @@ function InputField({
         autoComplete={autoComplete}
         inputMode={inputMode}
         maxLength={maxLength}
-        className={`w-full rounded-lg border bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+        placeholder={placeholder}
+        className={`w-full rounded-lg border bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
       />
       {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
     </div>
