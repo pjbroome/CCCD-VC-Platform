@@ -18,6 +18,8 @@ export const TURNSTILE_ENABLED = !!SITE_KEY
 export interface TurnstileHandle {
   /** Re-run the challenge to mint a fresh token (tokens expire after ~5 min). */
   reset: () => void
+  /** Diagnostic snapshot for precise, honest error messages. */
+  getStatus: () => { scriptLoaded: boolean; rendered: boolean; lastError?: string }
 }
 
 /**
@@ -28,6 +30,8 @@ export interface TurnstileHandle {
 export const Turnstile = forwardRef<TurnstileHandle, { onToken: (token: string) => void }>(function Turnstile({ onToken }, handle) {
   const ref = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
+  const lastError = useRef<string | undefined>(undefined)
+  const retried = useRef(false)
 
   useImperativeHandle(handle, () => ({
     reset: () => {
@@ -35,6 +39,11 @@ export const Turnstile = forwardRef<TurnstileHandle, { onToken: (token: string) 
         try { window.turnstile.reset(widgetId.current) } catch { /* ignore */ }
       }
     },
+    getStatus: () => ({
+      scriptLoaded: typeof window !== "undefined" && !!window.turnstile,
+      rendered: !!widgetId.current,
+      lastError: lastError.current,
+    }),
   }), [])
 
   useEffect(() => {
@@ -51,7 +60,21 @@ export const Turnstile = forwardRef<TurnstileHandle, { onToken: (token: string) 
         appearance: "interaction-only",
         callback: (t: string) => onToken(t),
         "expired-callback": () => onToken(""),
-        "error-callback": () => onToken(""),
+        "error-callback": (code?: string) => {
+          lastError.current = String(code ?? "unknown")
+          onToken("")
+          // One automatic re-render — transient network hiccups recover on retry.
+          if (!retried.current && ref.current && window.turnstile) {
+            retried.current = true
+            setTimeout(() => {
+              try {
+                if (widgetId.current) window.turnstile!.remove(widgetId.current)
+                widgetId.current = null
+                render()
+              } catch { /* ignore */ }
+            }, 1500)
+          }
+        },
       })
     }
 

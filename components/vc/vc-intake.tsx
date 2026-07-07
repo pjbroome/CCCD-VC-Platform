@@ -426,7 +426,19 @@ export function VCIntake() {
 
       setSubmitState("submitting")
       if (TURNSTILE_ENABLED && !token) {
-        setErrors({ submit: "Our security check didn't load. Please refresh the page and try again — your photos are fine to re-select." })
+        const st = turnstileRef.current?.getStatus()
+        console.error("Turnstile diagnostic:", st)
+        let msg = "Our security check could not complete. Please refresh the page and try again — your photos are saved."
+        if (st?.lastError?.startsWith("110200")) {
+          msg = "This page address is not authorized for our security check. Please open the form from the official link and try again — your photos are saved."
+        } else if (!st?.scriptLoaded) {
+          msg = "An ad-blocker or privacy filter is blocking our security check. Please pause it for this page (or try another browser), then press Submit again — your photos are saved."
+        } else if (st?.rendered && !st?.lastError) {
+          msg = "Please complete the quick security check just above the Submit button, then press Submit again."
+        } else if (st?.lastError) {
+          msg = `Our security check hit a snag (code ${st.lastError}). Please refresh and try again — your photos are saved.`
+        }
+        setErrors({ submit: msg })
         setSubmitState("error")
         return
       }
