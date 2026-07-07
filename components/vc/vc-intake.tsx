@@ -765,7 +765,7 @@ export function VCIntake() {
             </div>
             <h2 className="mb-3 mt-1.5 text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">Add your photos</h2>
             {errors.photos && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mb-2 text-xs text-red-600">{errors.photos}</motion.p>}
-            <div className="grid grid-cols-[16fr_25fr] gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 items-center gap-2.5 sm:gap-3">
               <UploadCard
                 label="Full Face Selfie"
                 variant="face"
@@ -1014,8 +1014,8 @@ function UploadCard({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   // Faces are portraits, smiles are wide — shape each frame to the photo it's
-  // asking for. The 4:5 / 5:4 pair on a 16:25 column split renders both boxes
-  // the exact same height, so the row reads balanced.
+  // asking for. Equal columns + the smile centered beside the taller selfie
+  // keep the pair balanced without letting either frame dominate.
   const aspect = variant === "face" ? "aspect-[4/5]" : "aspect-[5/4]"
 
   if (slot) {
