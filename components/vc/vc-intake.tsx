@@ -52,7 +52,7 @@ const CONCERN_CHIPS = [
   "Straighter teeth",
   "Fix a chip or gap",
   "Replace old crowns or veneers",
-  "Not sure — show me my options",
+  "Other — I'll explain",
 ]
 
 // A picked photo survives reloads: we keep a compressed preview + the
@@ -67,7 +67,16 @@ interface PhotoSlot {
 
 const PHOTOS_KEY = "vc-photos-v1"
 const SUBMITTED_KEY = "vc-submitted-v1"
-const NOT_SURE = "Not sure — show me my options"
+const OTHER = "Other — I'll explain"
+
+// The free-text answer flows into AI-assisted review downstream, so treat it
+// as untrusted: hard length cap + strip control/invisible characters that
+// pasted text could use to smuggle hidden instructions.
+const CONCERN_MAX = 300
+const sanitizeConcern = (raw: string) =>
+  raw
+    .replace(/[\u0000-\u0009\u000B-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, "")
+    .slice(0, CONCERN_MAX)
 
 const dataURLtoFile = (dataUrl: string, name: string): File => {
   const [head, body] = dataUrl.split(",")
@@ -336,10 +345,10 @@ export function VCIntake() {
   const toggleConcern = useCallback((chip: string) => {
     setSelectedConcerns((prev) => {
       if (prev.includes(chip)) return prev.filter((c) => c !== chip)
-      // "Not sure" stands alone: it clears the others, and picking any
-      // specific wish clears "Not sure".
-      if (chip === NOT_SURE) return [NOT_SURE]
-      return [...prev.filter((c) => c !== NOT_SURE), chip]
+      // "Other" stands alone: it clears the others, and picking any
+      // specific wish clears "Other".
+      if (chip === OTHER) return [OTHER]
+      return [...prev.filter((c) => c !== OTHER), chip]
     })
     setErrors((prev) => {
       if (!prev.concern) return prev
@@ -349,8 +358,8 @@ export function VCIntake() {
     })
   }, [])
 
-  const notSureNeedsDetail = selectedConcerns.includes(NOT_SURE) && form.concern.trim().length === 0
-  const concernSatisfied = (selectedConcerns.length > 0 || form.concern.trim().length > 0) && !notSureNeedsDetail
+  const otherNeedsDetail = selectedConcerns.includes(OTHER) && form.concern.trim().length === 0
+  const concernSatisfied = (selectedConcerns.length > 0 || form.concern.trim().length > 0) && !otherNeedsDetail
 
   // Goal-gradient progress: arriving counts as the first step, so the meter
   // never reads zero. Seven milestones fill the remaining 80%.
@@ -395,8 +404,8 @@ export function VCIntake() {
     } else if (zipRejected) {
       e.zip = "That zip code doesn't match a real US location"
     }
-    if (notSureNeedsDetail) {
-      e.concern = "Tell us a little more so Dr. Broome can show you the right options"
+    if (otherNeedsDetail) {
+      e.concern = "Tell us a little about what you'd like to change"
     } else if (!concernSatisfied) {
       e.concern = "Tap what you'd like to change — or tell us in your own words"
     }
@@ -446,7 +455,7 @@ export function VCIntake() {
       }
 
       // Chips + free text combine into the single concern field the backend expects.
-      const concernText = [selectedConcerns.join(" · "), form.concern.trim()]
+      const concernText = [selectedConcerns.join(" · "), sanitizeConcern(form.concern).trim()]
         .filter(Boolean)
         .join(" — ")
 
@@ -672,11 +681,15 @@ export function VCIntake() {
             </div>
             <textarea
               value={form.concern}
-              onChange={(e) => updateField("concern", e.target.value)}
+              onChange={(e) => updateField("concern", sanitizeConcern(e.target.value))}
               placeholder="Tell us more"
-              className={`w-full resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-300 transition-all duration-300 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+              maxLength={CONCERN_MAX}
+              className={`w-full resize-none rounded-xl border bg-white px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all duration-300 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
               rows={2}
             />
+            {form.concern.length >= CONCERN_MAX - 60 && (
+              <p className="mt-1 text-right text-[10px] text-zinc-400">{CONCERN_MAX - form.concern.length} characters left</p>
+            )}
           </motion.section>
 
           {/* Card 3 — photos */}
@@ -813,7 +826,7 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-[10px] font-medium text-zinc-500 sm:text-xs">
+      <label className="mb-1 block text-[10px] font-medium text-zinc-600 sm:text-xs">
         {label}{required && <span className="ml-0.5 text-red-400">*</span>}
       </label>
       <input
@@ -824,7 +837,7 @@ function InputField({
         inputMode={inputMode}
         maxLength={maxLength}
         placeholder={placeholder}
-        className={`w-full rounded-lg border bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+        className={`w-full rounded-lg border bg-white px-2.5 py-2 text-xs text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
       />
       {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
     </div>
