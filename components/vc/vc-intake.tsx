@@ -473,11 +473,11 @@ export function VCIntake() {
                     whileTap={{ scale: 0.95 }}
                     className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 sm:text-xs ${
                       selected
-                        ? "border-white/20 bg-gradient-to-b from-zinc-700/90 to-zinc-950/95 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_6px_16px_-6px_rgba(0,0,0,0.45)] backdrop-blur-md"
+                        ? "border-[#c4a052]/70 bg-gradient-to-b from-zinc-700/95 via-zinc-900 to-[#26211a] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.30),inset_0_-1px_0_rgba(196,160,82,0.35),0_6px_18px_-6px_rgba(38,33,26,0.55)] backdrop-blur-md"
                         : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
                     }`}
                   >
-                    {selected && <span className="mr-1 text-white/80">✓</span>}
+                    {selected && <span className="mr-1 text-[#e6c87a]">✓</span>}
                     {chip}
                   </motion.button>
                 )
@@ -643,26 +643,50 @@ function InputField({
 function FaceSketch() {
   return (
     <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true">
-      {/* viewfinder corner brackets */}
-      <g stroke="#d4d4d8" strokeWidth="3" fill="none" strokeLinecap="round">
+      <defs>
+        <linearGradient id="fsHair" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#6b4a32" /><stop offset="1" stopColor="#4a2f1d" />
+        </linearGradient>
+        <linearGradient id="fsSkin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f9dfc4" /><stop offset="1" stopColor="#f0c8a4" />
+        </linearGradient>
+        <linearGradient id="fsTop" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fdfbf6" /><stop offset="1" stopColor="#ece4d2" />
+        </linearGradient>
+      </defs>
+      {/* gold viewfinder brackets */}
+      <g stroke="#c4a052" strokeWidth="3" fill="none" strokeLinecap="round">
         <path d="M14 26 V14 H26" /><path d="M134 14 H146 V26" />
         <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
       </g>
-      {/* friendly face */}
-      <g stroke="#52525b" strokeWidth="2.5" fill="none" strokeLinecap="round">
-        <ellipse cx="80" cy="52" rx="24" ry="27" />
-        {/* hair sweep */}
-        <path d="M56 44 C58 26 102 22 104 44 C96 36 66 34 56 44 Z" fill="#52525b" stroke="none" />
-        {/* eyes */}
-        <circle cx="71" cy="52" r="2.2" fill="#52525b" stroke="none" />
-        <circle cx="89" cy="52" r="2.2" fill="#52525b" stroke="none" />
-        {/* smile */}
-        <path d="M70 63 Q80 72 90 63" />
-        {/* shoulders */}
-        <path d="M48 104 C56 88 104 88 112 104" />
+      {/* soft ground shadow */}
+      <ellipse cx="80" cy="102" rx="30" ry="4" fill="#d9d2c2" opacity="0.5" />
+      {/* shoulders / top */}
+      <path d="M46 104 C52 86 64 82 80 82 C96 82 108 86 114 104 Z" fill="url(#fsTop)" stroke="#d3c9b4" strokeWidth="1.5" />
+      {/* neck */}
+      <path d="M72 70 H88 V84 C88 89 72 89 72 84 Z" fill="url(#fsSkin)" />
+      {/* face */}
+      <ellipse cx="80" cy="50" rx="23" ry="26" fill="url(#fsSkin)" />
+      {/* hair sweep */}
+      <path d="M55 52 C52 24 74 18 84 19 C102 20 108 34 105 52 C104 42 100 36 96 35 C90 33 88 38 80 37 C70 36 62 40 60 46 C58 50 56 52 55 52 Z" fill="url(#fsHair)" />
+      {/* happy closed eyes */}
+      <g stroke="#5b4232" strokeWidth="2.4" fill="none" strokeLinecap="round">
+        <path d="M66 51 Q70 47 74 51" /><path d="M86 51 Q90 47 94 51" />
       </g>
-      {/* gold sparkle */}
-      <path d="M124 30 l2.6 6.4 6.4 2.6 -6.4 2.6 -2.6 6.4 -2.6 -6.4 -6.4 -2.6 6.4 -2.6 Z" fill="#c4a052" />
+      {/* brows */}
+      <g stroke="#6b4a32" strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.7">
+        <path d="M65 44 Q70 41.5 75 44" /><path d="M85 44 Q90 41.5 95 44" />
+      </g>
+      {/* blush */}
+      <circle cx="66" cy="59" r="3.4" fill="#f2a58d" opacity="0.5" />
+      <circle cx="94" cy="59" r="3.4" fill="#f2a58d" opacity="0.5" />
+      {/* warm smile with teeth hint */}
+      <path d="M70 62 Q80 71 90 62 Q85 69.5 80 69.5 Q75 69.5 70 62 Z" fill="#ffffff" stroke="#c26a5a" strokeWidth="1.8" strokeLinejoin="round" />
+      {/* gold earring */}
+      <circle cx="57" cy="58" r="1.8" fill="#c4a052" />
+      {/* sparkles */}
+      <path d="M122 28 l2.8 6.8 6.8 2.8 -6.8 2.8 -2.8 6.8 -2.8 -6.8 -6.8 -2.8 6.8 -2.8 Z" fill="#c4a052" />
+      <path d="M36 40 l1.6 3.8 3.8 1.6 -3.8 1.6 -1.6 3.8 -1.6 -3.8 -3.8 -1.6 3.8 -1.6 Z" fill="#e2cd9b" />
     </svg>
   )
 }
@@ -670,21 +694,37 @@ function FaceSketch() {
 function SmileSketch() {
   return (
     <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true">
-      <g stroke="#d4d4d8" strokeWidth="3" fill="none" strokeLinecap="round">
+      <defs>
+        <linearGradient id="ssLips" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#e0596b" /><stop offset="1" stopColor="#b93a52" />
+        </linearGradient>
+        <linearGradient id="ssTeeth" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#eef0f2" />
+        </linearGradient>
+      </defs>
+      <g stroke="#c4a052" strokeWidth="3" fill="none" strokeLinecap="round">
         <path d="M14 26 V14 H26" /><path d="M134 14 H146 V26" />
         <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
       </g>
-      {/* big smile with teeth */}
-      <g strokeLinecap="round">
-        <path d="M46 44 Q80 34 114 44 Q106 84 80 84 Q54 84 46 44 Z" fill="#ffffff" stroke="#52525b" strokeWidth="2.5" />
-        {/* upper teeth row */}
-        <path d="M50 46 Q80 38 110 46 L107 58 Q80 50 53 58 Z" fill="#fafafa" stroke="#a1a1aa" strokeWidth="1.4" />
-        <g stroke="#a1a1aa" strokeWidth="1.4">
-          <path d="M62 42.5 L62 55" /><path d="M74 40.5 L74 52.5" /><path d="M86 40.5 L86 52.5" /><path d="M98 42.5 L98 55" />
-        </g>
+      {/* outer lips */}
+      <path d="M44 50 Q58 38 80 41 Q102 38 116 50 Q108 84 80 86 Q52 84 44 50 Z" fill="url(#ssLips)" />
+      {/* lip highlight */}
+      <path d="M56 46 Q80 39 104 46 Q92 42 80 43 Q68 42 56 46 Z" fill="#ffffff" opacity="0.35" />
+      {/* mouth interior */}
+      <path d="M50 52 Q80 46 110 52 Q102 76 80 78 Q58 76 50 52 Z" fill="#7e2438" />
+      {/* upper teeth */}
+      <path d="M52 52 Q80 46.5 108 52 L104 63 Q80 56.5 56 63 Z" fill="url(#ssTeeth)" />
+      {/* lower teeth */}
+      <path d="M60 70 Q80 75 100 70 Q92 76.5 80 77 Q68 76.5 60 70 Z" fill="url(#ssTeeth)" opacity="0.92" />
+      {/* teeth separators */}
+      <g stroke="#c9ced4" strokeWidth="1.3" strokeLinecap="round">
+        <path d="M64 49.5 L66.5 60.5" /><path d="M75 48 L76 58.5" /><path d="M85 48 L84 58.5" /><path d="M96 49.5 L93.5 60.5" />
       </g>
-      {/* sparkle ting on a tooth */}
-      <path d="M68 34 l2.4 5.8 5.8 2.4 -5.8 2.4 -2.4 5.8 -2.4 -5.8 -5.8 -2.4 5.8 -2.4 Z" fill="#c4a052" />
+      {/* gleam ting on tooth */}
+      <path d="M70 40 l2.6 6.2 6.2 2.6 -6.2 2.6 -2.6 6.2 -2.6 -6.2 -6.2 -2.6 6.2 -2.6 Z" fill="#c4a052" />
+      <g stroke="#e2cd9b" strokeWidth="1.6" strokeLinecap="round">
+        <path d="M118 34 L124 28" /><path d="M121 40 L128 38" />
+      </g>
     </svg>
   )
 }
