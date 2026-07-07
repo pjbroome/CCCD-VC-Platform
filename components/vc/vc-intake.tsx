@@ -365,12 +365,14 @@ export function VCIntake() {
   ]
   const completed = milestones.filter(Boolean).length
   const progressPct = Math.round(20 + (completed / milestones.length) * 80)
-  const remaining = milestones.length - completed
-  const progressLabel =
-    remaining === 0 ? "Ready to send" : completed === 0 ? "Started" : remaining === 1 ? "1 step left" : `${remaining} steps left`
 
   const infoDone = milestones[0] && milestones[1] && milestones[2] && milestones[3]
   const photosDone = !!fullFace && !!closeUp
+  // The label counts the 3 promised steps (header says "3 easy steps"),
+  // while the bar itself fills per field for smoother goal-gradient feedback.
+  const stepsLeft = [infoDone, concernSatisfied, photosDone].filter((done) => !done).length
+  const progressLabel =
+    stepsLeft === 0 ? "Ready to send" : stepsLeft === 1 ? "1 step left" : `${stepsLeft} steps left`
 
   const validate = (): FormErrors => {
     const e: FormErrors = {}
