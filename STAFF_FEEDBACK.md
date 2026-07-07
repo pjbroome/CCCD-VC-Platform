@@ -60,6 +60,7 @@ Feedback → fix, all verified live:
 - Input fields were washed out on white (Patrick 2026-07-07): borders zinc-200→zinc-400, white field bg + inset shadow ("well" look), placeholders + labels one shade darker — verified desktop + mobile
 - "Not sure — show me my options" → **"Other — I'll explain"** (same behavior: exclusive, requires a note in the text box)
 - Free-text box hardened against prompt injection: 300-char hard cap (maxLength + JS + submit-time), control/invisible/bidi characters stripped (the text feeds AI-assisted review downstream); tiny "N characters left" counter appears near the limit
+- Unselected chips lifted off the card (Patrick 2026-07-07): white pill + zinc-300 border + soft drop shadow — raised "tap me" buttons, deliberately opposite to the sunken input wells; hover darkens border + deepens shadow
 
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.

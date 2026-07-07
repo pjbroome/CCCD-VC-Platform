@@ -670,7 +670,7 @@ export function VCIntake() {
                     className={`flex min-h-11 w-full items-center justify-center rounded-full border px-3 py-2 text-center text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 sm:text-xs ${
                       selected
                         ? "border-[#c4a052]/70 bg-gradient-to-b from-zinc-700/95 via-zinc-900 to-[#26211a] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.30),inset_0_-1px_0_rgba(196,160,82,0.35),0_6px_18px_-6px_rgba(38,33,26,0.55)] backdrop-blur-md"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+                        : "border-zinc-300 bg-white text-zinc-700 shadow-[0_1px_3px_rgba(0,0,0,0.12),0_2px_6px_-2px_rgba(0,0,0,0.08)] hover:border-zinc-500 hover:text-zinc-900 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.18)]"
                     }`}
                   >
                     {selected && <span className="mr-1 text-[#e6c87a]">✓</span>}
