@@ -44,6 +44,12 @@ Feedback → fix, all verified live:
 - "Remove text under CTA; big green Submit" → big emerald **Submit** button, zero copy beneath
 - "Gold alone looks cheap; more interesting color" → **deep emerald primary + ivory atmosphere**, gold reduced to one hairline accent under the title
 
+## Owner feedback round 2 (Patrick, 2026-07-06) — SHIPPED to preview
+- Subline now reads exactly "3 easy steps"
+- "Whiter smile" chip pre-selected (form arrives with one answer already given — progress starts at 31%)
+- Extra photos hidden behind an "+ Add · optional" button; tapping reveals a clean 4-slot grid (section 3 stays minimal)
+- Color now has meaning: green = GO only (Submit, progress, done-checks) · ink = selections · neutral chrome elsewhere · single gold hairline
+
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.
 - Claude's own orphan test PNG was removed 2026-07-05; all remaining photos are referenced by live requests.
