@@ -1014,9 +1014,9 @@ function UploadCard({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   // Faces are portraits, smiles are wide — shape each frame to the photo it's
-  // asking for. Equal columns + the smile centered beside the taller selfie
-  // keep the pair balanced without letting either frame dominate.
-  const aspect = variant === "face" ? "aspect-[4/5]" : "aspect-[5/4]"
+  // asking for. Equal columns + the smile centered beside the slightly-taller
+  // selfie keep the pair balanced; 7:8 hugs the gold viewfinder sketch tighter.
+  const aspect = variant === "face" ? "aspect-[7/8]" : "aspect-[5/4]"
 
   if (slot) {
     return (
