@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { uploadPhoto, createVCRequest } from "@/lib/api"
 import { Turnstile, TURNSTILE_ENABLED } from "@/components/vc/Turnstile"
 import type { TurnstileHandle } from "@/components/vc/Turnstile"
@@ -168,6 +168,7 @@ export function VCIntake() {
   // Real-ZIP check via the free Zippopotam lookup. Fails OPEN on network
   // problems — a directory outage must never block a patient.
   const [zipInfo, setZipInfo] = useState<{ zip5: string; status: "valid" | "invalid" | "unknown"; place?: string }>({ zip5: "", status: "unknown" })
+  const prefersReducedMotion = useReducedMotion()
 
   // Turnstile tokens expire after ~5 min — longer than a careful patient takes to
   // fill this form. Track the latest token + its age in refs so we can mint a
@@ -583,13 +584,15 @@ export function VCIntake() {
           </p>
         </motion.div>
 
-        {/* Progress — arriving counts as the first step, so it never reads 0% */}
+        {/* Progress — arriving counts as the first step, so it never reads 0%.
+            The fill reveals a fixed ink→gold→emerald spectrum (counter-scale keeps
+            it from squishing): the bar literally reaches GO-green as you finish. */}
         <motion.div variants={fadeIn} className="mb-3.5">
           <div className="mb-1.5 flex items-baseline justify-between px-1">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 sm:text-[11px]">
               Your consultation
             </span>
-            <span className="text-[11px] font-semibold text-zinc-700 sm:text-xs">
+            <span className={`text-[11px] font-semibold transition-colors duration-500 sm:text-xs ${stepsLeft === 0 ? "text-emerald-700" : "text-zinc-700"}`}>
               {progressPct}% · {progressLabel}
             </span>
           </div>
@@ -599,12 +602,30 @@ export function VCIntake() {
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Consultation request progress"
-            className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/70"
+            className={`h-2 w-full overflow-hidden rounded-full bg-zinc-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] transition-shadow duration-700 ${stepsLeft === 0 ? "shadow-[inset_0_1px_2px_rgba(0,0,0,0.06),0_0_14px_-2px_rgba(4,120,87,0.55)]" : ""}`}
           >
             <div
-              className="h-full origin-left rounded-full bg-gradient-to-r from-zinc-800 to-zinc-500 transition-transform duration-500 ease-out motion-reduce:transition-none"
+              className="h-full origin-left overflow-hidden rounded-full transition-transform duration-700 ease-out motion-reduce:transition-none"
               style={{ transform: `scaleX(${progressPct / 100})` }}
-            />
+            >
+              <div
+                className="relative h-full w-full origin-left transition-transform duration-700 ease-out motion-reduce:transition-none"
+                style={{
+                  transform: `scaleX(${100 / progressPct})`,
+                  background: "linear-gradient(90deg, #27272a 0%, #6b5a35 22%, #c4a052 40%, #e6c87a 55%, #34b389 78%, #047857 100%)",
+                }}
+              >
+                {!prefersReducedMotion && (
+                  <motion.div
+                    aria-hidden="true"
+                    className="absolute inset-0"
+                    style={{ background: "linear-gradient(90deg, transparent 42%, rgba(255,255,255,0.35) 50%, transparent 58%)" }}
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </motion.div>
 
