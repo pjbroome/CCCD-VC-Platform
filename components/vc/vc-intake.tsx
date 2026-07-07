@@ -765,7 +765,7 @@ export function VCIntake() {
             </div>
             <h2 className="mb-3 mt-1.5 text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">Add your photos</h2>
             {errors.photos && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mb-2 text-xs text-red-600">{errors.photos}</motion.p>}
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
               <UploadCard
                 label="Full Face Selfie"
                 variant="face"
@@ -1013,18 +1013,24 @@ function UploadCard({
   onRotate: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  // Faces are portraits, smiles are wide — shape each frame to the photo it's
+  // asking for, so a normal phone shot lands without anything cropped away.
+  const aspect = variant === "face" ? "aspect-[3/4]" : "aspect-[3/2]"
 
   if (slot) {
     return (
-      <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-zinc-300 bg-zinc-100 text-center sm:rounded-2xl">
+      <div className={`group relative ${aspect} w-full overflow-hidden rounded-xl border border-zinc-300 bg-zinc-100 text-center sm:rounded-2xl`}>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           className="absolute inset-0 cursor-pointer"
           aria-label={`${label} — tap to change`}
         >
+          {/* blurred self-backdrop fills the frame; the photo itself is contained, never cropped */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <motion.img key={slot.thumb} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} src={slot.thumb} alt={`${label} preview`} className="size-full object-cover" />
+          <img src={slot.thumb} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-110 object-cover opacity-50 blur-lg" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <motion.img key={slot.thumb} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} src={slot.thumb} alt={`${label} preview`} className="relative size-full object-contain" />
         </button>
         {/* check badge — the reward beat lands just after the photo settles */}
         <motion.span initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...spring, delay: 0.1 }} className="pointer-events-none absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-zinc-900/85 shadow-sm ring-1 ring-white/25 backdrop-blur">
@@ -1057,7 +1063,7 @@ function UploadCard({
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="group relative flex aspect-[4/3] w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-zinc-200 bg-gradient-to-b from-[#fbfaf6] to-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:border-zinc-400 hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.15)] active:scale-[0.97] sm:rounded-2xl"
+      className={`group relative flex ${aspect} w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-zinc-200 bg-gradient-to-b from-[#fbfaf6] to-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:border-zinc-400 hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.15)] active:scale-[0.97] sm:rounded-2xl`}
       aria-label={`${label} — tap to add`}
     >
       <span className="min-h-0 flex-1 pt-1">{variant === "face" ? <FaceSketch /> : <SmileSketch />}</span>

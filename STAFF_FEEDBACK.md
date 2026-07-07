@@ -67,6 +67,9 @@ Feedback → fix, all verified live:
   - Spacing rhythm: real gaps between cards (gap-5/6, p-5/7) — tight within units, wide between
   - Optional note now behind a "+ Add a note · optional" pill (last empty box gone); "Other — I'll explain" auto-opens + focuses it
   - Note pill collapses back on blur if left empty (Patrick 2026-07-07) — no lingering empty box; stays open if text is present or "Other" requires it
+  - Raw browser network errors ("Failed to fetch"/"Load failed") now translate to a human retry message; nothing entered is lost
+  - Photo frames shaped to their photo (Patrick 2026-07-07): Full Face = 3:4 portrait, Close-up Smile = 3:2 wide; uploaded photos auto-frame — full photo contained (never cropped) over a soft blurred self-backdrop that fills the frame. Verified portrait/wide/wrong-orientation cases + empty-state sketches, desktop + mobile
+  - Safari "not authorized" report resolved: that tab was on a non-allowlisted deployment-hash URL — the diagnostic layer named it correctly; official branch/production links work (verified live probe from Patrick's Chrome)
   - Dead-tap fixed: invalid submit scrolls to + focuses the first errored field (was a silent no-op); errors fade in
   - iOS zoom killed: 16px input text on mobile (~50px fields); 44px hit areas on rotate/remove buttons; extras thumbs size-16
   - Legibility: 9-10px micro-type raised to 11-12px, muted grays lifted one tone, "Dr. Patrick Broome · Charlotte, NC" footer now readable
