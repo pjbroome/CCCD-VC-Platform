@@ -232,12 +232,24 @@ export default function RequestDetail() {
           <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow label="Email" value={request.email} />
             <InfoRow label="Phone" value={request.phone} />
-            <InfoRow
-              label="Zip Code"
-              value={
-                [request.city, request.state].filter(Boolean).join(", ") || "—"
-              }
-            />
+            {(() => {
+              // The intake stores location in one field: "28202 — Charlotte, NC"
+              // when the zip resolved, or just the raw zip if it didn't.
+              const raw = (request.city || "").trim()
+              const [left, right] = raw.split(" — ")
+              const looksLikeZip = (s: string) => /^\d{5}(-\d{4})?$/.test(s.trim())
+              let zip = "", city = ""
+              if (right) { zip = left.trim(); city = right.trim() }
+              else if (looksLikeZip(raw)) { zip = raw }
+              else { city = raw }
+              if (request.state && !city.includes(request.state)) city = [city, request.state].filter(Boolean).join(", ")
+              return (
+                <>
+                  <InfoRow label="City" value={city || "—"} />
+                  <InfoRow label="Zip Code" value={zip || "—"} />
+                </>
+              )
+            })()}
             <InfoRow label="Submitted" value={formatDate(request.created_at || request.submitted_at)} />
             <InfoRow label="Last Updated" value={formatDate(request.updated_at)} />
             <InfoRow label="Referral Source" value={request.referral_source || "—"} />

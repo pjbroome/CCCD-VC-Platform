@@ -167,7 +167,7 @@ export function PhotoEditor({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4" onClick={() => { if (!saving) onClose() }}>
       <div
-        className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--k-line)] px-5 py-3">
@@ -183,7 +183,7 @@ export function PhotoEditor({
         <div
           ref={stageRef}
           className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950"
-          style={{ height: "min(64vh, 640px)", touchAction: "none", cursor: zoom > 1 ? (drag.current ? "grabbing" : "grab") : "zoom-in" }}
+          style={{ touchAction: "none", cursor: zoom > 1 ? (drag.current ? "grabbing" : "grab") : "zoom-in" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

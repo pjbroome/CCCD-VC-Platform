@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { listVCRequests, updateVCRequest, photoUrl, createVCRequest } from "@/lib/api"
 import type { VCRequestListItem } from "@/lib/api"
 import { PhotoEditor } from "@/components/vc/PhotoEditor"
@@ -58,6 +59,7 @@ function initials(req: VCRequestListItem): string {
 
 export default function StaffDashboard() {
   const { theme } = useTheme()
+  const router = useRouter()
   const [allRequests, setAllRequests] = useState<VCRequestListItem[]>([])
   const [activeFilter, setActiveFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
@@ -331,7 +333,11 @@ export default function StaffDashboard() {
                   </thead>
                   <tbody className="divide-y divide-[var(--k-line)]">
                     {filtered.map((req) => (
-                      <tr key={req.id} className="transition-colors hover:bg-zinc-50/70">
+                      <tr
+                        key={req.id}
+                        onClick={() => router.push(`/staff/${req.id}`)}
+                        className="cursor-pointer transition-colors hover:bg-zinc-50/70"
+                      >
                         <td className="px-4 py-3 font-mono text-xs text-zinc-400">#{req.id}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
@@ -342,10 +348,10 @@ export default function StaffDashboard() {
                                 className="shrink-0 cursor-zoom-in rounded-lg transition hover:ring-2 hover:ring-[var(--k-accent)]"
                                 title="View photos — zoom, rotate, download"
                               >
-                                <img src={photoUrl(req.photos[0])} alt="" className="size-9 rounded-lg object-cover ring-1 ring-[var(--k-line)]" />
+                                <img src={photoUrl(req.photos[0])} alt="" className="size-12 rounded-lg object-cover ring-1 ring-[var(--k-line)]" />
                               </button>
                             ) : (
-                              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
+                              <span className="flex size-12 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
                                 {initials(req)}
                               </span>
                             )}
@@ -361,7 +367,9 @@ export default function StaffDashboard() {
                         <td className="px-4 py-3">
                           <select
                             value={req.status}
+                            onClick={(e) => e.stopPropagation()}
                             onChange={async (e) => {
+                              e.stopPropagation()
                               try {
                                 await updateVCRequest(req.id, { status: e.target.value })
                                 await fetchRequests()
@@ -407,6 +415,7 @@ export default function StaffDashboard() {
                         <td className="px-4 py-3">
                           <Link
                             href={`/staff/${req.id}`}
+                            onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition hover:brightness-95"
                             style={{ background: "var(--k-accent-soft)", color: "var(--k-accent)" }}
                           >
