@@ -50,6 +50,13 @@ Feedback → fix, all verified live:
 - Extra photos hidden behind an "+ Add · optional" button; tapping reveals a clean 4-slot grid (section 3 stays minimal)
 - Color now has meaning: green = GO only (Submit, progress, done-checks) · ink = selections · neutral chrome elsewhere · single gold hairline
 
+## Owner feedback round 3 (Patrick, 2026-07-06) — SHIPPED to preview
+- Selection pills now smoked-glass (gradient + sheen + blur) instead of flat black
+- Green removed from everything except the Submit button (progress bar + badges + checks now ink)
+- Photo boxes replaced with fun line-art invitation cards: face-in-viewfinder sketch and sparkling-smile sketch (gold sparkle accents)
+- Extra photos: single "+ Add · optional" button that opens the picker directly — zero empty boxes on screen ever
+- Submit button sized to its word, centered
+
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.
 - Claude's own orphan test PNG was removed 2026-07-05; all remaining photos are referenced by live requests.
