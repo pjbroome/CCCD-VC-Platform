@@ -47,11 +47,11 @@ type SubmitState = "idle" | "uploading" | "submitting" | "success" | "error"
 // Selectable concern chips — tapping is far easier than composing an answer
 // from scratch, and the free-text box below stays available for nuance.
 const CONCERN_CHIPS = [
+  "Smile Upgrade",
   "Whiter smile",
   "Straighter teeth",
   "Fix a chip or gap",
   "Replace old crowns or veneers",
-  "Full smile makeover",
   "Not sure — show me my options",
 ]
 
@@ -146,9 +146,9 @@ export function VCIntake() {
     zip: "",
     concern: "",
   })
-  // "Whiter smile" pre-selected: the most common wish, and a smart default the
+  // "Smile Upgrade" pre-selected: the flagship wish, and a smart default the
   // patient can tap off — the form starts with one answer already given.
-  const [selectedConcerns, setSelectedConcerns] = useState<string[]>(["Whiter smile"])
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>(["Smile Upgrade"])
   const [fullFace, setFullFace] = useState<PhotoSlot | null>(null)
   const [closeUp, setCloseUp] = useState<PhotoSlot | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -646,7 +646,7 @@ export function VCIntake() {
               <StepBadge n={2} done={concernSatisfied} /> Step 2 · What would you love to change?
             </p>
             {errors.concern && <p className="mb-1.5 text-[10px] text-red-500">{errors.concern}</p>}
-            <div className="mb-2.5 flex flex-wrap gap-1.5 sm:gap-2">
+            <div className="mb-2.5 grid grid-cols-2 gap-2">
               {CONCERN_CHIPS.map((chip) => {
                 const selected = selectedConcerns.includes(chip)
                 return (
@@ -656,7 +656,7 @@ export function VCIntake() {
                     onClick={() => toggleConcern(chip)}
                     aria-pressed={selected}
                     whileTap={{ scale: 0.95 }}
-                    className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 sm:text-xs ${
+                    className={`flex min-h-11 w-full items-center justify-center rounded-full border px-3 py-2 text-center text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 sm:text-xs ${
                       selected
                         ? "border-[#c4a052]/70 bg-gradient-to-b from-zinc-700/95 via-zinc-900 to-[#26211a] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.30),inset_0_-1px_0_rgba(196,160,82,0.35),0_6px_18px_-6px_rgba(38,33,26,0.55)] backdrop-blur-md"
                         : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
