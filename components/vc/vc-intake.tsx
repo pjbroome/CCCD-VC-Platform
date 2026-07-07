@@ -733,6 +733,11 @@ export function VCIntake() {
                   ref={noteRef}
                   value={form.concern}
                   onChange={(e) => updateField("concern", sanitizeConcern(e.target.value))}
+                  onBlur={() => {
+                    // Left empty (or emptied) and not required by "Other" — collapse back to the pill
+                    // rather than leave an empty box on screen.
+                    if (form.concern.trim().length === 0 && !selectedConcerns.includes(OTHER)) setNoteOpen(false)
+                  }}
                   placeholder="Tell us more"
                   maxLength={CONCERN_MAX}
                   className={`w-full resize-none rounded-xl border bg-white px-3.5 py-3 text-base leading-relaxed text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all duration-300 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
