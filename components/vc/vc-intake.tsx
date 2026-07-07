@@ -56,8 +56,24 @@ const CONCERN_CHIPS = [
 ]
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_RE = /^[\d\s()+-]{7,20}$/
 const ZIP_RE = /^\d{5}$/
+
+const phoneDigits = (v: string) => {
+  let d = v.replace(/\D/g, "")
+  if (d.length === 11 && d.startsWith("1")) d = d.slice(1) // pasted +1 numbers
+  return d.slice(0, 10)
+}
+
+// Live-format as (704) 555-1234. The format never ends in a symbol, so
+// backspace always removes a real digit — no special deletion handling needed.
+const formatPhone = (raw: string): string => format10(phoneDigits(raw))
+
+const format10 = (d: string): string => {
+  if (d.length === 0) return ""
+  if (d.length < 4) return `(${d}`
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
+}
 
 // Palette: deep emerald primary + ivory atmosphere; gold demoted to a single
 // hairline accent so the page reads refined rather than gilded.
@@ -172,7 +188,7 @@ export function VCIntake() {
   const milestones = [
     form.firstName.trim().length > 0 && form.lastName.trim().length > 0,
     EMAIL_RE.test(form.email),
-    PHONE_RE.test(form.phone),
+    phoneDigits(form.phone).length === 10,
     ZIP_RE.test(form.zip.trim()),
     concernSatisfied,
     !!fullFace,
@@ -198,8 +214,8 @@ export function VCIntake() {
     }
     if (!form.phone.trim()) {
       e.phone = "Phone number is required"
-    } else if (!PHONE_RE.test(form.phone)) {
-      e.phone = "Please enter a valid phone number"
+    } else if (phoneDigits(form.phone).length !== 10) {
+      e.phone = "Enter a 10-digit phone number"
     }
     if (!form.zip.trim()) {
       e.zip = "Zip code is required"
@@ -450,7 +466,7 @@ export function VCIntake() {
               <InputField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
-              <InputField label="Mobile Phone" type="tel" value={form.phone} onChange={(v) => updateField("phone", v)} error={errors.phone} required autoComplete="tel" />
+              <InputField label="Mobile Phone" type="tel" inputMode="tel" maxLength={14} value={form.phone} onChange={(v) => updateField("phone", formatPhone(v))} error={errors.phone} required autoComplete="tel" />
               <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={5} value={form.zip} onChange={(v) => updateField("zip", v.replace(/\D/g, "").slice(0, 5))} error={errors.zip} required autoComplete="postal-code" />
             </div>
           </motion.section>
