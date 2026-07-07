@@ -73,7 +73,10 @@ export function VCIntake() {
     zip: "",
     concern: "",
   })
-  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([])
+  // "Whiter smile" pre-selected: the most common wish, and a smart default the
+  // patient can tap off — the form starts with one answer already given.
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>(["Whiter smile"])
+  const [showExtras, setShowExtras] = useState(false)
   const [fullFace, setFullFace] = useState<File | null>(null)
   const [closeUp, setCloseUp] = useState<File | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -328,7 +331,7 @@ export function VCIntake() {
           <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10">
-                <svg className="size-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="size-4 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
                 </svg>
               </div>
@@ -345,7 +348,8 @@ export function VCIntake() {
             onClick={() => {
               setSubmitState("idle")
               setForm({ firstName: "", lastName: "", email: "", phone: "", zip: "", concern: "" })
-              setSelectedConcerns([])
+              setSelectedConcerns(["Whiter smile"])
+              setShowExtras(false)
               setFullFace(null)
               setCloseUp(null)
               setExtras([])
@@ -385,7 +389,7 @@ export function VCIntake() {
           </h1>
           <div className="mx-auto mt-2 h-0.5 w-12 rounded-full bg-gradient-to-r from-[#c4a052] to-[#d4b062]" />
           <p className="mx-auto mt-2.5 max-w-sm text-xs leading-relaxed text-zinc-500 sm:text-sm">
-            {"Three easy steps — your personal video from Dr. Broome within 24 hours."}
+            {"3 easy steps"}
           </p>
         </motion.div>
 
@@ -435,7 +439,7 @@ export function VCIntake() {
 
         <div ref={formRef} className="flex flex-1 flex-col gap-3.5">
           {/* Card 1 — details */}
-          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(6,78,59,0.18)] ring-1 ring-zinc-950/[0.04] sm:p-5">
+          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
             <p className="mb-3 flex items-center text-sm font-semibold text-zinc-900">
               <StepBadge n={1} done={infoDone} /> Your details
             </p>
@@ -453,7 +457,7 @@ export function VCIntake() {
           </motion.section>
 
           {/* Card 2 — goals */}
-          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(6,78,59,0.18)] ring-1 ring-zinc-950/[0.04] sm:p-5">
+          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
             <p className="mb-2.5 flex items-center text-sm font-semibold text-zinc-900">
               <StepBadge n={2} done={concernSatisfied} /> What would you love to change?
             </p>
@@ -468,13 +472,13 @@ export function VCIntake() {
                     onClick={() => toggleConcern(chip)}
                     aria-pressed={selected}
                     whileTap={{ scale: 0.95 }}
-                    className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50 sm:text-xs ${
+                    className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 sm:text-xs ${
                       selected
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-900"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-emerald-600/40 hover:text-zinc-900"
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
                     }`}
                   >
-                    {selected && <span className="mr-1 text-emerald-600">✓</span>}
+                    {selected && <span className="mr-1 text-emerald-400">✓</span>}
                     {chip}
                   </motion.button>
                 )
@@ -484,13 +488,13 @@ export function VCIntake() {
               value={form.concern}
               onChange={(e) => updateField("concern", e.target.value)}
               placeholder="Anything else you'd like Dr. Broome to know? (optional)"
-              className={`w-full resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-400 transition-all duration-300 focus:border-emerald-600/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/10 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+              className={`w-full resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-400 transition-all duration-300 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
               rows={2}
             />
           </motion.section>
 
           {/* Card 3 — photos */}
-          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(6,78,59,0.18)] ring-1 ring-zinc-950/[0.04] sm:p-5">
+          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
             <p className="mb-2.5 flex items-center text-sm font-semibold text-zinc-900">
               <StepBadge n={3} done={photosDone} /> Add your photos
             </p>
@@ -531,28 +535,43 @@ export function VCIntake() {
               />
             </div>
             <div className="mt-3">
-              <p className="mb-1.5 text-[10px] font-medium text-zinc-500 sm:text-xs">Optional — add up to 4 more (different angles, retracted, side profile)</p>
-              <div className="flex flex-wrap items-center gap-2">
-                {extras.map((f, i) => (
-                  <div key={`${f.name}-${f.size}-${f.lastModified}`} className="relative size-16 overflow-hidden rounded-lg border border-zinc-200">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={extraPreviews[i]} alt="" className="size-full object-cover" />
-                    <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
+              {!showExtras ? (
+                <button
+                  type="button"
+                  onClick={() => setShowExtras(true)}
+                  className="flex min-h-11 items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[11px] font-medium text-zinc-700 transition-colors duration-200 hover:border-zinc-400 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/50 sm:text-xs"
+                >
+                  <span className="text-base leading-none">+</span>
+                  Add
+                  <span className="font-normal text-zinc-400">· optional</span>
+                </button>
+              ) : (
+                <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
+                  <p className="mb-1.5 text-[10px] font-medium text-zinc-500 sm:text-xs">Up to 4 more — different angles, retracted, side profile</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 1, 2, 3].map((i) =>
+                      extras[i] ? (
+                        <div key={`${extras[i].name}-${extras[i].size}-${extras[i].lastModified}`} className="relative aspect-square overflow-hidden rounded-lg border border-zinc-200">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={extraPreviews[i]} alt="" className="size-full object-cover" />
+                          <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
+                        </div>
+                      ) : (
+                        <label key={`empty-${i}`} className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-600">
+                          <span className="text-xl leading-none">+</span>
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+                            const all = Array.from(e.target.files || [])
+                            const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
+                            if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
+                            setExtras((p) => [...p, ...ok].slice(0, 4))
+                            e.currentTarget.value = ""
+                          }} />
+                        </label>
+                      )
+                    )}
                   </div>
-                ))}
-                {extras.length < 4 && (
-                  <label className="flex size-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 text-zinc-400 transition hover:border-emerald-600/50 hover:text-emerald-700">
-                    <span className="text-xl leading-none">+</span>
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                      const all = Array.from(e.target.files || [])
-                      const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
-                      if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
-                      setExtras((p) => [...p, ...ok].slice(0, 4))
-                      e.currentTarget.value = ""
-                    }} />
-                  </label>
-                )}
-              </div>
+                </motion.div>
+              )}
             </div>
           </motion.section>
 
@@ -615,7 +634,7 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
     )
   }
   return (
-    <span className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-emerald-700 text-[10px] font-bold text-white sm:size-6 sm:text-[11px]">
+    <span className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white sm:size-6 sm:text-[11px]">
       {n}
     </span>
   )
@@ -646,7 +665,7 @@ function InputField({
         autoComplete={autoComplete}
         inputMode={inputMode}
         maxLength={maxLength}
-        className={`w-full rounded-lg border bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-emerald-600/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/10 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+        className={`w-full rounded-lg border bg-zinc-50 px-2.5 py-2 text-xs text-zinc-900 transition-all focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
       />
       {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
     </div>
@@ -701,7 +720,7 @@ function UploadCard({
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-2 py-4 text-center transition-all duration-200 hover:border-emerald-600/30 hover:bg-emerald-600/[0.03] active:scale-[0.97] sm:rounded-2xl sm:px-3 sm:py-5"
+      className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-2 py-4 text-center transition-all duration-200 hover:border-zinc-400 hover:bg-zinc-100/60 active:scale-[0.97] sm:rounded-2xl sm:px-3 sm:py-5"
     >
       {file ? (
         <>
@@ -719,9 +738,9 @@ function UploadCard({
         </>
       ) : (
         <>
-          <div className="mb-1.5 flex size-8 items-center justify-center rounded-lg bg-emerald-600/8 transition-colors duration-200 group-hover:bg-emerald-600/12 sm:size-9">
+          <div className="mb-1.5 flex size-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors duration-200 group-hover:bg-zinc-200/70 sm:size-9">
             <svg
-              className="size-4 text-emerald-700"
+              className="size-4 text-zinc-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -734,7 +753,7 @@ function UploadCard({
           <span className="text-[10px] font-medium text-zinc-700 sm:text-xs">
             {label}
           </span>
-          <span className="mt-1 flex items-center gap-1 text-[9px] font-medium text-emerald-700 sm:text-[10px]">
+          <span className="mt-1 flex items-center gap-1 text-[9px] font-medium text-zinc-600 sm:text-[10px]">
             <svg
               className="size-2.5 sm:size-3"
               fill="none"
