@@ -66,6 +66,7 @@ Feedback → fix, all verified live:
   - Card headers re-ranked: STEP N overline + the human question as hero type (text-lg/xl) — the page scans instead of reading dense-utility
   - Spacing rhythm: real gaps between cards (gap-5/6, p-5/7) — tight within units, wide between
   - Optional note now behind a "+ Add a note · optional" pill (last empty box gone); "Other — I'll explain" auto-opens + focuses it
+  - Note pill collapses back on blur if left empty (Patrick 2026-07-07) — no lingering empty box; stays open if text is present or "Other" requires it
   - Dead-tap fixed: invalid submit scrolls to + focuses the first errored field (was a silent no-op); errors fade in
   - iOS zoom killed: 16px input text on mobile (~50px fields); 44px hit areas on rotate/remove buttons; extras thumbs size-16
   - Legibility: 9-10px micro-type raised to 11-12px, muted grays lifted one tone, "Dr. Patrick Broome · Charlotte, NC" footer now readable
