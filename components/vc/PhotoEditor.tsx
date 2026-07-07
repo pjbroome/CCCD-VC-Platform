@@ -220,23 +220,19 @@ export function PhotoEditor({
           )}
         </div>
 
-        <div className="space-y-3 px-5 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => rotateBy(-90)} className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200">
+        <div className="space-y-2.5 px-5 py-3.5">
+          {/* Compact icon bubbles, bottom-right under the photo: rotate ↺ ↻ · zoom − + */}
+          <div className="flex items-center justify-end gap-1.5">
+            <button onClick={() => rotateBy(-90)} title="Rotate left" className="relative flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition after:absolute after:-inset-1 after:content-[''] hover:bg-zinc-200 hover:text-zinc-900">
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>
-              Rotate left
             </button>
-            <button onClick={() => rotateBy(90)} className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200">
+            <button onClick={() => rotateBy(90)} title="Rotate right" className="relative flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition after:absolute after:-inset-1 after:content-[''] hover:bg-zinc-200 hover:text-zinc-900">
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" /></svg>
-              Rotate right
             </button>
-            <div className="ml-auto flex items-center gap-2">
-              <button onClick={() => setZoomSafe(zoom / 1.25)} className="flex size-7 items-center justify-center rounded-full bg-zinc-100 text-sm font-bold text-zinc-600 transition hover:bg-zinc-200" title="Zoom out">−</button>
-              <input type="range" min={ZOOM_MIN} max={ZOOM_MAX} step={0.1} value={zoom} onChange={(e) => setZoomSafe(Number(e.target.value))} className="w-28 accent-[var(--k-accent)] sm:w-32" title="Zoom" />
-              <button onClick={() => setZoomSafe(zoom * 1.25)} className="flex size-7 items-center justify-center rounded-full bg-zinc-100 text-sm font-bold text-zinc-600 transition hover:bg-zinc-200" title="Zoom in">+</button>
-            </div>
+            <span className="mx-1 h-4 w-px bg-zinc-200" aria-hidden="true" />
+            <button onClick={() => setZoomSafe(zoom / 1.25)} title="Zoom out" className="relative flex size-8 items-center justify-center rounded-full bg-zinc-100 text-base font-bold text-zinc-600 transition after:absolute after:-inset-1 after:content-[''] hover:bg-zinc-200 hover:text-zinc-900">−</button>
+            <button onClick={() => setZoomSafe(zoom * 1.25)} title="Zoom in" className="relative flex size-8 items-center justify-center rounded-full bg-zinc-100 text-base font-bold text-zinc-600 transition after:absolute after:-inset-1 after:content-[''] hover:bg-zinc-200 hover:text-zinc-900">+</button>
           </div>
-          <p className="text-[11px] text-zinc-400">Scroll or pinch to zoom · drag to move around · double-click to toggle zoom</p>
 
           {err && <p className="text-xs font-medium text-red-600">{err}</p>}
 
