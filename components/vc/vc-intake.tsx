@@ -76,7 +76,6 @@ export function VCIntake() {
   // "Whiter smile" pre-selected: the most common wish, and a smart default the
   // patient can tap off — the form starts with one answer already given.
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>(["Whiter smile"])
-  const [showExtras, setShowExtras] = useState(false)
   const [fullFace, setFullFace] = useState<File | null>(null)
   const [closeUp, setCloseUp] = useState<File | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -138,6 +137,7 @@ export function VCIntake() {
   useEffect(() => () => { extraPreviews.forEach((u) => URL.revokeObjectURL(u)) }, [extraPreviews])
 
   const formRef = useRef<HTMLDivElement>(null)
+  const extrasInputRef = useRef<HTMLInputElement>(null)
 
   const updateField = useCallback(
     <K extends keyof FormData>(key: K, value: FormData[K]) => {
@@ -349,7 +349,6 @@ export function VCIntake() {
               setSubmitState("idle")
               setForm({ firstName: "", lastName: "", email: "", phone: "", zip: "", concern: "" })
               setSelectedConcerns(["Whiter smile"])
-              setShowExtras(false)
               setFullFace(null)
               setCloseUp(null)
               setExtras([])
@@ -399,7 +398,7 @@ export function VCIntake() {
             <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 sm:text-[11px]">
               Your consultation
             </span>
-            <span className="text-[11px] font-semibold text-emerald-700 sm:text-xs">
+            <span className="text-[11px] font-semibold text-zinc-700 sm:text-xs">
               {progressPct}% · {progressLabel}
             </span>
           </div>
@@ -412,8 +411,8 @@ export function VCIntake() {
             className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/70"
           >
             <div
-              className="h-full origin-left rounded-full transition-transform duration-500 ease-out motion-reduce:transition-none"
-              style={{ transform: `scaleX(${progressPct / 100})`, backgroundImage: `linear-gradient(to right, ${EMERALD}, ${EMERALD_LIGHT})` }}
+              className="h-full origin-left rounded-full bg-gradient-to-r from-zinc-800 to-zinc-500 transition-transform duration-500 ease-out motion-reduce:transition-none"
+              style={{ transform: `scaleX(${progressPct / 100})` }}
             />
           </div>
         </motion.div>
@@ -474,11 +473,11 @@ export function VCIntake() {
                     whileTap={{ scale: 0.95 }}
                     className={`min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 sm:text-xs ${
                       selected
-                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        ? "border-white/20 bg-gradient-to-b from-zinc-700/90 to-zinc-950/95 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_6px_16px_-6px_rgba(0,0,0,0.45)] backdrop-blur-md"
                         : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
                     }`}
                   >
-                    {selected && <span className="mr-1 text-emerald-400">✓</span>}
+                    {selected && <span className="mr-1 text-white/80">✓</span>}
                     {chip}
                   </motion.button>
                 )
@@ -502,76 +501,45 @@ export function VCIntake() {
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               <UploadCard
                 label="Full Face Selfie"
+                variant="face"
                 file={fullFace}
                 preview={fullFacePreview}
                 onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setFullFace(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
-                icon={
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"
-                  />
-                }
-                icon2={
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"
-                  />
-                }
               />
               <UploadCard
                 label="Close-up Smile"
+                variant="smile"
                 file={closeUp}
                 preview={closeUpPreview}
                 onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setCloseUp(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
-                icon={
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z"
-                  />
-                }
               />
             </div>
-            <div className="mt-3">
-              {!showExtras ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {extras.map((f, i) => (
+                <div key={`${f.name}-${f.size}-${f.lastModified}`} className="relative size-14 overflow-hidden rounded-lg border border-zinc-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={extraPreviews[i]} alt="" className="size-full object-cover" />
+                  <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
+                </div>
+              ))}
+              {extras.length < 4 && (
                 <button
                   type="button"
-                  onClick={() => setShowExtras(true)}
+                  onClick={() => extrasInputRef.current?.click()}
                   className="flex min-h-11 items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[11px] font-medium text-zinc-700 transition-colors duration-200 hover:border-zinc-400 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/50 sm:text-xs"
                 >
                   <span className="text-base leading-none">+</span>
                   Add
                   <span className="font-normal text-zinc-400">· optional</span>
                 </button>
-              ) : (
-                <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
-                  <p className="mb-1.5 text-[10px] font-medium text-zinc-500 sm:text-xs">Up to 4 more — different angles, retracted, side profile</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[0, 1, 2, 3].map((i) =>
-                      extras[i] ? (
-                        <div key={`${extras[i].name}-${extras[i].size}-${extras[i].lastModified}`} className="relative aspect-square overflow-hidden rounded-lg border border-zinc-200">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={extraPreviews[i]} alt="" className="size-full object-cover" />
-                          <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
-                        </div>
-                      ) : (
-                        <label key={`empty-${i}`} className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-600">
-                          <span className="text-xl leading-none">+</span>
-                          <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                            const all = Array.from(e.target.files || [])
-                            const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
-                            if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
-                            setExtras((p) => [...p, ...ok].slice(0, 4))
-                            e.currentTarget.value = ""
-                          }} />
-                        </label>
-                      )
-                    )}
-                  </div>
-                </motion.div>
               )}
+              <input ref={extrasInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+                const all = Array.from(e.target.files || [])
+                const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
+                if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
+                setExtras((p) => [...p, ...ok].slice(0, 4))
+                e.currentTarget.value = ""
+              }} />
             </div>
           </motion.section>
 
@@ -584,7 +552,7 @@ export function VCIntake() {
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-lg font-semibold text-white shadow-[0_6px_24px_-6px_rgba(4,120,87,0.5)] transition-all duration-200 hover:shadow-[0_8px_28px_-6px_rgba(4,120,87,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mx-auto mt-1 flex items-center justify-center gap-2 rounded-2xl px-12 py-4 text-lg font-semibold text-white shadow-[0_6px_24px_-6px_rgba(4,120,87,0.5)] transition-all duration-200 hover:shadow-[0_8px_28px_-6px_rgba(4,120,87,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
               style={{ backgroundImage: `linear-gradient(to right, ${EMERALD}, ${EMERALD_LIGHT})` }}
               whileTap={isSubmitting ? {} : { scale: 0.98 }}
               transition={spring}
@@ -625,7 +593,7 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={spring}
-        className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-700 to-emerald-500 text-white sm:size-6"
+        className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-b from-zinc-700 to-zinc-950 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] sm:size-6"
       >
         <svg className="size-3 sm:size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -672,15 +640,63 @@ function InputField({
   )
 }
 
+function FaceSketch() {
+  return (
+    <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true">
+      {/* viewfinder corner brackets */}
+      <g stroke="#d4d4d8" strokeWidth="3" fill="none" strokeLinecap="round">
+        <path d="M14 26 V14 H26" /><path d="M134 14 H146 V26" />
+        <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
+      </g>
+      {/* friendly face */}
+      <g stroke="#52525b" strokeWidth="2.5" fill="none" strokeLinecap="round">
+        <ellipse cx="80" cy="52" rx="24" ry="27" />
+        {/* hair sweep */}
+        <path d="M56 44 C58 26 102 22 104 44 C96 36 66 34 56 44 Z" fill="#52525b" stroke="none" />
+        {/* eyes */}
+        <circle cx="71" cy="52" r="2.2" fill="#52525b" stroke="none" />
+        <circle cx="89" cy="52" r="2.2" fill="#52525b" stroke="none" />
+        {/* smile */}
+        <path d="M70 63 Q80 72 90 63" />
+        {/* shoulders */}
+        <path d="M48 104 C56 88 104 88 112 104" />
+      </g>
+      {/* gold sparkle */}
+      <path d="M124 30 l2.6 6.4 6.4 2.6 -6.4 2.6 -2.6 6.4 -2.6 -6.4 -6.4 -2.6 6.4 -2.6 Z" fill="#c4a052" />
+    </svg>
+  )
+}
+
+function SmileSketch() {
+  return (
+    <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true">
+      <g stroke="#d4d4d8" strokeWidth="3" fill="none" strokeLinecap="round">
+        <path d="M14 26 V14 H26" /><path d="M134 14 H146 V26" />
+        <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
+      </g>
+      {/* big smile with teeth */}
+      <g strokeLinecap="round">
+        <path d="M46 44 Q80 34 114 44 Q106 84 80 84 Q54 84 46 44 Z" fill="#ffffff" stroke="#52525b" strokeWidth="2.5" />
+        {/* upper teeth row */}
+        <path d="M50 46 Q80 38 110 46 L107 58 Q80 50 53 58 Z" fill="#fafafa" stroke="#a1a1aa" strokeWidth="1.4" />
+        <g stroke="#a1a1aa" strokeWidth="1.4">
+          <path d="M62 42.5 L62 55" /><path d="M74 40.5 L74 52.5" /><path d="M86 40.5 L86 52.5" /><path d="M98 42.5 L98 55" />
+        </g>
+      </g>
+      {/* sparkle ting on a tooth */}
+      <path d="M68 34 l2.4 5.8 5.8 2.4 -5.8 2.4 -2.4 5.8 -2.4 -5.8 -5.8 -2.4 5.8 -2.4 Z" fill="#c4a052" />
+    </svg>
+  )
+}
+
 function UploadCard({
-  label, file, preview, onFile, icon, icon2,
+  label, variant, file, preview, onFile,
 }: {
   label: string
+  variant: "face" | "smile"
   file: File | null
   preview?: string | null
   onFile: (f: File | null) => void
-  icon: React.ReactNode
-  icon2?: React.ReactNode
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -689,29 +705,21 @@ function UploadCard({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl border border-emerald-500/30 bg-zinc-100 text-center transition-all duration-200 active:scale-[0.97] sm:rounded-2xl"
+        className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl border border-zinc-300 bg-zinc-100 text-center transition-all duration-200 active:scale-[0.97] sm:rounded-2xl"
         aria-label={`${label} — tap to change`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview} alt={`${label} preview`} className="size-full object-cover" />
-        {/* Corner check badge */}
-        <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-emerald-500 shadow-sm">
+        <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-zinc-900/85 shadow-sm ring-1 ring-white/25 backdrop-blur">
           <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </span>
-        {/* Bottom label overlay */}
         <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-left">
           <span className="truncate text-[10px] font-semibold text-white sm:text-xs">{label}</span>
           <span className="shrink-0 text-[9px] font-medium text-white/80 sm:text-[10px]">Tap to change</span>
         </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-        />
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
       </button>
     )
   }
@@ -720,64 +728,15 @@ function UploadCard({
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-2 py-4 text-center transition-all duration-200 hover:border-zinc-400 hover:bg-zinc-100/60 active:scale-[0.97] sm:rounded-2xl sm:px-3 sm:py-5"
+      className="group relative flex aspect-[4/3] w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-zinc-200 bg-gradient-to-b from-[#fbfaf6] to-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:border-zinc-400 hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.15)] active:scale-[0.97] sm:rounded-2xl"
+      aria-label={`${label} — tap to add`}
     >
-      {file ? (
-        <>
-          <div className="mb-1.5 flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 sm:size-9">
-            <svg className="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <span className="max-w-full truncate text-[10px] font-medium text-emerald-700 sm:text-xs">
-            {file.name}
-          </span>
-          <span className="mt-0.5 text-[9px] text-zinc-400 sm:text-[10px]">
-            Tap to change
-          </span>
-        </>
-      ) : (
-        <>
-          <div className="mb-1.5 flex size-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors duration-200 group-hover:bg-zinc-200/70 sm:size-9">
-            <svg
-              className="size-4 text-zinc-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              {icon}
-              {icon2}
-            </svg>
-          </div>
-          <span className="text-[10px] font-medium text-zinc-700 sm:text-xs">
-            {label}
-          </span>
-          <span className="mt-1 flex items-center gap-1 text-[9px] font-medium text-zinc-600 sm:text-[10px]">
-            <svg
-              className="size-2.5 sm:size-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-              />
-            </svg>
-            Upload
-          </span>
-        </>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-      />
+      <span className="min-h-0 flex-1 pt-1">{variant === "face" ? <FaceSketch /> : <SmileSketch />}</span>
+      <span className="pb-2.5">
+        <span className="block text-[11px] font-semibold text-zinc-800 sm:text-xs">{label}</span>
+        <span className="mt-0.5 block text-[9px] font-medium text-zinc-400 sm:text-[10px]">Tap to add</span>
+      </span>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </button>
   )
 }
