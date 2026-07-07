@@ -56,7 +56,17 @@ const CONCERN_CHIPS = [
 ]
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const ZIP_RE = /^\d{5}$/
+
+const zipDigits = (v: string) => v.replace(/\D/g, "").slice(0, 9)
+// 12345 or 12345-6789, dash auto-inserted
+const formatZip = (raw: string) => {
+  const d = zipDigits(raw)
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d
+}
+const zipLengthOk = (v: string) => {
+  const n = zipDigits(v).length
+  return n === 5 || n === 9
+}
 
 const phoneDigits = (v: string) => {
   let d = v.replace(/\D/g, "")
@@ -100,6 +110,9 @@ export function VCIntake() {
   const [honeypot, setHoneypot] = useState("") // bot trap — must stay empty for real users
   const [sourceUrl, setSourceUrl] = useState("")
   const [extras, setExtras] = useState<File[]>([])
+  // Real-ZIP check via the free Zippopotam lookup. Fails OPEN on network
+  // problems — a directory outage must never block a patient.
+  const [zipInfo, setZipInfo] = useState<{ zip5: string; status: "valid" | "invalid" | "unknown"; place?: string }>({ zip5: "", status: "unknown" })
 
   // Turnstile tokens expire after ~5 min — longer than a careful patient takes to
   // fill this form. Track the latest token + its age in refs so we can mint a
@@ -155,6 +168,36 @@ export function VCIntake() {
   const formRef = useRef<HTMLDivElement>(null)
   const extrasInputRef = useRef<HTMLInputElement>(null)
 
+  const zip5 = zipDigits(form.zip).slice(0, 5)
+  useEffect(() => {
+    if (zip5.length !== 5 || zip5 === zipInfo.zip5) return
+    const abort = new AbortController()
+    const timer = setTimeout(async () => {
+      const kill = setTimeout(() => abort.abort(), 3500)
+      try {
+        const res = await fetch(`https://api.zippopotam.us/us/${zip5}`, { signal: abort.signal })
+        clearTimeout(kill)
+        if (res.status === 404) {
+          setZipInfo({ zip5, status: "invalid" })
+        } else if (res.ok) {
+          const data = await res.json()
+          const pl = data?.places?.[0]
+          const place = pl ? `${pl["place name"]}, ${pl["state abbreviation"]}` : undefined
+          setZipInfo({ zip5, status: "valid", place })
+        } else {
+          setZipInfo({ zip5, status: "unknown" })
+        }
+      } catch {
+        clearTimeout(kill)
+        setZipInfo({ zip5, status: "unknown" })
+      }
+    }, 350)
+    return () => { clearTimeout(timer); abort.abort() }
+  }, [zip5, zipInfo.zip5])
+
+  const zipRejected = zipInfo.status === "invalid" && zipInfo.zip5 === zip5
+  const zipConfirmed = zipInfo.status === "valid" && zipInfo.zip5 === zip5 ? zipInfo.place : undefined
+
   const updateField = useCallback(
     <K extends keyof FormData>(key: K, value: FormData[K]) => {
       setForm((prev) => ({ ...prev, [key]: value }))
@@ -189,7 +232,7 @@ export function VCIntake() {
     form.firstName.trim().length > 0 && form.lastName.trim().length > 0,
     EMAIL_RE.test(form.email),
     phoneDigits(form.phone).length === 10,
-    ZIP_RE.test(form.zip.trim()),
+    zipLengthOk(form.zip) && !zipRejected,
     concernSatisfied,
     !!fullFace,
     !!closeUp,
@@ -219,8 +262,10 @@ export function VCIntake() {
     }
     if (!form.zip.trim()) {
       e.zip = "Zip code is required"
-    } else if (!ZIP_RE.test(form.zip.trim())) {
-      e.zip = "Enter a 5-digit zip code"
+    } else if (!zipLengthOk(form.zip)) {
+      e.zip = "Enter a 5-digit zip code (or ZIP+4)"
+    } else if (zipRejected) {
+      e.zip = "That zip code doesn't match a real US location"
     }
     if (!concernSatisfied) e.concern = "Tap what you'd like to change — or tell us in your own words"
     if (!fullFace) e.photos = "A full-face selfie is required"
@@ -277,8 +322,8 @@ export function VCIntake() {
         email: form.email.trim(),
         phone: form.phone.trim(),
         date_of_birth: null,
-        // No dedicated ZIP column on the backend yet — store it in the location field.
-        city: form.zip.trim() || null,
+        // No dedicated ZIP column on the backend yet — store zip (+ resolved city) in the location field.
+        city: (zipConfirmed ? `${form.zip.trim()} — ${zipConfirmed}` : form.zip.trim()) || null,
         state: null,
         concern: concernText,
         // Consent statement removed from the form (per staff feedback); contract still expects a boolean.
@@ -467,7 +512,12 @@ export function VCIntake() {
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
               <InputField label="Mobile Phone" type="tel" inputMode="tel" maxLength={14} value={form.phone} onChange={(v) => updateField("phone", formatPhone(v))} error={errors.phone} required autoComplete="tel" />
-              <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={5} value={form.zip} onChange={(v) => updateField("zip", v.replace(/\D/g, "").slice(0, 5))} error={errors.zip} required autoComplete="postal-code" />
+              <div>
+                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={10} value={form.zip} onChange={(v) => updateField("zip", formatZip(v))} error={errors.zip} required autoComplete="postal-code" />
+                {zipConfirmed && !errors.zip && (
+                  <p className="mt-0.5 text-[10px] font-medium text-zinc-500 sm:text-[11px]">{zipConfirmed}</p>
+                )}
+              </div>
             </div>
           </motion.section>
 
