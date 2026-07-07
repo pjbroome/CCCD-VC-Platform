@@ -765,7 +765,7 @@ export function VCIntake() {
             </div>
             <h2 className="mb-3 mt-1.5 text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">Add your photos</h2>
             {errors.photos && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mb-2 text-xs text-red-600">{errors.photos}</motion.p>}
-            <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-[16fr_25fr] gap-2.5 sm:gap-3">
               <UploadCard
                 label="Full Face Selfie"
                 variant="face"
@@ -1014,8 +1014,9 @@ function UploadCard({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   // Faces are portraits, smiles are wide — shape each frame to the photo it's
-  // asking for, so a normal phone shot lands without anything cropped away.
-  const aspect = variant === "face" ? "aspect-[3/4]" : "aspect-[3/2]"
+  // asking for. The 4:5 / 5:4 pair on a 16:25 column split renders both boxes
+  // the exact same height, so the row reads balanced.
+  const aspect = variant === "face" ? "aspect-[4/5]" : "aspect-[5/4]"
 
   if (slot) {
     return (
@@ -1050,9 +1051,9 @@ function UploadCard({
           </svg>
         </button>
         {/* bottom label */}
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-left">
-          <span className="truncate text-[11px] font-semibold text-white sm:text-xs">{label}</span>
-          <span className="shrink-0 text-[11px] font-medium text-white/90">Tap to change</span>
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-start bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5 text-left">
+          <span className="text-[11px] font-semibold leading-tight text-white sm:text-xs">{label}</span>
+          <span className="text-[10px] font-medium text-white/80">Tap to change</span>
         </span>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
       </div>
