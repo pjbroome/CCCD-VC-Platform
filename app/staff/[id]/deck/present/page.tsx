@@ -590,11 +590,14 @@ export default function PresenterViewPage() {
               <div className="grid grid-cols-2 gap-3">
                 {currentPresenterSlide.photos.length > 0 ? (
                   currentPresenterSlide.photos.map((p, i) => (
-                    <div key={i} className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-800">
+                    <div key={i} className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-800">
+                      {/* blurred self-backdrop fills the tile; the photo shows complete — never crop the smile mid-consult */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photoUrl(p)} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-110 object-cover opacity-40 blur-lg" />
                       <img
                         src={photoUrl(p)}
                         alt={`Patient photo ${i + 1}`}
-                        className="max-h-[70vh] h-full w-full cursor-zoom-in object-cover"
+                        className="relative max-h-[70vh] h-full w-full cursor-zoom-in object-contain"
                         onClick={() => setViewingPhoto(i)}
                         title="Click to zoom in"
                       />
