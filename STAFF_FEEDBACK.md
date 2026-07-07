@@ -69,7 +69,7 @@ Feedback → fix, all verified live:
   - Note pill collapses back on blur if left empty (Patrick 2026-07-07) — no lingering empty box; stays open if text is present or "Other" requires it
   - Raw browser network errors ("Failed to fetch"/"Load failed") now translate to a human retry message; nothing entered is lost
   - Photo frames shaped to their photo (Patrick 2026-07-07): Full Face = portrait, Close-up Smile = wide; uploaded photos auto-frame — full photo contained (never cropped) over a soft blurred self-backdrop that fills the frame. Verified portrait/wide/wrong-orientation cases + empty-state sketches, desktop + mobile
-  - Balanced photo row (Patrick 2026-07-07): 4:5 face frame on a narrower column + 5:4 smile frame on a wider one (16:25 split) → both boxes render the exact same height; overlay labels stacked so nothing truncates at the narrower width
+  - Balanced photo row, round 2 (Patrick 2026-07-07: smile box read too large): equal-width columns, 4:5 face + 5:4 smile, smile vertically centered beside the taller selfie; overlay labels stacked so nothing truncates
   - Safari "not authorized" report resolved: that tab was on a non-allowlisted deployment-hash URL — the diagnostic layer named it correctly; official branch/production links work (verified live probe from Patrick's Chrome)
   - Dead-tap fixed: invalid submit scrolls to + focuses the first errored field (was a silent no-op); errors fade in
   - iOS zoom killed: 16px input text on mobile (~50px fields); 44px hit areas on rotate/remove buttons; extras thumbs size-16
