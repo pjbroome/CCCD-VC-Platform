@@ -15,6 +15,7 @@ import {
   emailConsultationReview,
 } from "@/lib/api"
 import type { VCRequestListItem, SlideItem, RecordingDeck } from "@/lib/api"
+import { PhotoEditor } from "@/components/vc/PhotoEditor"
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -122,6 +123,9 @@ export default function PresenterViewPage() {
 
   /* slide navigation */
   const [currentSlideIdx, setCurrentSlideIdx] = useState(0)
+
+  /* photo viewer (read-only zoom/rotate/download; traps keys so slides don't advance) */
+  const [viewingPhoto, setViewingPhoto] = useState<number | null>(null)
 
   /* recording state */
   const [recordingState, setRecordingState] = useState<RecordingState>("idle")
@@ -587,7 +591,13 @@ export default function PresenterViewPage() {
                 {currentPresenterSlide.photos.length > 0 ? (
                   currentPresenterSlide.photos.map((p, i) => (
                     <div key={i} className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-800">
-                      <img src={photoUrl(p)} alt={`Patient photo ${i + 1}`} className="max-h-[70vh] h-full w-full object-cover" />
+                      <img
+                        src={photoUrl(p)}
+                        alt={`Patient photo ${i + 1}`}
+                        className="max-h-[70vh] h-full w-full cursor-zoom-in object-cover"
+                        onClick={() => setViewingPhoto(i)}
+                        title="Click to zoom in"
+                      />
                     </div>
                   ))
                 ) : (
@@ -945,6 +955,18 @@ export default function PresenterViewPage() {
           )}
         </div>
       </div>
+
+      {/* Photo viewer — read-only during a presentation (no persist), zoom/rotate/download */}
+      {viewingPhoto !== null && currentPresenterSlide?.kind === "patient" && currentPresenterSlide.photos[viewingPhoto] && (
+        <PhotoEditor
+          photoPath={currentPresenterSlide.photos[viewingPhoto]}
+          label={`Patient photo ${viewingPhoto + 1}`}
+          position={`${viewingPhoto + 1} of ${currentPresenterSlide.photos.length}`}
+          onClose={() => setViewingPhoto(null)}
+          onPrev={viewingPhoto > 0 ? () => setViewingPhoto(viewingPhoto - 1) : undefined}
+          onNext={viewingPhoto < currentPresenterSlide.photos.length - 1 ? () => setViewingPhoto(viewingPhoto + 1) : undefined}
+        />
+      )}
 
       {/* Hidden canvas for composite recording (future enhancement) */}
       <canvas ref={canvasRef} className="hidden" />

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { listVCRequests, updateVCRequest, photoUrl, createVCRequest } from "@/lib/api"
 import type { VCRequestListItem } from "@/lib/api"
+import { PhotoEditor } from "@/components/vc/PhotoEditor"
 import { useTheme } from "@/components/vc/ThemeProvider"
 import { ThemeSwitcher } from "@/components/vc/ThemeSwitcher"
 import { themeStyleVars } from "@/lib/theme"
@@ -63,6 +64,8 @@ export default function StaffDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [showAdd, setShowAdd] = useState(false)
+  // Photo viewer opened from a row thumbnail: request id + photo index
+  const [viewing, setViewing] = useState<{ reqId: number; idx: number } | null>(null)
   const [addForm, setAddForm] = useState({ firstName: "", lastName: "", email: "", phone: "", concern: "" })
   const [addBusy, setAddBusy] = useState(false)
   const [addErr, setAddErr] = useState<string | null>(null)
@@ -333,7 +336,14 @@ export default function StaffDashboard() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             {req.photos?.[0] ? (
-                              <img src={photoUrl(req.photos[0])} alt="" className="size-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--k-line)]" />
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setViewing({ reqId: req.id, idx: 0 }) }}
+                                className="shrink-0 cursor-zoom-in rounded-lg transition hover:ring-2 hover:ring-[var(--k-accent)]"
+                                title="View photos — zoom, rotate, download"
+                              >
+                                <img src={photoUrl(req.photos[0])} alt="" className="size-9 rounded-lg object-cover ring-1 ring-[var(--k-line)]" />
+                              </button>
                             ) : (
                               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ backgroundImage: "linear-gradient(135deg,var(--k-grad-from),var(--k-grad-to))" }}>
                                 {initials(req)}
@@ -441,6 +451,30 @@ export default function StaffDashboard() {
               </div>
             </div>
           )}
+
+          {(() => {
+            if (!viewing) return null
+            const req = allRequests.find((r) => r.id === viewing.reqId)
+            const photos = req?.photos || []
+            if (!req || !photos[viewing.idx]) return null
+            return (
+              <PhotoEditor
+                photoPath={photos[viewing.idx]}
+                label={`${getDisplayName(req)} · Photo ${viewing.idx + 1}`}
+                position={`${viewing.idx + 1} of ${photos.length}`}
+                onClose={() => setViewing(null)}
+                onPrev={viewing.idx > 0 ? () => setViewing({ ...viewing, idx: viewing.idx - 1 }) : undefined}
+                onNext={viewing.idx < photos.length - 1 ? () => setViewing({ ...viewing, idx: viewing.idx + 1 }) : undefined}
+                onSaved={async (newPath) => {
+                  const newPhotos = [...photos]
+                  newPhotos[viewing.idx] = newPath
+                  await updateVCRequest(req.id, { photos: newPhotos })
+                  setAllRequests((prev) => prev.map((r) => (r.id === req.id ? { ...r, photos: newPhotos } : r)))
+                  setViewing(null)
+                }}
+              />
+            )
+          })()}
 
           <p className="mt-8 text-center text-[10px] text-zinc-300">
             Charlotte Center for Cosmetic Dentistry · Staff Portal · {theme.name} theme

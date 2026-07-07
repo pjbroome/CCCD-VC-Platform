@@ -274,7 +274,9 @@ export default function RequestDetail() {
                   <img
                     src={photoUrl(photo)}
                     alt={`Patient photo ${i + 1}`}
-                    className="h-48 w-full object-cover sm:h-64"
+                    className="h-48 w-full cursor-zoom-in object-cover sm:h-64"
+                    onClick={() => setEditingPhoto(i)}
+                    title="Click to view, zoom, and rotate"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
                       target.style.display = "none"
@@ -298,7 +300,10 @@ export default function RequestDetail() {
             <PhotoEditor
               photoPath={request.photos[editingPhoto]}
               label={`Photo ${editingPhoto + 1}`}
+              position={`${editingPhoto + 1} of ${request.photos.length}`}
               onClose={() => setEditingPhoto(null)}
+              onPrev={editingPhoto > 0 ? () => setEditingPhoto(editingPhoto - 1) : undefined}
+              onNext={editingPhoto < request.photos.length - 1 ? () => setEditingPhoto(editingPhoto + 1) : undefined}
               onSaved={async (newPath) => {
                 const idx = editingPhoto
                 const newPhotos = [...(request.photos || [])]
