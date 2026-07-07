@@ -515,9 +515,13 @@ export function VCIntake() {
       setSubmitState("success")
     } catch (err) {
       console.error("Submission error:", err)
+      // fetch's raw TypeError ("Failed to fetch") means the network dropped or
+      // the request was blocked — translate it; never show the browser's jargon.
+      const isNetworkError = err instanceof TypeError || (err instanceof Error && /failed to fetch|load failed|networkerror/i.test(err.message))
       setErrors({
-        submit:
-          err instanceof Error
+        submit: isNetworkError
+          ? "We couldn't reach our server — your connection may have dropped for a moment. Everything you entered is saved; please check your signal and tap Submit again."
+          : err instanceof Error
             ? err.message
             : "Something went wrong. Please try again.",
       })
