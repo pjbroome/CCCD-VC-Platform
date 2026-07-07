@@ -61,6 +61,18 @@ Feedback → fix, all verified live:
 - "Not sure — show me my options" → **"Other — I'll explain"** (same behavior: exclusive, requires a note in the text box)
 - Free-text box hardened against prompt injection: 300-char hard cap (maxLength + JS + submit-time), control/invisible/bidi characters stripped (the text feeds AI-assisted review downstream); tiny "N characters left" counter appears near the limit
 - Unselected chips lifted off the card (Patrick 2026-07-07): white pill + zinc-300 border + soft drop shadow — raised "tap me" buttons, deliberately opposite to the sunken input wells; hover darkens border + deepens shadow
+- **Gradient progress bar** (Patrick 2026-07-07): fill reveals a fixed ink→gold→emerald spectrum (counter-scale, compositor-only) — the bar literally reaches GO-green at "Ready to send"; gentle shimmer sweep (reduced-motion aware); completion = emerald label + soft glow
+- **Conversion-ux audit round** (Patrick: "recommit to using that info" — 6-dimension agent audit of the page against MASTER_GUIDE/CHECKLISTS, 36 findings → 12 taste-gated → 9 applied):
+  - Card headers re-ranked: STEP N overline + the human question as hero type (text-lg/xl) — the page scans instead of reading dense-utility
+  - Spacing rhythm: real gaps between cards (gap-5/6, p-5/7) — tight within units, wide between
+  - Optional note now behind a "+ Add a note · optional" pill (last empty box gone); "Other — I'll explain" auto-opens + focuses it
+  - Dead-tap fixed: invalid submit scrolls to + focuses the first errored field (was a silent no-op); errors fade in
+  - iOS zoom killed: 16px input text on mobile (~50px fields); 44px hit areas on rotate/remove buttons; extras thumbs size-16
+  - Legibility: 9-10px micro-type raised to 11-12px, muted grays lifted one tone, "Dr. Patrick Broome · Charlotte, NC" footer now readable
+  - Ambient emerald purged from page/success backgrounds (green = GO only; canvas is now one warm champagne field)
+  - Photo reward moment: photo fades/settles in + check badge springs in (was a hard cut)
+  - Step 3 discretion signal: "Private — for your consultation only" (answers the photo objection where it forms; worded to be TRUE — staff also see photos, so no "only Dr. Broome" claim)
+- **Audit items held for Patrick's call:** CTA rename "Submit" → "Send to Dr. Broome" (checklist flags "Submit" as critical fail, but Patrick explicitly chose "Submit"); step reorder aspiration→photos→details (biggest conversion lever, structural); sticky progress bar + thumb-zone sticky CTA on mobile (structural)
 
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.

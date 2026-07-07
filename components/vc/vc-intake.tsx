@@ -169,6 +169,14 @@ export function VCIntake() {
   // problems — a directory outage must never block a patient.
   const [zipInfo, setZipInfo] = useState<{ zip5: string; status: "valid" | "invalid" | "unknown"; place?: string }>({ zip5: "", status: "unknown" })
   const prefersReducedMotion = useReducedMotion()
+  // The optional note stays behind a small pill (no empty boxes on screen);
+  // picking "Other" opens it automatically since a note is then required.
+  const [noteOpen, setNoteOpen] = useState(false)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
+  const showNote = noteOpen || selectedConcerns.includes(OTHER) || form.concern.trim().length > 0
+  useEffect(() => {
+    if (selectedConcerns.includes(OTHER)) noteRef.current?.focus({ preventScroll: true })
+  }, [selectedConcerns])
 
   // Turnstile tokens expire after ~5 min — longer than a careful patient takes to
   // fill this form. Track the latest token + its age in refs so we can mint a
@@ -419,7 +427,14 @@ export function VCIntake() {
     const validationErrors = validate()
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors)
-      formRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+      // Bring the first problem on screen — a tap that visibly does nothing
+      // reads as "the form is broken".
+      const order = ["firstName", "lastName", "email", "phone", "zip", "concern", "photos"] as const
+      const firstKey = order.find((k) => k in validationErrors)
+      const targetId = firstKey === "concern" ? "vc-step-2" : firstKey === "photos" ? "vc-step-3" : `vc-field-${firstKey}`
+      const target = document.getElementById(targetId)
+      target?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "center" })
+      target?.querySelector<HTMLElement>("input, textarea")?.focus({ preventScroll: true })
       return
     }
 
@@ -514,7 +529,7 @@ export function VCIntake() {
 
   if (submitState === "success") {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-[#f6f5f0] px-4 py-8 [background-image:radial-gradient(ellipse_50%_35%_at_20%_0%,rgba(4,120,87,0.07),transparent),radial-gradient(ellipse_40%_30%_at_90%_100%,rgba(196,160,82,0.08),transparent)]">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[#f6f5f0] px-4 py-8 [background-image:radial-gradient(ellipse_50%_35%_at_20%_0%,rgba(196,160,82,0.06),transparent),radial-gradient(ellipse_40%_30%_at_90%_100%,rgba(196,160,82,0.08),transparent)]">
         <motion.div
           className="mx-auto w-full max-w-md text-center"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -538,7 +553,7 @@ export function VCIntake() {
           </p>
           <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10">
+              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100">
                 <svg className="size-4 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
                 </svg>
@@ -558,7 +573,7 @@ export function VCIntake() {
             Testing for us? Take the 60‑second feedback survey →
           </a>
         </motion.div>
-        <p className="mt-8 text-center text-[10px] text-zinc-300">
+        <p className="mt-8 text-center text-[11px] text-zinc-600">
           {"Dr. Patrick Broome · Charlotte, NC"}
         </p>
       </div>
@@ -566,7 +581,7 @@ export function VCIntake() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#f6f5f0] px-4 py-6 [background-image:radial-gradient(ellipse_50%_35%_at_20%_0%,rgba(4,120,87,0.07),transparent),radial-gradient(ellipse_40%_30%_at_90%_100%,rgba(196,160,82,0.08),transparent)] sm:px-6 sm:py-8">
+    <div className="flex min-h-dvh flex-col bg-[#f6f5f0] px-4 py-6 [background-image:radial-gradient(ellipse_50%_35%_at_20%_0%,rgba(196,160,82,0.06),transparent),radial-gradient(ellipse_40%_30%_at_90%_100%,rgba(196,160,82,0.08),transparent)] sm:px-6 sm:py-8">
       <motion.div
         className="mx-auto flex w-full max-w-lg flex-1 flex-col"
         variants={stagger}
@@ -574,7 +589,7 @@ export function VCIntake() {
         animate="show"
       >
         {/* Header — minimal: title, gold hairline, one line */}
-        <motion.div variants={fadeIn} className="mb-5 text-center">
+        <motion.div variants={fadeIn} className="mb-7 text-center sm:mb-8">
           <h1 className="text-2xl font-bold tracking-tighter text-zinc-900 sm:text-3xl">
             Virtual Consultation
           </h1>
@@ -589,7 +604,7 @@ export function VCIntake() {
             it from squishing): the bar literally reaches GO-green as you finish. */}
         <motion.div variants={fadeIn} className="mb-3.5">
           <div className="mb-1.5 flex items-baseline justify-between px-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 sm:text-[11px]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-[11px]">
               Your consultation
             </span>
             <span className={`text-[11px] font-semibold transition-colors duration-500 sm:text-xs ${stepsLeft === 0 ? "text-emerald-700" : "text-zinc-700"}`}>
@@ -648,36 +663,38 @@ export function VCIntake() {
           )}
         </AnimatePresence>
 
-        <div ref={formRef} className="flex flex-1 flex-col gap-3.5">
+        <div ref={formRef} className="flex flex-1 flex-col gap-5 sm:gap-6">
           {/* Card 1 — details */}
-          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
-            <p className="mb-3 flex items-center text-sm font-semibold text-zinc-900">
-              <StepBadge n={1} done={infoDone} /> Step 1 · Your details
+          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-5 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-7">
+            <p className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              <StepBadge n={1} done={infoDone} /> Step 1
             </p>
+            <h2 className="mb-3 mt-1.5 text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">Your details</h2>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              <InputField label="First Name" placeholder="First" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
-              <InputField label="Last Name" placeholder="Last" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
+              <InputField id="vc-field-firstName" label="First Name" placeholder="First" value={form.firstName} onChange={(v) => updateField("firstName", v)} error={errors.firstName} required autoComplete="given-name" />
+              <InputField id="vc-field-lastName" label="Last Name" placeholder="Last" value={form.lastName} onChange={(v) => updateField("lastName", v)} error={errors.lastName} required autoComplete="family-name" />
             </div>
             <div className="mt-2.5 sm:mt-3">
-              <InputField label="Email" type="email" placeholder="you@email.com" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
+              <InputField id="vc-field-email" label="Email" type="email" placeholder="you@email.com" value={form.email} onChange={(v) => updateField("email", v)} error={errors.email} required autoComplete="email" />
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-3 sm:gap-3">
-              <InputField label="Mobile Phone" type="tel" inputMode="tel" maxLength={14} placeholder="(704) 555-1234" value={form.phone} onChange={(v) => updateField("phone", formatPhone(v))} error={errors.phone} required autoComplete="tel" />
+              <InputField id="vc-field-phone" label="Mobile Phone" type="tel" inputMode="tel" maxLength={14} placeholder="(704) 555-1234" value={form.phone} onChange={(v) => updateField("phone", formatPhone(v))} error={errors.phone} required autoComplete="tel" />
               <div>
-                <InputField label="Zip Code" type="text" inputMode="numeric" maxLength={10} placeholder="28211" value={form.zip} onChange={(v) => updateField("zip", formatZip(v))} error={errors.zip} required autoComplete="postal-code" />
+                <InputField id="vc-field-zip" label="Zip Code" type="text" inputMode="numeric" maxLength={10} placeholder="28211" value={form.zip} onChange={(v) => updateField("zip", formatZip(v))} error={errors.zip} required autoComplete="postal-code" />
                 {zipConfirmed && !errors.zip && (
-                  <p className="mt-0.5 text-[10px] font-medium text-zinc-500 sm:text-[11px]">{zipConfirmed}</p>
+                  <p className="mt-0.5 text-xs font-medium text-zinc-500">{zipConfirmed}</p>
                 )}
               </div>
             </div>
           </motion.section>
 
           {/* Card 2 — goals */}
-          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
-            <p className="mb-2.5 flex items-center text-sm font-semibold text-zinc-900">
-              <StepBadge n={2} done={concernSatisfied} /> Step 2 · What would you love to change?
+          <motion.section id="vc-step-2" variants={fadeIn} className="rounded-2xl bg-white p-5 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-7">
+            <p className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              <StepBadge n={2} done={concernSatisfied} /> Step 2
             </p>
-            {errors.concern && <p className="mb-1.5 text-[10px] text-red-500">{errors.concern}</p>}
+            <h2 className="mb-3 mt-1.5 text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">What would you love to change?</h2>
+            {errors.concern && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mb-1.5 text-xs text-red-600">{errors.concern}</motion.p>}
             <div className="mb-2.5 grid grid-cols-2 gap-2">
               {CONCERN_CHIPS.map((chip) => {
                 const selected = selectedConcerns.includes(chip)
@@ -700,25 +717,45 @@ export function VCIntake() {
                 )
               })}
             </div>
-            <textarea
-              value={form.concern}
-              onChange={(e) => updateField("concern", sanitizeConcern(e.target.value))}
-              placeholder="Tell us more"
-              maxLength={CONCERN_MAX}
-              className={`w-full resize-none rounded-xl border bg-white px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all duration-300 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
-              rows={2}
-            />
-            {form.concern.length >= CONCERN_MAX - 60 && (
-              <p className="mt-1 text-right text-[10px] text-zinc-400">{CONCERN_MAX - form.concern.length} characters left</p>
+            {!showNote ? (
+              <button
+                type="button"
+                onClick={() => { setNoteOpen(true); setTimeout(() => noteRef.current?.focus(), 50) }}
+                className="flex min-h-11 items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[11px] font-medium text-zinc-700 transition-colors duration-200 hover:border-zinc-400 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/50 active:scale-95 sm:text-xs"
+              >
+                <span className="text-base leading-none">+</span>
+                Add a note
+                <span className="font-normal text-zinc-400">· optional</span>
+              </button>
+            ) : (
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: "easeOut" }}>
+                <textarea
+                  ref={noteRef}
+                  value={form.concern}
+                  onChange={(e) => updateField("concern", sanitizeConcern(e.target.value))}
+                  placeholder="Tell us more"
+                  maxLength={CONCERN_MAX}
+                  className={`w-full resize-none rounded-xl border bg-white px-3.5 py-3 text-base leading-relaxed text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all duration-300 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
+                  rows={2}
+                />
+                {form.concern.length >= CONCERN_MAX - 60 && (
+                  <p className="mt-1 text-right text-xs text-zinc-500">{CONCERN_MAX - form.concern.length} characters left</p>
+                )}
+              </motion.div>
             )}
           </motion.section>
 
           {/* Card 3 — photos */}
-          <motion.section variants={fadeIn} className="rounded-2xl bg-white p-4 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-5">
-            <p className="mb-2.5 flex items-center text-sm font-semibold text-zinc-900">
-              <StepBadge n={3} done={photosDone} /> Step 3 · Add your photos
-            </p>
-            {errors.photos && <p className="mb-2 text-[10px] text-red-500">{errors.photos}</p>}
+          <motion.section id="vc-step-3" variants={fadeIn} className="rounded-2xl bg-white p-5 shadow-[0_2px_16px_-8px_rgba(0,0,0,0.10)] ring-1 ring-zinc-950/[0.04] sm:p-7">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                <StepBadge n={3} done={photosDone} /> Step 3
+              </p>
+              {/* Answers the "where do these photos go?" objection right where it forms */}
+              <span className="text-right text-[11px] font-medium leading-tight text-zinc-500">Private — for your consultation only</span>
+            </div>
+            <h2 className="mb-3 mt-1.5 text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">Add your photos</h2>
+            {errors.photos && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mb-2 text-xs text-red-600">{errors.photos}</motion.p>}
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               <UploadCard
                 label="Full Face Selfie"
@@ -737,10 +774,11 @@ export function VCIntake() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {extras.map((sl) => (
-                <div key={sl.id} className="relative size-14 overflow-hidden rounded-lg border border-zinc-200">
+                <div key={sl.id} className="relative size-16 rounded-lg border border-zinc-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sl.thumb} alt="" className="size-full object-cover" />
-                  <button type="button" onClick={() => setExtras((p) => p.filter((x) => x.id !== sl.id))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
+                  <img src={sl.thumb} alt="" className="size-full rounded-lg object-cover" />
+                  {/* after:-inset extends the tap area to ~44px without growing the glyph */}
+                  <button type="button" aria-label="Remove photo" onClick={() => setExtras((p) => p.filter((x) => x.id !== sl.id))} className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white after:absolute after:-inset-2.5 after:content-['']">×</button>
                 </div>
               ))}
               {extras.length < 4 && (
@@ -798,7 +836,7 @@ export function VCIntake() {
         {/* Footer */}
         <motion.p
           variants={fadeIn}
-          className="mt-4 text-center text-[10px] text-zinc-400/70"
+          className="mt-5 text-center text-[11px] text-zinc-600"
         >
           {"Dr. Patrick Broome · Charlotte, NC"}
         </motion.p>
@@ -832,8 +870,9 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
 }
 
 function InputField({
-  label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength, placeholder,
+  id, label, value, onChange, error, type = "text", required, autoComplete, inputMode, maxLength, placeholder,
 }: {
+  id?: string
   label: string
   value: string
   onChange: (v: string) => void
@@ -846,10 +885,11 @@ function InputField({
   placeholder?: string
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[10px] font-medium text-zinc-600 sm:text-xs">
+    <div id={id}>
+      <label className="mb-1 block text-xs font-medium text-zinc-600">
         {label}{required && <span className="ml-0.5 text-red-400">*</span>}
       </label>
+      {/* text-base on mobile: 16px is the threshold below which iOS Safari auto-zooms on focus */}
       <input
         type={type}
         value={value}
@@ -858,9 +898,9 @@ function InputField({
         inputMode={inputMode}
         maxLength={maxLength}
         placeholder={placeholder}
-        className={`w-full rounded-lg border bg-white px-2.5 py-2 text-xs text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:px-3 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
+        className={`w-full rounded-lg border bg-white px-3 py-3 text-base text-zinc-900 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)] transition-all placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 sm:py-2.5 sm:text-sm ${error ? "border-red-300 ring-1 ring-red-200" : "border-zinc-400"}`}
       />
-      {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
+      {error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-1 text-xs text-red-600">{error}</motion.p>}
     </div>
   )
 }
@@ -975,20 +1015,20 @@ function UploadCard({
           aria-label={`${label} — tap to change`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={slot.thumb} alt={`${label} preview`} className="size-full object-cover" />
+          <motion.img key={slot.thumb} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} src={slot.thumb} alt={`${label} preview`} className="size-full object-cover" />
         </button>
-        {/* check badge */}
-        <span className="pointer-events-none absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-zinc-900/85 shadow-sm ring-1 ring-white/25 backdrop-blur">
+        {/* check badge — the reward beat lands just after the photo settles */}
+        <motion.span initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...spring, delay: 0.1 }} className="pointer-events-none absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-zinc-900/85 shadow-sm ring-1 ring-white/25 backdrop-blur">
           <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
-        </span>
+        </motion.span>
         {/* rotate */}
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onRotate() }}
           aria-label={`Rotate ${label}`}
-          className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-zinc-900/85 text-white shadow-sm ring-1 ring-white/25 backdrop-blur transition-transform duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-zinc-900/85 text-white shadow-sm ring-1 ring-white/25 backdrop-blur transition-transform duration-200 after:absolute after:-inset-2.5 after:content-[''] hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -996,8 +1036,8 @@ function UploadCard({
         </button>
         {/* bottom label */}
         <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-left">
-          <span className="truncate text-[10px] font-semibold text-white sm:text-xs">{label}</span>
-          <span className="shrink-0 text-[9px] font-medium text-white/80 sm:text-[10px]">Tap to change</span>
+          <span className="truncate text-[11px] font-semibold text-white sm:text-xs">{label}</span>
+          <span className="shrink-0 text-[11px] font-medium text-white/90">Tap to change</span>
         </span>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
       </div>
@@ -1013,8 +1053,8 @@ function UploadCard({
     >
       <span className="min-h-0 flex-1 pt-1">{variant === "face" ? <FaceSketch /> : <SmileSketch />}</span>
       <span className="pb-2.5">
-        <span className="block text-[11px] font-semibold text-zinc-800 sm:text-xs">{label}</span>
-        <span className="mt-0.5 block text-[9px] font-medium text-zinc-400 sm:text-[10px]">Tap to add</span>
+        <span className="block text-xs font-semibold text-zinc-800">{label}</span>
+        <span className="mt-0.5 block text-[11px] font-medium text-zinc-500">Tap to add</span>
       </span>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </button>
