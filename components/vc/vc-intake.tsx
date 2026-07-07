@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { uploadPhoto, createVCRequest } from "@/lib/api"
 import { Turnstile, TURNSTILE_ENABLED } from "@/components/vc/Turnstile"
@@ -55,6 +55,53 @@ const CONCERN_CHIPS = [
   "Not sure — show me my options",
 ]
 
+// A picked photo survives reloads: we keep a compressed preview + the
+// background-uploaded server URL in sessionStorage. Original Files live only
+// in memory (fileMap) and are preferred for uploads/rotation while available.
+interface PhotoSlot {
+  id: string
+  name: string
+  thumb: string // jpeg dataURL, <=1024px
+  url?: string  // server URL once the background upload lands
+}
+
+const PHOTOS_KEY = "vc-photos-v1"
+const SUBMITTED_KEY = "vc-submitted-v1"
+const NOT_SURE = "Not sure — show me my options"
+
+const dataURLtoFile = (dataUrl: string, name: string): File => {
+  const [head, body] = dataUrl.split(",")
+  const mime = head.match(/data:(.*?);/)?.[1] || "image/jpeg"
+  const bin = atob(body)
+  const arr = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+  return new File([arr], name, { type: mime })
+}
+
+const downscaleToDataURL = async (file: File | Blob, maxDim = 1024, quality = 0.82): Promise<string> => {
+  const bmp = await createImageBitmap(file)
+  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height))
+  const c = document.createElement("canvas")
+  c.width = Math.round(bmp.width * scale)
+  c.height = Math.round(bmp.height * scale)
+  c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height)
+  bmp.close()
+  return c.toDataURL("image/jpeg", quality)
+}
+
+const rotateImage = async (src: File | Blob): Promise<Blob> => {
+  const bmp = await createImageBitmap(src)
+  const c = document.createElement("canvas")
+  c.width = bmp.height
+  c.height = bmp.width
+  const ctx = c.getContext("2d")!
+  ctx.translate(c.width, 0)
+  ctx.rotate(Math.PI / 2)
+  ctx.drawImage(bmp, 0, 0)
+  bmp.close()
+  return new Promise((res) => c.toBlob((b) => res(b!), "image/jpeg", 0.92))
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const zipDigits = (v: string) => v.replace(/\D/g, "").slice(0, 9)
@@ -102,14 +149,13 @@ export function VCIntake() {
   // "Whiter smile" pre-selected: the most common wish, and a smart default the
   // patient can tap off — the form starts with one answer already given.
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>(["Whiter smile"])
-  const [fullFace, setFullFace] = useState<File | null>(null)
-  const [closeUp, setCloseUp] = useState<File | null>(null)
+  const [fullFace, setFullFace] = useState<PhotoSlot | null>(null)
+  const [closeUp, setCloseUp] = useState<PhotoSlot | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitState, setSubmitState] = useState<SubmitState>("idle")
-  const [requestId, setRequestId] = useState<number | null>(null)
   const [honeypot, setHoneypot] = useState("") // bot trap — must stay empty for real users
   const [sourceUrl, setSourceUrl] = useState("")
-  const [extras, setExtras] = useState<File[]>([])
+  const [extras, setExtras] = useState<PhotoSlot[]>([])
   // Real-ZIP check via the free Zippopotam lookup. Fails OPEN on network
   // problems — a directory outage must never block a patient.
   const [zipInfo, setZipInfo] = useState<{ zip5: string; status: "valid" | "invalid" | "unknown"; place?: string }>({ zip5: "", status: "unknown" })
@@ -159,31 +205,89 @@ export function VCIntake() {
     }
   }, [])
 
-  // Object URLs for photo thumbnails — created per file, revoked on change/unmount
-  const fullFacePreview = useMemo(() => (fullFace ? URL.createObjectURL(fullFace) : null), [fullFace])
-  useEffect(() => () => { if (fullFacePreview) URL.revokeObjectURL(fullFacePreview) }, [fullFacePreview])
-  const closeUpPreview = useMemo(() => (closeUp ? URL.createObjectURL(closeUp) : null), [closeUp])
-  useEffect(() => () => { if (closeUpPreview) URL.revokeObjectURL(closeUpPreview) }, [closeUpPreview])
-  const extraPreviews = useMemo(() => extras.map((f) => URL.createObjectURL(f)), [extras])
-  useEffect(() => () => { extraPreviews.forEach((u) => URL.revokeObjectURL(u)) }, [extraPreviews])
 
   const formRef = useRef<HTMLDivElement>(null)
   const extrasInputRef = useRef<HTMLInputElement>(null)
   const turnstileAnchorRef = useRef<HTMLDivElement>(null)
 
-  // Photos start uploading the moment they're picked, so Submit only has to
-  // wait for whatever hasn't finished yet (usually nothing).
-  const uploadCache = useRef(new Map<File, Promise<string>>())
-  const ensureUploaded = useCallback((file: File): Promise<string> => {
-    const cached = uploadCache.current.get(file)
-    if (cached) return cached
-    const job = uploadPhoto(file).then((r: PhotoUploadResponse) => r.url)
-    // On failure, drop the cache entry so submit can retry cleanly.
-    job.catch(() => uploadCache.current.delete(file))
-    uploadCache.current.set(file, job)
-    return job
+  // Photos start uploading the moment they are picked; slots carry the server
+  // URL forward so submits are instant and reloads lose nothing.
+  const fileMap = useRef(new Map<string, File>())
+  const uploadJobs = useRef(new Map<string, Promise<string>>())
+
+  const applyUrl = useCallback((id: string, url: string) => {
+    const patch = (sl: PhotoSlot | null) => (sl && sl.id === id ? { ...sl, url } : sl)
+    setFullFace(patch)
+    setCloseUp(patch)
+    setExtras((prev) => prev.map((sl) => (sl.id === id ? { ...sl, url } : sl)))
   }, [])
-  const preUpload = useCallback((f: File | null) => { if (f) void ensureUploaded(f).catch(() => {}) }, [ensureUploaded])
+
+  const ensureUploaded = useCallback((slot: PhotoSlot): Promise<string> => {
+    if (slot.url) return Promise.resolve(slot.url)
+    const cached = uploadJobs.current.get(slot.id)
+    if (cached) return cached
+    const src = fileMap.current.get(slot.id) ?? dataURLtoFile(slot.thumb, slot.name)
+    const job = uploadPhoto(src).then((r: PhotoUploadResponse) => {
+      applyUrl(slot.id, r.url)
+      return r.url
+    })
+    job.catch(() => uploadJobs.current.delete(slot.id))
+    uploadJobs.current.set(slot.id, job)
+    return job
+  }, [applyUrl])
+
+  const makeSlot = useCallback(async (f: File): Promise<PhotoSlot> => {
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+    const thumb = await downscaleToDataURL(f)
+    fileMap.current.set(id, f)
+    const slot: PhotoSlot = { id, name: f.name, thumb }
+    void ensureUploaded(slot).catch(() => {})
+    return slot
+  }, [ensureUploaded])
+
+  const rotateSlot = useCallback(async (slot: PhotoSlot, apply: (next: PhotoSlot) => void) => {
+    const src = fileMap.current.get(slot.id) ?? dataURLtoFile(slot.thumb, slot.name)
+    const rotated = await rotateImage(src)
+    const f = new File([rotated], slot.name, { type: "image/jpeg" })
+    fileMap.current.set(slot.id, f)
+    uploadJobs.current.delete(slot.id)
+    const thumb = await downscaleToDataURL(f)
+    const next: PhotoSlot = { ...slot, thumb, url: undefined }
+    apply(next)
+    void ensureUploaded(next).catch(() => {})
+  }, [ensureUploaded])
+
+  // Hydrate photos + the submitted lock after mount (SSR-safe).
+  useEffect(() => {
+    try {
+      const sub = sessionStorage.getItem(SUBMITTED_KEY)
+      if (sub) {
+        const d = JSON.parse(sub)
+        setForm((prev) => ({ ...prev, firstName: d.firstName || "", email: d.email || "" }))
+        setSubmitState("success")
+        return
+      }
+      const saved = sessionStorage.getItem(PHOTOS_KEY)
+      if (saved) {
+        const d = JSON.parse(saved)
+        if (d.fullFace) setFullFace(d.fullFace)
+        if (d.closeUp) setCloseUp(d.closeUp)
+        if (Array.isArray(d.extras)) setExtras(d.extras)
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist photo slots (thumbs + urls) so a reload or nav-away keeps them.
+  useEffect(() => {
+    try {
+      if (fullFace || closeUp || extras.length) {
+        sessionStorage.setItem(PHOTOS_KEY, JSON.stringify({ fullFace, closeUp, extras }))
+      } else {
+        sessionStorage.removeItem(PHOTOS_KEY)
+      }
+    } catch { /* storage full or blocked — previews just will not survive reload */ }
+  }, [fullFace, closeUp, extras])
 
   const zip5 = zipDigits(form.zip).slice(0, 5)
   useEffect(() => {
@@ -230,9 +334,13 @@ export function VCIntake() {
   )
 
   const toggleConcern = useCallback((chip: string) => {
-    setSelectedConcerns((prev) =>
-      prev.includes(chip) ? prev.filter((c) => c !== chip) : [...prev, chip]
-    )
+    setSelectedConcerns((prev) => {
+      if (prev.includes(chip)) return prev.filter((c) => c !== chip)
+      // "Not sure" stands alone: it clears the others, and picking any
+      // specific wish clears "Not sure".
+      if (chip === NOT_SURE) return [NOT_SURE]
+      return [...prev.filter((c) => c !== NOT_SURE), chip]
+    })
     setErrors((prev) => {
       if (!prev.concern) return prev
       const next = { ...prev }
@@ -241,7 +349,8 @@ export function VCIntake() {
     })
   }, [])
 
-  const concernSatisfied = selectedConcerns.length > 0 || form.concern.trim().length > 0
+  const notSureNeedsDetail = selectedConcerns.includes(NOT_SURE) && form.concern.trim().length === 0
+  const concernSatisfied = (selectedConcerns.length > 0 || form.concern.trim().length > 0) && !notSureNeedsDetail
 
   // Goal-gradient progress: arriving counts as the first step, so the meter
   // never reads zero. Seven milestones fill the remaining 80%.
@@ -284,7 +393,11 @@ export function VCIntake() {
     } else if (zipRejected) {
       e.zip = "That zip code doesn't match a real US location"
     }
-    if (!concernSatisfied) e.concern = "Tap what you'd like to change — or tell us in your own words"
+    if (notSureNeedsDetail) {
+      e.concern = "Tell us a little more so Dr. Broome can show you the right options"
+    } else if (!concernSatisfied) {
+      e.concern = "Tap what you'd like to change — or tell us in your own words"
+    }
     if (!fullFace) e.photos = "A full-face selfie is required"
     else if (!closeUp) e.photos = "A close-up smile photo is required"
     return e
@@ -302,12 +415,12 @@ export function VCIntake() {
 
     try {
       setSubmitState("uploading")
-      const files = [fullFace, closeUp, ...extras.slice(0, 4)].filter((f): f is File => !!f)
+      const slots = [fullFace, closeUp, ...extras.slice(0, 4)].filter((x): x is PhotoSlot => !!x)
 
       // Everything at once: photos (usually already uploaded in the background
       // when they were picked) and the bot-check token in parallel.
       const [photoUrls, token] = await Promise.all([
-        Promise.all(files.map((f) => ensureUploaded(f))),
+        Promise.all(slots.map((sl) => ensureUploaded(sl))),
         freshTurnstileToken(),
       ])
 
@@ -354,7 +467,12 @@ export function VCIntake() {
         response = await createVCRequest({ ...payload, turnstile_token: retryToken })
       }
 
-      setRequestId(response.id)
+      // One submission per browser session — locks the form behind the
+      // thank-you screen even after a reload.
+      try {
+        sessionStorage.setItem(SUBMITTED_KEY, JSON.stringify({ firstName: form.firstName.trim(), email: form.email.trim() }))
+        sessionStorage.removeItem(PHOTOS_KEY)
+      } catch { /* ignore */ }
       setSubmitState("success")
     } catch (err) {
       console.error("Submission error:", err)
@@ -388,9 +506,7 @@ export function VCIntake() {
             Consultation Submitted!
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-zinc-500">
-            {"Thank you, " + form.firstName + "! Your consultation request" +
-              (requestId ? ` (#${requestId})` : "") +
-              " has been received. Dr. Broome will review your photos and send a personalized video reply within 24 hours."}
+            {"Thank you" + (form.firstName ? `, ${form.firstName}` : "") + "! Your consultation request has been received. Dr. Broome will review your photos and send a personalized video reply within 24 hours."}
           </p>
           <p className="mt-2 text-sm text-zinc-400">
             {"We’ll send your reply to "}
@@ -406,27 +522,11 @@ export function VCIntake() {
               <div className="text-left">
                 <p className="text-sm font-semibold text-zinc-900">What happens next?</p>
                 <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                  {"Our AI Smile Agent will analyze your photos and scan Dr. Broome’s library of completed cases. You’ll receive a personalized video reply with his treatment suggestions."}
+                  {"Dr. Broome will personally review your photos and record a video just for you — with his thoughts on your smile and the options that fit. Watch your inbox within 24 hours."}
                 </p>
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSubmitState("idle")
-              setForm({ firstName: "", lastName: "", email: "", phone: "", zip: "", concern: "" })
-              setSelectedConcerns(["Whiter smile"])
-              setFullFace(null)
-              setCloseUp(null)
-              setExtras([])
-              handleTurnstileToken("")
-              setRequestId(null)
-            }}
-            className="mt-6 text-sm font-medium text-emerald-700 underline underline-offset-4 transition-colors hover:text-emerald-800"
-          >
-            Submit another consultation
-          </button>
           <a
             href="/feedback"
             className="mt-3 block text-xs font-medium text-zinc-400 underline underline-offset-4 transition-colors hover:text-emerald-700"
@@ -559,8 +659,8 @@ export function VCIntake() {
             <textarea
               value={form.concern}
               onChange={(e) => updateField("concern", e.target.value)}
-              placeholder="Anything else you'd like Dr. Broome to know? (optional)"
-              className={`w-full resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-400 transition-all duration-300 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
+              placeholder="Tell us more"
+              className={`w-full resize-none rounded-xl border bg-zinc-50 px-3.5 py-2.5 text-xs leading-relaxed text-zinc-900 placeholder:text-zinc-300 transition-all duration-300 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300/30 sm:px-4 sm:py-3 sm:text-sm ${errors.concern ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200"}`}
               rows={2}
             />
           </motion.section>
@@ -575,24 +675,24 @@ export function VCIntake() {
               <UploadCard
                 label="Full Face Selfie"
                 variant="face"
-                file={fullFace}
-                preview={fullFacePreview}
-                onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setFullFace(f); preUpload(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
+                slot={fullFace}
+                onRotate={() => { if (fullFace) void rotateSlot(fullFace, setFullFace) }}
+                onFile={(f) => { if (!f) return; if (f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } void makeSlot(f).then(setFullFace); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
               />
               <UploadCard
                 label="Close-up Smile"
                 variant="smile"
-                file={closeUp}
-                preview={closeUpPreview}
-                onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setCloseUp(f); preUpload(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
+                slot={closeUp}
+                onRotate={() => { if (closeUp) void rotateSlot(closeUp, setCloseUp) }}
+                onFile={(f) => { if (!f) return; if (f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } void makeSlot(f).then(setCloseUp); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
               />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {extras.map((f, i) => (
-                <div key={`${f.name}-${f.size}-${f.lastModified}`} className="relative size-14 overflow-hidden rounded-lg border border-zinc-200">
+              {extras.map((sl) => (
+                <div key={sl.id} className="relative size-14 overflow-hidden rounded-lg border border-zinc-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={extraPreviews[i]} alt="" className="size-full object-cover" />
-                  <button type="button" onClick={() => setExtras((p) => p.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
+                  <img src={sl.thumb} alt="" className="size-full object-cover" />
+                  <button type="button" onClick={() => setExtras((p) => p.filter((x) => x.id !== sl.id))} className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white">×</button>
                 </div>
               ))}
               {extras.length < 4 && (
@@ -610,8 +710,7 @@ export function VCIntake() {
                 const all = Array.from(e.target.files || [])
                 const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
                 if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
-                ok.forEach(preUpload)
-                setExtras((p) => [...p, ...ok].slice(0, 4))
+                void Promise.all(ok.map(makeSlot)).then((slots) => setExtras((p) => [...p, ...slots].slice(0, 4)))
                 e.currentTarget.value = ""
               }} />
             </div>
@@ -808,37 +907,52 @@ function SmileSketch() {
 }
 
 function UploadCard({
-  label, variant, file, preview, onFile,
+  label, variant, slot, onFile, onRotate,
 }: {
   label: string
   variant: "face" | "smile"
-  file: File | null
-  preview?: string | null
+  slot: PhotoSlot | null
   onFile: (f: File | null) => void
+  onRotate: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
-  if (file && preview) {
+  if (slot) {
     return (
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl border border-zinc-300 bg-zinc-100 text-center transition-all duration-200 active:scale-[0.97] sm:rounded-2xl"
-        aria-label={`${label} — tap to change`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={preview} alt={`${label} preview`} className="size-full object-cover" />
-        <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-zinc-900/85 shadow-sm ring-1 ring-white/25 backdrop-blur">
+      <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-zinc-300 bg-zinc-100 text-center sm:rounded-2xl">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="absolute inset-0 cursor-pointer"
+          aria-label={`${label} — tap to change`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={slot.thumb} alt={`${label} preview`} className="size-full object-cover" />
+        </button>
+        {/* check badge */}
+        <span className="pointer-events-none absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-zinc-900/85 shadow-sm ring-1 ring-white/25 backdrop-blur">
           <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </span>
-        <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-left">
+        {/* rotate */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRotate() }}
+          aria-label={`Rotate ${label}`}
+          className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-zinc-900/85 text-white shadow-sm ring-1 ring-white/25 backdrop-blur transition-transform duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+        </button>
+        {/* bottom label */}
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-left">
           <span className="truncate text-[10px] font-semibold text-white sm:text-xs">{label}</span>
           <span className="shrink-0 text-[9px] font-medium text-white/80 sm:text-[10px]">Tap to change</span>
         </span>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
-      </button>
+      </div>
     )
   }
 
