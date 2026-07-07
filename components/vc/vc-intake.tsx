@@ -593,7 +593,7 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={spring}
-        className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-b from-zinc-700 to-zinc-950 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] sm:size-6"
+        className="mr-2 inline-flex size-5 items-center justify-center rounded-full border border-[#c4a052]/70 bg-gradient-to-b from-zinc-600 via-zinc-900 to-[#26211a] text-[#e6c87a] shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(196,160,82,0.4),0_3px_8px_-2px_rgba(38,33,26,0.5)] sm:size-6"
       >
         <svg className="size-3 sm:size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -602,7 +602,7 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
     )
   }
   return (
-    <span className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white sm:size-6 sm:text-[11px]">
+    <span className="mr-2 inline-flex size-5 items-center justify-center rounded-full border border-[#c4a052]/70 bg-gradient-to-b from-zinc-600 via-zinc-900 to-[#26211a] text-[10px] font-bold text-[#f0dfae] shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(196,160,82,0.4),0_3px_8px_-2px_rgba(38,33,26,0.5)] sm:size-6 sm:text-[11px]">
       {n}
     </span>
   )
@@ -698,8 +698,8 @@ function SmileSketch() {
         <linearGradient id="ssLips" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#e0596b" /><stop offset="1" stopColor="#b93a52" />
         </linearGradient>
-        <linearGradient id="ssTeeth" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#eef0f2" />
+        <linearGradient id="ssTeethArc" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#f2f4f6" />
         </linearGradient>
       </defs>
       <g stroke="#c4a052" strokeWidth="3" fill="none" strokeLinecap="round">
@@ -707,21 +707,21 @@ function SmileSketch() {
         <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
       </g>
       {/* outer lips */}
-      <path d="M44 50 Q58 38 80 41 Q102 38 116 50 Q108 84 80 86 Q52 84 44 50 Z" fill="url(#ssLips)" />
-      {/* lip highlight */}
-      <path d="M56 46 Q80 39 104 46 Q92 42 80 43 Q68 42 56 46 Z" fill="#ffffff" opacity="0.35" />
+      <path d="M44 48 Q80 36 116 48 Q108 84 80 86 Q52 84 44 48 Z" fill="url(#ssLips)" />
+      {/* upper lip highlight */}
+      <path d="M56 44 Q80 37.5 104 44 Q92 40.5 80 41.5 Q68 40.5 56 44 Z" fill="#ffffff" opacity="0.35" />
       {/* mouth interior */}
-      <path d="M50 52 Q80 46 110 52 Q102 76 80 78 Q58 76 50 52 Z" fill="#7e2438" />
-      {/* upper teeth */}
-      <path d="M52 52 Q80 46.5 108 52 L104 63 Q80 56.5 56 63 Z" fill="url(#ssTeeth)" />
-      {/* lower teeth */}
-      <path d="M60 70 Q80 75 100 70 Q92 76.5 80 77 Q68 76.5 60 70 Z" fill="url(#ssTeeth)" opacity="0.92" />
-      {/* teeth separators */}
+      <path d="M50 50 Q80 44 110 50 Q103 78 80 80 Q57 78 50 50 Z" fill="#7e2438" />
+      {/* upper teeth — incisal edge curves DOWN with the lower lip (ideal smile arc, centrals longest) */}
+      <path d="M53 51 Q80 45.5 107 51 L104 57.5 Q80 70 56 57.5 Z" fill="url(#ssTeethArc)" />
+      {/* tooth separators, following the arc */}
       <g stroke="#c9ced4" strokeWidth="1.3" strokeLinecap="round">
-        <path d="M64 49.5 L66.5 60.5" /><path d="M75 48 L76 58.5" /><path d="M85 48 L84 58.5" /><path d="M96 49.5 L93.5 60.5" />
+        <path d="M63 48.6 L64.5 60.8" /><path d="M72 47.3 L72.5 64.4" /><path d="M88 47.3 L87.5 64.4" /><path d="M97 48.6 L95.5 60.8" />
       </g>
-      {/* gleam ting on tooth */}
-      <path d="M70 40 l2.6 6.2 6.2 2.6 -6.2 2.6 -2.6 6.2 -2.6 -6.2 -6.2 -2.6 6.2 -2.6 Z" fill="#c4a052" />
+      {/* faint lower-teeth sliver near the corners only (true smiles show mostly upper teeth) */}
+      <path d="M62 73 Q80 76.5 98 73 Q90 77.5 80 77.8 Q70 77.5 62 73 Z" fill="#e8ebee" opacity="0.55" />
+      {/* gleam ting on the central incisor */}
+      <path d="M72 41 l2.6 6.2 6.2 2.6 -6.2 2.6 -2.6 6.2 -2.6 -6.2 -6.2 -2.6 6.2 -2.6 Z" fill="#c4a052" />
       <g stroke="#e2cd9b" strokeWidth="1.6" strokeLinecap="round">
         <path d="M118 34 L124 28" /><path d="M121 40 L128 38" />
       </g>
