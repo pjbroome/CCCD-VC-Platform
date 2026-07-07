@@ -126,7 +126,7 @@ export function VCIntake() {
     tokenIssuedAt.current = t ? Date.now() : 0
   }, [])
 
-  const TOKEN_MAX_AGE_MS = 120_000
+  const TOKEN_MAX_AGE_MS = 240_000
   const TOKEN_WAIT_MS = 20_000
 
   const freshTurnstileToken = async (forceReset = false): Promise<string> => {
@@ -135,8 +135,10 @@ export function VCIntake() {
     if (isFresh && !forceReset) return tokenRef.current
     tokenRef.current = ""
     turnstileRef.current?.reset()
-    // Wait for the widget callback — instant when Cloudflare auto-passes, longer
-    // if it decides to show the visitor a 1-click interactive check.
+    // Wait for the widget callback — instant when Cloudflare auto-passes. If it
+    // decides to show an interactive check, bring it on screen so the visitor
+    // actually sees what it's waiting for.
+    turnstileAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     const deadline = Date.now() + TOKEN_WAIT_MS
     while (Date.now() < deadline) {
       if (tokenRef.current) return tokenRef.current
@@ -167,6 +169,21 @@ export function VCIntake() {
 
   const formRef = useRef<HTMLDivElement>(null)
   const extrasInputRef = useRef<HTMLInputElement>(null)
+  const turnstileAnchorRef = useRef<HTMLDivElement>(null)
+
+  // Photos start uploading the moment they're picked, so Submit only has to
+  // wait for whatever hasn't finished yet (usually nothing).
+  const uploadCache = useRef(new Map<File, Promise<string>>())
+  const ensureUploaded = useCallback((file: File): Promise<string> => {
+    const cached = uploadCache.current.get(file)
+    if (cached) return cached
+    const job = uploadPhoto(file).then((r: PhotoUploadResponse) => r.url)
+    // On failure, drop the cache entry so submit can retry cleanly.
+    job.catch(() => uploadCache.current.delete(file))
+    uploadCache.current.set(file, job)
+    return job
+  }, [])
+  const preUpload = useCallback((f: File | null) => { if (f) void ensureUploaded(f).catch(() => {}) }, [ensureUploaded])
 
   const zip5 = zipDigits(form.zip).slice(0, 5)
   useEffect(() => {
@@ -285,26 +302,16 @@ export function VCIntake() {
 
     try {
       setSubmitState("uploading")
-      const photoUrls: string[] = []
+      const files = [fullFace, closeUp, ...extras.slice(0, 4)].filter((f): f is File => !!f)
 
-      if (fullFace) {
-        const result: PhotoUploadResponse = await uploadPhoto(fullFace)
-        photoUrls.push(result.url)
-      }
-      if (closeUp) {
-        const result: PhotoUploadResponse = await uploadPhoto(closeUp)
-        photoUrls.push(result.url)
-      }
-      for (const extra of extras.slice(0, 4)) {
-        const result: PhotoUploadResponse = await uploadPhoto(extra)
-        photoUrls.push(result.url)
-      }
+      // Everything at once: photos (usually already uploaded in the background
+      // when they were picked) and the bot-check token in parallel.
+      const [photoUrls, token] = await Promise.all([
+        Promise.all(files.map((f) => ensureUploaded(f))),
+        freshTurnstileToken(),
+      ])
 
       setSubmitState("submitting")
-
-      // Mint the bot-check token *after* the (possibly slow) photo uploads so it
-      // can't expire between page load and submission.
-      const token = await freshTurnstileToken()
       if (TURNSTILE_ENABLED && !token) {
         setErrors({ submit: "Our security check didn't load. Please refresh the page and try again — your photos are fine to re-select." })
         setSubmitState("error")
@@ -570,14 +577,14 @@ export function VCIntake() {
                 variant="face"
                 file={fullFace}
                 preview={fullFacePreview}
-                onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setFullFace(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
+                onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setFullFace(f); preUpload(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
               />
               <UploadCard
                 label="Close-up Smile"
                 variant="smile"
                 file={closeUp}
                 preview={closeUpPreview}
-                onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setCloseUp(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
+                onFile={(f) => { if (f && f.size > 14 * 1024 * 1024) { setErrors((prev) => ({ ...prev, photos: "That image is too large (max 14MB). Please choose a smaller photo." })); return } setCloseUp(f); preUpload(f); if (errors.photos) setErrors((prev) => { const next = { ...prev }; delete next.photos; return next }) }}
               />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -603,6 +610,7 @@ export function VCIntake() {
                 const all = Array.from(e.target.files || [])
                 const ok = all.filter((f) => f.size <= 14 * 1024 * 1024)
                 if (ok.length < all.length) setErrors((prev) => ({ ...prev, photos: "Some images were too large (max 14MB each) and were skipped." }))
+                ok.forEach(preUpload)
                 setExtras((p) => [...p, ...ok].slice(0, 4))
                 e.currentTarget.value = ""
               }} />
@@ -612,7 +620,9 @@ export function VCIntake() {
           {/* Submit */}
           <motion.div variants={fadeIn}>
             {/* Bot challenge — renders only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set */}
-            <Turnstile ref={turnstileRef} onToken={handleTurnstileToken} />
+            <div ref={turnstileAnchorRef}>
+              <Turnstile ref={turnstileRef} onToken={handleTurnstileToken} />
+            </div>
 
             <motion.button
               type="button"
