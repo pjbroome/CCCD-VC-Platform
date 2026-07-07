@@ -56,6 +56,7 @@ Feedback → fix, all verified live:
 - Photo boxes replaced with fun line-art invitation cards: face-in-viewfinder sketch and sparkling-smile sketch (gold sparkle accents)
 - Extra photos: single "+ Add · optional" button that opens the picker directly — zero empty boxes on screen ever
 - Submit button sized to its word, centered
+- Progress label now counts the 3 promised steps (was counting 7 field milestones — "3 easy steps" header vs "6 steps left" read as a contradiction; Patrick 2026-07-07). Bar still fills per field for smooth goal-gradient feedback; fresh page reads "31% · 2 steps left" ("Smile Upgrade" pre-select completes Step 2)
 
 ## Housekeeping notes
 - **Orphan photo on the volume (needs a human call):** `patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg` (373 KB, uploaded 2026-07-02 00:28 UTC) is referenced by **no** intake request — almost certainly from a staff member's submission that failed on the old bot-check bug (photo uploaded, request rejected). It may be a real person's photo, so Claude left it in place. Delete via `fly ssh console -a cccd-vc-backend -C "rm /data/vc/patient_photos/e0902fdd52d04acc905b12101a70e8df.jpg"` or keep.
