@@ -90,3 +90,7 @@ patient/consultation data in the staff dashboard. Rules:
    consumes patient text, apply the same data-not-instructions discipline.
 4. A form cannot "reject prompt injection" — the defense lives wherever AI consumes the text, not in
    the form. (Patrick 2026-06-16.)
+
+## Project Portfolio (Obsidian)
+- Project note: `Master Vault/Projects/VC Portal.md` — update frontmatter (`updated`, `status`, `next_action`) + append a Session Log line at session end ("log it")
+- Dashboard: `Master Vault/Projects/Project Portfolio.md` (auto-builds from frontmatter — never edit its tables)
