@@ -578,7 +578,7 @@ export function VCIntake() {
           </a>
         </motion.div>
         <p className="mt-8 text-center text-[11px] text-zinc-600">
-          {"Dr. Patrick Broome · Charlotte, NC"}
+          {`© ${new Date().getFullYear()} Charlotte Center for Cosmetic Dentistry · Dr. Patrick Broome`}
         </p>
       </div>
     )
@@ -847,7 +847,7 @@ export function VCIntake() {
           variants={fadeIn}
           className="mt-5 text-center text-[11px] text-zinc-600"
         >
-          {"Dr. Patrick Broome · Charlotte, NC"}
+          {`© ${new Date().getFullYear()} Charlotte Center for Cosmetic Dentistry · Dr. Patrick Broome`}
         </motion.p>
       </motion.div>
     </div>
