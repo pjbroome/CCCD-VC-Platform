@@ -914,95 +914,6 @@ function InputField({
   )
 }
 
-function FaceSketch() {
-  return (
-    <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true">
-      <defs>
-        <linearGradient id="fsHair" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#6b4a32" /><stop offset="1" stopColor="#4a2f1d" />
-        </linearGradient>
-        <linearGradient id="fsSkin" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f9dfc4" /><stop offset="1" stopColor="#f0c8a4" />
-        </linearGradient>
-        <linearGradient id="fsTop" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fdfbf6" /><stop offset="1" stopColor="#ece4d2" />
-        </linearGradient>
-      </defs>
-      {/* gold viewfinder brackets */}
-      <g stroke="#c4a052" strokeWidth="3" fill="none" strokeLinecap="round">
-        <path d="M14 26 V14 H26" /><path d="M134 14 H146 V26" />
-        <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
-      </g>
-      {/* soft ground shadow */}
-      <ellipse cx="80" cy="102" rx="30" ry="4" fill="#d9d2c2" opacity="0.5" />
-      {/* shoulders / top */}
-      <path d="M46 104 C52 86 64 82 80 82 C96 82 108 86 114 104 Z" fill="url(#fsTop)" stroke="#d3c9b4" strokeWidth="1.5" />
-      {/* neck */}
-      <path d="M72 70 H88 V84 C88 89 72 89 72 84 Z" fill="url(#fsSkin)" />
-      {/* face */}
-      <ellipse cx="80" cy="50" rx="23" ry="26" fill="url(#fsSkin)" />
-      {/* hair sweep */}
-      <path d="M55 52 C52 24 74 18 84 19 C102 20 108 34 105 52 C104 42 100 36 96 35 C90 33 88 38 80 37 C70 36 62 40 60 46 C58 50 56 52 55 52 Z" fill="url(#fsHair)" />
-      {/* happy closed eyes */}
-      <g stroke="#5b4232" strokeWidth="2.4" fill="none" strokeLinecap="round">
-        <path d="M66 51 Q70 47 74 51" /><path d="M86 51 Q90 47 94 51" />
-      </g>
-      {/* brows */}
-      <g stroke="#6b4a32" strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.7">
-        <path d="M65 44 Q70 41.5 75 44" /><path d="M85 44 Q90 41.5 95 44" />
-      </g>
-      {/* blush */}
-      <circle cx="66" cy="59" r="3.4" fill="#f2a58d" opacity="0.5" />
-      <circle cx="94" cy="59" r="3.4" fill="#f2a58d" opacity="0.5" />
-      {/* warm smile with teeth hint */}
-      <path d="M70 62 Q80 71 90 62 Q85 69.5 80 69.5 Q75 69.5 70 62 Z" fill="#ffffff" stroke="#c26a5a" strokeWidth="1.8" strokeLinejoin="round" />
-      {/* gold earring */}
-      <circle cx="57" cy="58" r="1.8" fill="#c4a052" />
-      {/* sparkles */}
-      <path d="M122 28 l2.8 6.8 6.8 2.8 -6.8 2.8 -2.8 6.8 -2.8 -6.8 -6.8 -2.8 6.8 -2.8 Z" fill="#c4a052" />
-      <path d="M36 40 l1.6 3.8 3.8 1.6 -3.8 1.6 -1.6 3.8 -1.6 -3.8 -3.8 -1.6 3.8 -1.6 Z" fill="#e2cd9b" />
-    </svg>
-  )
-}
-
-function SmileSketch() {
-  return (
-    <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true">
-      <defs>
-        <linearGradient id="ssLips" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#e0596b" /><stop offset="1" stopColor="#b93a52" />
-        </linearGradient>
-        <linearGradient id="ssTeethArc" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#f2f4f6" />
-        </linearGradient>
-      </defs>
-      <g stroke="#c4a052" strokeWidth="3" fill="none" strokeLinecap="round">
-        <path d="M14 26 V14 H26" /><path d="M134 14 H146 V26" />
-        <path d="M146 84 V96 H134" /><path d="M26 96 H14 V84" />
-      </g>
-      {/* outer lips */}
-      <path d="M44 48 Q80 36 116 48 Q108 84 80 86 Q52 84 44 48 Z" fill="url(#ssLips)" />
-      {/* upper lip highlight */}
-      <path d="M56 44 Q80 37.5 104 44 Q92 40.5 80 41.5 Q68 40.5 56 44 Z" fill="#ffffff" opacity="0.35" />
-      {/* mouth interior */}
-      <path d="M50 50 Q80 44 110 50 Q103 78 80 80 Q57 78 50 50 Z" fill="#7e2438" />
-      {/* upper teeth — incisal edge curves DOWN with the lower lip (ideal smile arc, centrals longest) */}
-      <path d="M53 51 Q80 45.5 107 51 L104 57.5 Q80 70 56 57.5 Z" fill="url(#ssTeethArc)" />
-      {/* tooth separators, following the arc */}
-      <g stroke="#c9ced4" strokeWidth="1.3" strokeLinecap="round">
-        <path d="M63 48.6 L64.5 60.8" /><path d="M72 47.3 L72.5 64.4" /><path d="M88 47.3 L87.5 64.4" /><path d="M97 48.6 L95.5 60.8" />
-      </g>
-      {/* faint lower-teeth sliver near the corners only (true smiles show mostly upper teeth) */}
-      <path d="M62 73 Q80 76.5 98 73 Q90 77.5 80 77.8 Q70 77.5 62 73 Z" fill="#e8ebee" opacity="0.55" />
-      {/* gleam ting on the central incisor */}
-      <path d="M72 41 l2.6 6.2 6.2 2.6 -6.2 2.6 -2.6 6.2 -2.6 -6.2 -6.2 -2.6 6.2 -2.6 Z" fill="#c4a052" />
-      <g stroke="#e2cd9b" strokeWidth="1.6" strokeLinecap="round">
-        <path d="M118 34 L124 28" /><path d="M121 40 L128 38" />
-      </g>
-    </svg>
-  )
-}
-
 function UploadCard({
   label, variant, slot, onFile, onRotate,
 }: {
@@ -1067,10 +978,27 @@ function UploadCard({
       className={`group relative flex ${aspect} w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-zinc-200 bg-gradient-to-b from-[#fbfaf6] to-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:border-zinc-400 hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.15)] active:scale-[0.97] sm:rounded-2xl`}
       aria-label={`${label} — tap to add`}
     >
-      <span className="min-h-0 flex-1 pt-1">{variant === "face" ? <FaceSketch /> : <SmileSketch />}</span>
-      <span className="pb-2.5">
+      {/* Sutton example photo — shows exactly the shot we're asking for */}
+      <span className="relative min-h-0 flex-1 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={variant === "face" ? "/sutton-selfie-example.jpg" : "/sutton-smile-example.jpg"}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 size-full object-cover"
+        />
+        {/* gold viewfinder brackets — the brand's "frame your shot" cue */}
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-0 size-full">
+          <g stroke="#e6c87a" strokeWidth="2" fill="none" strokeLinecap="round" vectorEffect="non-scaling-stroke">
+            <path d="M10 22 V12 H22" vectorEffect="non-scaling-stroke" /><path d="M78 12 H90 V22" vectorEffect="non-scaling-stroke" />
+            <path d="M90 78 V88 H78" vectorEffect="non-scaling-stroke" /><path d="M22 88 H10 V78" vectorEffect="non-scaling-stroke" />
+          </g>
+        </svg>
+        <span className="absolute left-1.5 top-1.5 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-[#f0dfae] backdrop-blur-sm">Example</span>
+      </span>
+      <span className="bg-white py-2">
         <span className="block text-xs font-semibold text-zinc-800">{label}</span>
-        <span className="mt-0.5 block text-[11px] font-medium text-zinc-500">Tap to add</span>
+        <span className="mt-0.5 block text-[11px] font-medium text-zinc-500">Tap to add yours</span>
       </span>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </button>
