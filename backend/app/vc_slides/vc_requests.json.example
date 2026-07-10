@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "patient_name": "Jane Example",
+    "email": "jane.example@example.com",
+    "phone": "+1-555-0100",
+    "message": "EXAMPLE ONLY — fake placeholder data. The patient's free-text smile goals go here.",
+    "concerns": ["example-concern"],
+    "photos": [],
+    "status": "new",
+    "submitted_at": "2026-01-01T00:00:00+00:00",
+    "updated_at": "2026-01-01T00:00:00+00:00",
+    "notes": "",
+    "consultation_id": null
+  },
+  {
+    "id": 2,
+    "patient_name": "John Sample",
+    "email": "john.sample@example.com",
+    "phone": "+1-555-0142",
+    "message": "EXAMPLE ONLY — do not put real patient data in version control.",
+    "concerns": ["example-concern"],
+    "photos": [],
+    "status": "new",
+    "submitted_at": "2026-01-01T00:00:00+00:00",
+    "updated_at": "2026-01-01T00:00:00+00:00",
+    "notes": "",
+    "consultation_id": null
+  }
+]

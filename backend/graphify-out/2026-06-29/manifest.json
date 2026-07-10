@@ -1,0 +1,102 @@
+{
+  "app/__init__.py": {
+    "mtime": 1780599104.5742443,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "app/auth.py": {
+    "mtime": 1781358789.8964777,
+    "ast_hash": "38f885a79c64b99476deade5e8f8589b",
+    "semantic_hash": ""
+  },
+  "app/main.py": {
+    "mtime": 1782097605.8289652,
+    "ast_hash": "e2606a8d7f928ab8d9c25cb20dedc158",
+    "semantic_hash": ""
+  },
+  "app/models.py": {
+    "mtime": 1782676409.3939552,
+    "ast_hash": "18047d173bf5cc7b06067e8076cea4b3",
+    "semantic_hash": ""
+  },
+  "app/rag.py": {
+    "mtime": 1780599104.5752778,
+    "ast_hash": "54b35e8d8c9752307969bc4767e8f58a",
+    "semantic_hash": "54b35e8d8c9752307969bc4767e8f58a"
+  },
+  "app/slide_sorter.py": {
+    "mtime": 1781139745.7236621,
+    "ast_hash": "d25e69b33a5eeeb0d9e6e6f0ac5a88b6",
+    "semantic_hash": ""
+  },
+  "app/vc_slides/indexed_catalog.json": {
+    "mtime": 1780686088.7661777,
+    "ast_hash": "f072bfa1b016b3367475226d1b97ae35",
+    "semantic_hash": "f072bfa1b016b3367475226d1b97ae35"
+  },
+  "app/vc_slides/vc_consultations.json": {
+    "mtime": 1780621315.9671843,
+    "ast_hash": "58e0494c51d30eb3494f7c9198986bb9",
+    "semantic_hash": "58e0494c51d30eb3494f7c9198986bb9"
+  },
+  "app/vc_slides/vc_requests.json": {
+    "mtime": 1780621315.9675026,
+    "ast_hash": "502c90c9486ce5502bf814647ecf9c1f",
+    "semantic_hash": "502c90c9486ce5502bf814647ecf9c1f"
+  },
+  "generate_embeddings.py": {
+    "mtime": 1780599104.5765457,
+    "ast_hash": "c507dd66f6e49e16029651165190b6d2",
+    "semantic_hash": "c507dd66f6e49e16029651165190b6d2"
+  },
+  "rag_chunks.json": {
+    "mtime": 1780599104.585146,
+    "ast_hash": "3aa6d142ae7c8bc13bd6a4d9d3886a43",
+    "semantic_hash": "3aa6d142ae7c8bc13bd6a4d9d3886a43"
+  },
+  "tests/__init__.py": {
+    "mtime": 1780599104.597994,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "vc-slide-manager-src/App.tsx": {
+    "mtime": 1780616147.0557244,
+    "ast_hash": "0ef11d1f6ab917c36ed3d664344d2bd5",
+    "semantic_hash": "0ef11d1f6ab917c36ed3d664344d2bd5"
+  },
+  "README.md": {
+    "mtime": 1780599104.574153,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1780599104.5763752,
+    "ast_hash": "50067865297cf726255d659b1cb82ecb",
+    "semantic_hash": ""
+  },
+  ".claude/settings.json": {
+    "mtime": 1780769351.6755617,
+    "ast_hash": "bfee062c3962c14264fd704e975a6b38",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1782740250.1483674,
+    "ast_hash": "99463dfd21083c21ca00ec8a12e08e22",
+    "semantic_hash": ""
+  },
+  "tests/test_media_path_traversal.py": {
+    "mtime": 1780882312.518726,
+    "ast_hash": "ab3387c3783d6ef0f1a14c1be2d9a41a",
+    "semantic_hash": ""
+  },
+  "app/vc_slides/admin_sessions.json": {
+    "mtime": 1781358870.5496423,
+    "ast_hash": "366361180feedbd3afefaf3bd9d7f9b0",
+    "semantic_hash": ""
+  },
+  ".github/workflows/vc-cleanup.yml": {
+    "mtime": 1781358853.021882,
+    "ast_hash": "0070bc41a80f121b3307e8da178c8a12",
+    "semantic_hash": ""
+  }
+}

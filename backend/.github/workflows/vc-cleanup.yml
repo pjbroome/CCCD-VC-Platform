@@ -1,0 +1,33 @@
+name: VC media retention cleanup
+
+# Daily call to the backend's media-retention endpoint so consult videos older than
+# VIDEO_RETENTION_DAYS are purged from the Fly volume (HIPAA data minimization).
+#
+# Dormant until BOTH are configured:
+#   - GitHub repo secret CRON_SECRET  (same value as the Fly secret, already set)
+#   - Fly secret VIDEO_RETENTION_DAYS  (e.g. 90; 0 = keep forever / no-op)
+# Until the repo secret exists this job exits 0 without calling anything.
+
+on:
+  schedule:
+    - cron: "17 9 * * *"   # daily at 09:17 UTC
+  workflow_dispatch: {}      # allow manual runs from the Actions tab
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger media retention
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repo secret not set — retention is dormant. Skipping."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/cleanup_out -w "%{http_code}" -X POST \
+            -H "X-Cron-Secret: $CRON_SECRET" \
+            https://cccd-vc-backend.fly.dev/vc/maintenance/cleanup)
+          echo "HTTP $code"
+          cat /tmp/cleanup_out || true
+          test "$code" = "200"

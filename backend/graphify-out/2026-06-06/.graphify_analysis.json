@@ -1,0 +1,651 @@
+{
+  "communities": {
+    "0": [
+      "app_main_create_recording_deck",
+      "app_main_create_vc_request_endpoint",
+      "app_main_delete_vc_request_endpoint",
+      "app_main_get_vc_request_endpoint",
+      "app_main_list_recording_decks",
+      "app_main_list_vc_requests",
+      "app_main_play_consultation",
+      "app_main_rationale_3040",
+      "app_main_rationale_3050",
+      "app_main_rationale_3057",
+      "app_main_rationale_3064",
+      "app_main_rationale_3192",
+      "app_main_rationale_3207",
+      "app_main_rationale_3234",
+      "app_main_rationale_3244",
+      "app_main_rationale_3280",
+      "app_main_rationale_3322",
+      "app_main_rationale_3334",
+      "app_main_rationale_3368",
+      "app_main_record_watch_endpoint",
+      "app_main_remove_recording_deck",
+      "app_main_transition_request_status",
+      "app_main_update_vc_request_endpoint",
+      "app_models_is_valid_transition",
+      "app_models_rationale_42",
+      "app_slide_sorter",
+      "app_slide_sorter_create_consultation",
+      "app_slide_sorter_create_vc_request",
+      "app_slide_sorter_delete_recording_deck",
+      "app_slide_sorter_delete_vc_request",
+      "app_slide_sorter_get_recording_decks",
+      "app_slide_sorter_get_vc_request",
+      "app_slide_sorter_load_consultations",
+      "app_slide_sorter_load_decks",
+      "app_slide_sorter_load_requests",
+      "app_slide_sorter_rationale_1",
+      "app_slide_sorter_rationale_435",
+      "app_slide_sorter_rationale_450",
+      "app_slide_sorter_rationale_456",
+      "app_slide_sorter_rationale_486",
+      "app_slide_sorter_rationale_529",
+      "app_slide_sorter_rationale_537",
+      "app_slide_sorter_rationale_591",
+      "app_slide_sorter_rationale_668",
+      "app_slide_sorter_rationale_683",
+      "app_slide_sorter_record_play",
+      "app_slide_sorter_record_watch",
+      "app_slide_sorter_save_consultations",
+      "app_slide_sorter_save_decks",
+      "app_slide_sorter_save_recording_deck",
+      "app_slide_sorter_save_requests",
+      "app_slide_sorter_update_vc_request"
+    ],
+    "1": [
+      "adminloginrequest",
+      "app_main_chat",
+      "app_main_chatrequest",
+      "app_main_chatresponse",
+      "app_main_feedbackrequest",
+      "app_main_healthresponse",
+      "app_main_rationale_1594",
+      "app_main_rationale_3394",
+      "app_main_recordingdeckrequest",
+      "app_main_reorderrequest",
+      "app_main_scriptgeneraterequest",
+      "app_main_slidematchrequest",
+      "app_main_slideupdaterequest",
+      "app_main_vcpresentationrequest",
+      "app_models",
+      "app_models_adminloginrequest",
+      "app_models_adminloginresponse",
+      "app_models_adminsession",
+      "app_models_consultationcreate",
+      "app_models_consultationupdate",
+      "app_models_photouploadresponse",
+      "app_models_rationale_1",
+      "app_models_rationale_102",
+      "app_models_rationale_122",
+      "app_models_rationale_135",
+      "app_models_rationale_145",
+      "app_models_rationale_15",
+      "app_models_rationale_150",
+      "app_models_rationale_157",
+      "app_models_rationale_167",
+      "app_models_rationale_173",
+      "app_models_rationale_49",
+      "app_models_rationale_63",
+      "app_models_rationale_79",
+      "app_models_requeststatus",
+      "app_models_statustransitionrequest",
+      "app_models_statustransitionresponse",
+      "app_models_vcrequestcreate",
+      "app_models_vcrequestrecord",
+      "app_models_vcrequestupdate",
+      "backgroundtasks",
+      "basemodel",
+      "consultationcreate",
+      "consultationupdate",
+      "enum",
+      "request",
+      "statustransitionrequest",
+      "str",
+      "uploadfile",
+      "vcrequestcreate",
+      "vcrequestupdate"
+    ],
+    "2": [
+      "app_main_delete_slide_endpoint",
+      "app_main_list_all_slides",
+      "app_main_rationale_2848",
+      "app_main_rationale_2865",
+      "app_main_rationale_2886",
+      "app_main_rationale_2895",
+      "app_main_rationale_2905",
+      "app_main_rationale_2943",
+      "app_main_rationale_2950",
+      "app_main_rationale_2962",
+      "app_main_rationale_2969",
+      "app_main_reorder_slides_endpoint",
+      "app_main_update_slide_endpoint",
+      "app_main_vc_build_presentation",
+      "app_main_vc_slide_detail",
+      "app_main_vc_slide_match",
+      "app_main_vc_slide_search",
+      "app_main_vc_slide_stats",
+      "app_slide_sorter_delete_slide",
+      "app_slide_sorter_get_all_slides",
+      "app_slide_sorter_get_catalog_stats",
+      "app_slide_sorter_get_slide_detail",
+      "app_slide_sorter_get_slides_for_vc_presentation",
+      "app_slide_sorter_load_catalog",
+      "app_slide_sorter_match_guest_to_slides",
+      "app_slide_sorter_rationale_159",
+      "app_slide_sorter_rationale_172",
+      "app_slide_sorter_rationale_18",
+      "app_slide_sorter_rationale_291",
+      "app_slide_sorter_rationale_30",
+      "app_slide_sorter_rationale_346",
+      "app_slide_sorter_rationale_352",
+      "app_slide_sorter_rationale_365",
+      "app_slide_sorter_rationale_374",
+      "app_slide_sorter_rationale_380",
+      "app_slide_sorter_reorder_slides",
+      "app_slide_sorter_save_catalog",
+      "app_slide_sorter_search_slides",
+      "app_slide_sorter_update_slide"
+    ],
+    "3": [
+      "app_rag",
+      "app_rag_build_inverted_index",
+      "app_rag_build_inverted_index_from_chunks",
+      "app_rag_chunk_text",
+      "app_rag_cosine_similarity_sparse",
+      "app_rag_get_chunk_text",
+      "app_rag_get_context_for_query",
+      "app_rag_get_embedding",
+      "app_rag_get_stats",
+      "app_rag_initialize",
+      "app_rag_keyword_prefilter",
+      "app_rag_load_cache",
+      "app_rag_load_chunks_from_files",
+      "app_rag_rationale_1",
+      "app_rag_rationale_104",
+      "app_rag_rationale_115",
+      "app_rag_rationale_141",
+      "app_rag_rationale_165",
+      "app_rag_rationale_190",
+      "app_rag_rationale_218",
+      "app_rag_rationale_231",
+      "app_rag_rationale_364",
+      "app_rag_rationale_378",
+      "app_rag_rationale_386",
+      "app_rag_rationale_473",
+      "app_rag_rationale_483",
+      "app_rag_rationale_534",
+      "app_rag_rationale_560",
+      "app_rag_rationale_68",
+      "app_rag_rationale_98",
+      "app_rag_save_cache",
+      "app_rag_search",
+      "app_rag_tokenize",
+      "ndarray"
+    ],
+    "4": [
+      "app_main",
+      "app_main_admin_session_status",
+      "app_main_content_monitor_acquisitions",
+      "app_main_content_monitor_process",
+      "app_main_dashboard_trends",
+      "app_main_deactivate_training_content",
+      "app_main_get_latest_conversation",
+      "app_main_get_request_schema",
+      "app_main_healthz",
+      "app_main_list_sessions",
+      "app_main_list_training_content",
+      "app_main_rag_search",
+      "app_main_rationale_1510",
+      "app_main_rationale_1539",
+      "app_main_rationale_1911",
+      "app_main_rationale_1985",
+      "app_main_rationale_2247",
+      "app_main_rationale_2261",
+      "app_main_rationale_2563",
+      "app_main_rationale_2623",
+      "app_main_rationale_3097",
+      "app_main_rationale_3140",
+      "app_main_rationale_3214",
+      "app_main_root",
+      "app_main_serve_patient_photo"
+    ],
+    "5": [
+      "app_main_approve_script",
+      "app_main_email_consultation_review",
+      "app_main_generate_clone_video",
+      "app_main_generate_script",
+      "app_main_list_consultations",
+      "app_main_rationale_2978",
+      "app_main_rationale_3021",
+      "app_main_rationale_3342",
+      "app_main_rationale_3349",
+      "app_main_rationale_3358",
+      "app_main_rationale_3377",
+      "app_main_rationale_3402",
+      "app_main_rationale_3430",
+      "app_main_rationale_3442",
+      "app_main_rationale_3455",
+      "app_main_reject_script",
+      "app_main_resend_consultation",
+      "app_main_send_review_email",
+      "app_slide_sorter_get_consultation",
+      "app_slide_sorter_rationale_636",
+      "app_slide_sorter_rationale_644",
+      "app_slide_sorter_rationale_653",
+      "app_slide_sorter_update_consultation"
+    ],
+    "6": [
+      "app_auth",
+      "app_auth_cleanup_expired_sessions",
+      "app_auth_create_session",
+      "app_auth_hash_password",
+      "app_auth_invalidate_session",
+      "app_auth_rationale_1",
+      "app_auth_rationale_123",
+      "app_auth_rationale_31",
+      "app_auth_rationale_36",
+      "app_auth_rationale_47",
+      "app_auth_rationale_63",
+      "app_auth_rationale_80",
+      "app_auth_rationale_91",
+      "app_auth_require_admin",
+      "app_auth_validate_token",
+      "app_auth_verify_admin_password",
+      "app_main_admin_login",
+      "app_main_admin_logout",
+      "app_main_rationale_3075",
+      "app_main_rationale_3088",
+      "httpauthorizationcredentials"
+    ],
+    "7": [
+      "app_main_add_training_content",
+      "app_main_canary_scheduler",
+      "app_main_load_chat_history",
+      "app_main_load_dr_broome_rules",
+      "app_main_load_saved_patches",
+      "app_main_rationale_2209",
+      "app_main_rationale_3638",
+      "app_main_rationale_3711",
+      "app_main_rationale_3747",
+      "app_main_rationale_3811",
+      "app_main_rationale_3826",
+      "app_main_rationale_704",
+      "app_main_rationale_733",
+      "app_main_rationale_762",
+      "app_main_rationale_951",
+      "app_main_run_canary_suite",
+      "app_main_run_single_canary",
+      "app_main_send_canary_alert",
+      "app_main_startup",
+      "app_main_trigger_canary"
+    ],
+    "8": [
+      "vc_slide_manager_src_app",
+      "vc_slide_manager_src_app_app",
+      "vc_slide_manager_src_app_cam_sizes",
+      "vc_slide_manager_src_app_consultation",
+      "vc_slide_manager_src_app_containerfirstcollision",
+      "vc_slide_manager_src_app_countdownoverlay",
+      "vc_slide_manager_src_app_deletedropzone",
+      "vc_slide_manager_src_app_droppablezone",
+      "vc_slide_manager_src_app_getfullslideurl",
+      "vc_slide_manager_src_app_recordingdeck",
+      "vc_slide_manager_src_app_savedpresentation",
+      "vc_slide_manager_src_app_size_presets",
+      "vc_slide_manager_src_app_slide",
+      "vc_slide_manager_src_app_sortablelistcard",
+      "vc_slide_manager_src_app_sortablequeuethumb",
+      "vc_slide_manager_src_app_sortableslidecard",
+      "vc_slide_manager_src_app_vcrequest",
+      "vc_slide_manager_src_app_viewmode"
+    ],
+    "9": [
+      "app_main_add_to_conversation",
+      "app_main_build_incident",
+      "app_main_chat_stream",
+      "app_main_check_message_safety",
+      "app_main_get_client_ip",
+      "app_main_is_ip_banned",
+      "app_main_pick_deflection",
+      "app_main_rationale_1685",
+      "app_main_rationale_241",
+      "app_main_rationale_250",
+      "app_main_rationale_265",
+      "app_main_rationale_293",
+      "app_main_rationale_363",
+      "app_main_rationale_421",
+      "app_main_rationale_480",
+      "app_main_send_security_alert",
+      "app_main_track_ip_attempt"
+    ],
+    "10": [
+      "app_main_clean_corporate_filler",
+      "app_main_generate_reply_with_watchdog",
+      "app_main_generate_with_model",
+      "app_main_generate_with_timeout",
+      "app_main_quick_quality_check",
+      "app_main_rationale_1269",
+      "app_main_rationale_1285",
+      "app_main_rationale_1294",
+      "app_main_rationale_1312",
+      "app_main_rationale_1337",
+      "app_main_rationale_985",
+      "app_main_record_watchdog_metric"
+    ],
+    "11": [
+      "app_main_competency_test",
+      "app_main_generate_openrouter_reply",
+      "app_main_generate_sutton_reply",
+      "app_main_rationale_1056",
+      "app_main_rationale_1089",
+      "app_main_rationale_1097",
+      "app_main_rationale_1155",
+      "app_main_rationale_2663",
+      "app_main_run_tops_critic"
+    ],
+    "12": [
+      "app_main_get_conversation",
+      "app_main_get_conversation_messages",
+      "app_main_log_to_supabase",
+      "app_main_prepare_sutton_prompt",
+      "app_main_rationale_1000",
+      "app_main_rationale_1554",
+      "app_main_rationale_878",
+      "app_main_rationale_887",
+      "app_main_run_coach_background"
+    ],
+    "13": [
+      "app_main_rationale_3114",
+      "app_main_rationale_3155",
+      "app_main_upload_consult_video",
+      "app_main_upload_patient_photo",
+      "app_slide_sorter_rationale_406",
+      "app_slide_sorter_resolve_path",
+      "path"
+    ],
+    "14": [
+      "docker_compose_yml_content_monitor",
+      "docker_compose_yml_crown_council",
+      "docker_compose_yml_env_file",
+      "docker_compose_yml_healthz",
+      "docker_compose_yml_selenium",
+      "docker_compose_yml_sutton_api"
+    ],
+    "15": [
+      "generate_embeddings",
+      "generate_embeddings_chunk_text",
+      "generate_embeddings_get_embedding",
+      "generate_embeddings_load_all_chunks",
+      "generate_embeddings_main",
+      "generate_embeddings_rationale_1"
+    ],
+    "16": [
+      "app_main_clear_conversation",
+      "app_main_persist_chat_history",
+      "app_main_rationale_916",
+      "app_main_rationale_927",
+      "app_main_save_chat_message"
+    ],
+    "17": [
+      "app_main_autoresearch_apply",
+      "app_main_rationale_2100",
+      "app_main_rationale_797",
+      "app_main_save_patches_to_supabase"
+    ],
+    "18": [
+      "app_main_get_canary_results",
+      "app_main_rationale_3914",
+      "app_main_rationale_3985",
+      "app_main_summarize_canary_run"
+    ],
+    "19": [
+      "app_main_get_model_distribution",
+      "app_main_rationale_3483",
+      "app_main_rationale_3560",
+      "app_main_watchdog_status"
+    ],
+    "20": [
+      "app_main_rationale_2400",
+      "app_main_rationale_2462",
+      "app_main_training_start"
+    ],
+    "21": [
+      "app_main_autoresearch_review",
+      "app_main_rationale_2046"
+    ],
+    "22": [
+      "app_main_autoresearch_status",
+      "app_main_rationale_2176"
+    ],
+    "23": [
+      "app_main_clear_incidents",
+      "app_main_rationale_3629"
+    ],
+    "24": [
+      "app_main_competency_results",
+      "app_main_rationale_2732"
+    ],
+    "25": [
+      "app_main_content_monitor_register",
+      "app_main_rationale_2543"
+    ],
+    "26": [
+      "app_main_content_monitor_scan",
+      "app_main_rationale_2508"
+    ],
+    "27": [
+      "app_main_dashboard_full",
+      "app_main_rationale_2759"
+    ],
+    "28": [
+      "app_main_dashboard_stats",
+      "app_main_rationale_1955"
+    ],
+    "29": [
+      "app_main_rag_status",
+      "app_main_rationale_1527"
+    ],
+    "30": [
+      "app_main_rationale_2275",
+      "app_main_submit_feedback"
+    ],
+    "31": [
+      "app_main_rationale_2421",
+      "app_main_training_stop"
+    ],
+    "32": [
+      "app_main_rationale_3179",
+      "app_main_serve_consult_video"
+    ],
+    "33": [
+      "app_main_rationale_3534",
+      "app_main_watchdog_health"
+    ],
+    "34": [
+      "app_main_rationale_3570",
+      "app_main_watchdog_incidents"
+    ],
+    "35": [
+      "app_main_rationale_3833",
+      "app_main_watchdog_dashboard"
+    ],
+    "36": [
+      "app_main_rationale_4000",
+      "app_main_unban_ip"
+    ],
+    "37": [
+      "app_init"
+    ],
+    "38": [
+      "tests_init"
+    ],
+    "39": [
+      "vc_slides_indexed_catalog"
+    ],
+    "40": [
+      "vc_slides_vc_consultations"
+    ],
+    "41": [
+      "vc_slides_vc_requests"
+    ]
+  },
+  "cohesion": {
+    "0": 0.05580693815987934,
+    "1": 0.20705882352941177,
+    "2": 0.05668016194331984,
+    "3": 0.0766488413547237,
+    "4": 0.08,
+    "5": 0.10276679841897234,
+    "6": 0.10952380952380952,
+    "7": 0.1,
+    "8": 0.13725490196078433,
+    "9": 0.125,
+    "10": 0.16666666666666666,
+    "11": 0.25,
+    "12": 0.2222222222222222,
+    "13": 0.2857142857142857,
+    "14": 0.4,
+    "15": 0.5333333333333333,
+    "16": 0.4,
+    "17": 0.5,
+    "18": 0.5,
+    "19": 0.5,
+    "20": 0.6666666666666666,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0
+  },
+  "gods": [
+    {
+      "id": "app_models_requeststatus",
+      "label": "RequestStatus",
+      "degree": 27
+    },
+    {
+      "id": "app_models_photouploadresponse",
+      "label": "PhotoUploadResponse",
+      "degree": 24
+    },
+    {
+      "id": "app_models_adminloginresponse",
+      "label": "AdminLoginResponse",
+      "degree": 24
+    },
+    {
+      "id": "app_models_statustransitionresponse",
+      "label": "StatusTransitionResponse",
+      "degree": 24
+    },
+    {
+      "id": "app_models_vcrequestcreate",
+      "label": "VCRequestCreate",
+      "degree": 23
+    },
+    {
+      "id": "app_models_vcrequestupdate",
+      "label": "VCRequestUpdate",
+      "degree": 23
+    },
+    {
+      "id": "app_models_vcrequestrecord",
+      "label": "VCRequestRecord",
+      "degree": 23
+    },
+    {
+      "id": "app_models_consultationcreate",
+      "label": "ConsultationCreate",
+      "degree": 23
+    },
+    {
+      "id": "app_models_consultationupdate",
+      "label": "ConsultationUpdate",
+      "degree": 23
+    },
+    {
+      "id": "app_models_adminloginrequest",
+      "label": "AdminLoginRequest",
+      "degree": 23
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Request",
+      "target": "AdminLoginRequest",
+      "source_files": [
+        "app/main.py",
+        "app/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "Request",
+      "target": "AdminLoginResponse",
+      "source_files": [
+        "app/main.py",
+        "app/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "Request",
+      "target": "ConsultationCreate",
+      "source_files": [
+        "app/main.py",
+        "app/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "Request",
+      "target": "ConsultationUpdate",
+      "source_files": [
+        "app/main.py",
+        "app/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "Request",
+      "target": "PhotoUploadResponse",
+      "source_files": [
+        "app/main.py",
+        "app/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source"
+    }
+  ],
+  "tokens": {
+    "input": 551,
+    "output": 1225
+  }
+}
