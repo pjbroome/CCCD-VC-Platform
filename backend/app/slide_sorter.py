@@ -34,8 +34,25 @@ def _resolve_vc_dir() -> tuple[Path, Path]:
                         shutil.copy2(f, vimg / f.name)
             vcat = vol / "indexed_catalog.json"
             app_cat = _APP_VC_DIR / "indexed_catalog.json"
-            if not vcat.exists() and app_cat.exists():
-                shutil.copy2(app_cat, vcat)
+            if app_cat.exists():
+                # Seed when missing. Also refresh when the bake-in catalog has
+                # richer tags (treatments/concerns) than the volume copy — the
+                # 149-slide expansion previously wiped metadata and left an
+                # empty-tagged volume file that never auto-healed.
+                should_copy = not vcat.exists()
+                if not should_copy:
+                    try:
+                        import json as _json
+                        vol_slides = _json.loads(vcat.read_text())
+                        app_slides = _json.loads(app_cat.read_text())
+                        vol_tagged = sum(1 for s in vol_slides if s.get("treatments") or s.get("concerns"))
+                        app_tagged = sum(1 for s in app_slides if s.get("treatments") or s.get("concerns"))
+                        if app_tagged > vol_tagged:
+                            should_copy = True
+                    except Exception:
+                        pass
+                if should_copy:
+                    shutil.copy2(app_cat, vcat)
             # Only use the volume if it actually has images seeded.
             if any(vimg.iterdir()):
                 return vol, vimg

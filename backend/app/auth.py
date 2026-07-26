@@ -4,15 +4,17 @@ MVP approach: shared admin password + bearer token sessions.
 HIPAA-ready upgrade path: replace with OAuth2/OIDC (e.g. Auth0, Clerk) before production.
 
 Storage decisions:
-- Sessions stored in-memory (lost on restart — acceptable for MVP)
-- Password stored as env var VC_ADMIN_PASSWORD (hashed comparison)
-- Tokens are UUID4, valid for 24 hours
+- Sessions persisted on the Fly volume so logins survive restarts
+- Password: prefer VC_ADMIN_PASSWORD_HASH (pbkdf2) when set; else legacy plaintext
+  VC_ADMIN_PASSWORD compared with hmac.compare_digest (timing-safe). SHA-256
+  double-hashing was removed — it added no salt and was fast to brute-force.
+- Tokens are secrets.token_urlsafe(32), valid for 24 hours
 """
 import os
-import uuid
 import secrets
 import hashlib
 import hmac
+import base64
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import Request, HTTPException, Depends
@@ -20,11 +22,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # --- Configuration ---
 VC_ADMIN_PASSWORD = os.environ.get("VC_ADMIN_PASSWORD", "")
+# Optional: "pbkdf2_sha256$iterations$salt_b64$hash_b64" from hash_admin_password()
+VC_ADMIN_PASSWORD_HASH = os.environ.get("VC_ADMIN_PASSWORD_HASH", "").strip()
 # When VC_ENV=production, auth fails CLOSED if no password is configured — a missing
 # secret must never silently expose PHI. Outside production, an unset password = dev mode.
 VC_ENV = os.environ.get("VC_ENV", "").strip().lower()
 IS_PRODUCTION = VC_ENV in ("production", "prod")
 TOKEN_EXPIRY_HOURS = 24
+_PBKDF2_ITERATIONS = 260_000
 
 # --- Session store (persisted to the volume so logins survive restarts) ---
 try:
@@ -49,10 +54,10 @@ def _save_sessions() -> None:
         return
     try:
         import json
-        import os
+        import os as _os
         tmp = _SESSIONS_FILE.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(_active_sessions))
-        os.replace(tmp, _SESSIONS_FILE)  # atomic — avoids corruption on concurrent writes
+        _os.replace(tmp, _SESSIONS_FILE)  # atomic — avoids corruption on concurrent writes
     except Exception:
         pass
 
@@ -62,21 +67,41 @@ _active_sessions: dict[str, dict] = _load_sessions()
 security = HTTPBearer(auto_error=False)
 
 
-def _hash_password(password: str) -> str:
-    """Hash a password with SHA-256 for comparison."""
-    return hashlib.sha256(password.encode()).hexdigest()
+def hash_admin_password(password: str, iterations: int = _PBKDF2_ITERATIONS) -> str:
+    """Create a PBKDF2 password hash suitable for VC_ADMIN_PASSWORD_HASH."""
+    salt = secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return "pbkdf2_sha256$%d$%s$%s" % (
+        iterations,
+        base64.b64encode(salt).decode("ascii"),
+        base64.b64encode(dk).decode("ascii"),
+    )
+
+
+def _verify_pbkdf2(password: str, encoded: str) -> bool:
+    try:
+        algo, iters_s, salt_b64, hash_b64 = encoded.split("$", 3)
+        if algo != "pbkdf2_sha256":
+            return False
+        iterations = int(iters_s)
+        salt = base64.b64decode(salt_b64.encode("ascii"))
+        expected = base64.b64decode(hash_b64.encode("ascii"))
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        return hmac.compare_digest(dk, expected)
+    except Exception:
+        return False
 
 
 def verify_admin_password(password: str) -> bool:
-    """Verify the admin password against the stored hash."""
+    """Verify the admin password against PBKDF2 hash or legacy plaintext env."""
+    if VC_ADMIN_PASSWORD_HASH:
+        return _verify_pbkdf2(password, VC_ADMIN_PASSWORD_HASH)
     if not VC_ADMIN_PASSWORD:
         # No password configured: allow only outside production (dev mode).
         # In production this returns False — never authenticate without a real secret.
         return not IS_PRODUCTION
-    return hmac.compare_digest(
-        _hash_password(password),
-        _hash_password(VC_ADMIN_PASSWORD),
-    )
+    # Timing-safe plaintext compare (rotate to VC_ADMIN_PASSWORD_HASH ASAP).
+    return hmac.compare_digest(password.encode("utf-8"), VC_ADMIN_PASSWORD.encode("utf-8"))
 
 
 def create_session() -> dict:
@@ -99,17 +124,18 @@ def create_session() -> dict:
 def validate_token(token: str) -> Optional[dict]:
     """Validate a bearer token and return the session if valid."""
     session = _active_sessions.get(token)
-    if not session:
+    if not session or not session.get("is_valid"):
         return None
-    if not session.get("is_valid"):
+    try:
+        expires = datetime.fromisoformat(session["expires_at"])
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires:
+            session["is_valid"] = False
+            _save_sessions()
+            return None
+    except Exception:
         return None
-
-    # Check expiry
-    expires_at = datetime.fromisoformat(session["expires_at"])
-    if datetime.now(timezone.utc) > expires_at:
-        session["is_valid"] = False
-        return None
-
     return session
 
 
@@ -123,21 +149,20 @@ def invalidate_session(token: str) -> bool:
     return False
 
 
+def revoke_session(token: str) -> None:
+    invalidate_session(token)
+
+
 async def require_admin(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> dict:
     """FastAPI dependency that requires valid admin authentication.
-    
-    Usage:
-        @app.get("/admin/endpoint")
-        async def protected_endpoint(session: dict = Depends(require_admin)):
-            ...
-    
-    If VC_ADMIN_PASSWORD is not set, all requests are allowed (dev mode).
+
+    If neither VC_ADMIN_PASSWORD nor VC_ADMIN_PASSWORD_HASH is set:
+    - production → 503 fail-closed
+    - otherwise → dev mode allow-all
     """
-    # No password configured. Outside production this is dev-mode (allow all);
-    # in production, fail CLOSED so a missing secret can never expose PHI.
-    if not VC_ADMIN_PASSWORD:
+    if not VC_ADMIN_PASSWORD and not VC_ADMIN_PASSWORD_HASH:
         if IS_PRODUCTION:
             raise HTTPException(
                 status_code=503,
@@ -163,12 +188,28 @@ async def require_admin(
     return session
 
 
-def cleanup_expired_sessions():
-    """Remove expired sessions from memory."""
+def cleanup_expired_sessions() -> int:
+    """Remove expired sessions from memory/volume."""
     now = datetime.now(timezone.utc)
-    expired_tokens = [
-        token for token, session in _active_sessions.items()
-        if datetime.fromisoformat(session["expires_at"]) < now
-    ]
-    for token in expired_tokens:
-        del _active_sessions[token]
+    removed = 0
+    for token, session in list(_active_sessions.items()):
+        try:
+            expires = datetime.fromisoformat(session["expires_at"])
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if now > expires or not session.get("is_valid"):
+                del _active_sessions[token]
+                removed += 1
+        except Exception:
+            del _active_sessions[token]
+            removed += 1
+    if removed:
+        _save_sessions()
+    return removed
+
+
+def get_bearer_token(request: Request) -> Optional[str]:
+    auth = request.headers.get("Authorization") or ""
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+    return None

@@ -535,8 +535,13 @@ export async function recordConsultationPlayByToken(token: string): Promise<{ pl
   return res.json();
 }
 
-export async function emailConsultationReview(consultationId: number): Promise<{ sent: boolean; email: string; link: string }> {
-  const res = await fetch(`${API_BASE}/vc/consultations/${consultationId}/email-review`, { method: "POST", headers: authHeaders() });
+export async function emailConsultationReview(
+  consultationId: number
+): Promise<{ sent: boolean; email: string; link: string; error?: string }> {
+  const res = await fetch(`${API_BASE}/vc/consultations/${consultationId}/email-review`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to email review (${res.status}): ${text}`);

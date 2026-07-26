@@ -74,6 +74,70 @@ load_dotenv()
 
 app = FastAPI(title="Sutton AI Brand Ambassador API", version="1.0.0")
 
+# --- PHI media URL signing (HMAC). UUID filenames remain unguessable; signed
+# query params let <img>/<video> load without Authorization headers.
+# Set MEDIA_ENFORCE_SIGNED=1 to reject unsigned photo/video GETs (staff bearer still allowed).
+import hashlib as _hashlib
+import hmac as _hmac
+import time as _time_mod
+
+
+def _media_signing_secret() -> bytes:
+    raw = (
+        os.environ.get("MEDIA_SIGNING_SECRET")
+        or os.environ.get("VC_ADMIN_PASSWORD_HASH")
+        or os.environ.get("VC_ADMIN_PASSWORD")
+        or "dev-media-signing-not-for-production"
+    )
+    return raw.encode("utf-8")
+
+
+def _sign_media_filename(filename: str, exp: int) -> str:
+    msg = f"{filename}.{exp}".encode("utf-8")
+    return _hmac.new(_media_signing_secret(), msg, _hashlib.sha256).hexdigest()
+
+
+def signed_media_path(path: str, ttl_seconds: int = 60 * 60 * 24 * 30) -> str:
+    """Append ?exp=&sig= to a /vc/photos|videos/... path."""
+    if not path or path.startswith("http") or "?" in path:
+        return path
+    filename = path.rstrip("/").split("/")[-1]
+    if not filename:
+        return path
+    exp = int(_time_mod.time()) + int(ttl_seconds)
+    sig = _sign_media_filename(filename, exp)
+    return f"{path}?exp={exp}&sig={sig}"
+
+
+def _media_sig_valid(filename: str, exp: str | None, sig: str | None) -> bool:
+    if not exp or not sig:
+        return False
+    try:
+        exp_i = int(exp)
+    except ValueError:
+        return False
+    if exp_i < int(_time_mod.time()):
+        return False
+    expected = _sign_media_filename(filename, exp_i)
+    return _hmac.compare_digest(expected, sig)
+
+
+def _request_has_admin(request: Request) -> bool:
+    auth = request.headers.get("Authorization") or ""
+    if not auth.lower().startswith("bearer "):
+        return False
+    return validate_token(auth[7:].strip()) is not None
+
+
+def _allow_phi_media(request: Request, filename: str) -> bool:
+    if _request_has_admin(request):
+        return True
+    if _media_sig_valid(filename, request.query_params.get("exp"), request.query_params.get("sig")):
+        return True
+    # Legacy UUID-only access until MEDIA_ENFORCE_SIGNED=1
+    enforce = os.environ.get("MEDIA_ENFORCE_SIGNED", "").strip().lower() in ("1", "true", "yes")
+    return not enforce
+
 # CORS — restricted to the VC Portal frontend (prod + Vercel previews + local dev).
 # Override with CORS_ALLOWED_ORIGINS (comma-separated) per deployment.
 _default_cors_origins = "https://destination-smile-consult.vercel.app,https://v0-kleon-samples.vercel.app,http://localhost:3000,http://localhost:3001"
@@ -3205,26 +3269,46 @@ async def upload_slide_endpoint(
     return {"created": created, "count": len(created)}
 
 
-def _send_review_email(to_email: str, subject: str, html_body: str) -> bool:
+def _send_review_email(to_email: str, subject: str, html_body: str) -> tuple[bool, str]:
     """Send a review email via Resend (RESEND_API_KEY) or SMTP (SMTP_HOST...).
-    Returns False (and logs) if no provider is configured."""
+
+    Returns (ok, detail). detail is empty on success, otherwise a short reason.
+    Resend sits behind Cloudflare — urllib must send a User-Agent or CF returns 403/1010.
+    """
     resend_key = os.environ.get("RESEND_API_KEY", "")
     smtp_host = os.environ.get("SMTP_HOST", "")
     sender = os.environ.get("EMAIL_FROM", "") or os.environ.get("SMTP_USER", "") or "onboarding@resend.dev"
     if resend_key:
         try:
+            import urllib.error
             import urllib.request
             req = urllib.request.Request(
                 "https://api.resend.com/emails",
                 data=json.dumps({"from": sender, "to": [to_email], "subject": subject, "html": html_body}).encode(),
-                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                headers={
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json",
+                    # Cloudflare (Resend edge) rejects bare urllib without a UA (HTTP 403 / CF 1010).
+                    "User-Agent": "cccd-vc-backend/1.0 (+https://destination-smile-consult.vercel.app)",
+                },
                 method="POST",
             )
-            urllib.request.urlopen(req, timeout=20).read()
-            return True
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                resp.read()
+            return True, ""
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="replace")[:300]
+            except Exception:
+                pass
+            detail = f"Resend HTTP {e.code}: {body or e.reason}"
+            print(f"Resend email error: {detail}")
+            return False, detail
         except Exception as e:
-            print(f"Resend email error: {e}")
-            return False
+            detail = f"Resend error: {e}"
+            print(detail)
+            return False, detail
     if smtp_host:
         try:
             import smtplib
@@ -3239,12 +3323,14 @@ def _send_review_email(to_email: str, subject: str, html_body: str) -> bool:
                 if u:
                     s.login(u, p)
                 s.sendmail(sender, [to_email], msg.as_string())
-            return True
+            return True, ""
         except Exception as e:
-            print(f"SMTP email error: {e}")
-            return False
-    print("Email not configured (set RESEND_API_KEY or SMTP_HOST) — skipping send")
-    return False
+            detail = f"SMTP error: {e}"
+            print(detail)
+            return False, detail
+    detail = "Email not configured (set RESEND_API_KEY or SMTP_HOST)"
+    print(f"{detail} — skipping send")
+    return False, detail
 
 
 @app.post("/vc/consultations/{consultation_id}/email-review")
@@ -3253,12 +3339,12 @@ async def email_consultation_review(consultation_id: int, session: dict = Depend
     from app.slide_sorter import get_consultation
     c = get_consultation(consultation_id)
     if not c:
-        return {"error": "Consultation not found"}
+        return {"error": "Consultation not found", "sent": False, "email": "", "link": ""}
     review_email = os.environ.get("REVIEW_EMAIL", "pjbroome@gmail.com")
-    base = os.environ.get("PUBLIC_BASE_URL", "")
+    base = (os.environ.get("PUBLIC_BASE_URL") or "https://destination-smile-consult.vercel.app").rstrip("/")
     token = c.get("token") or ""
     path = f"/consultation/{token}" if token else f"/consultation/{consultation_id}"
-    link = f"{base}{path}" if base else path
+    link = f"{base}{path}"
     import html as _html
     name = c.get("patient_name", "patient")
     safe_name = _html.escape(name)
@@ -3266,8 +3352,11 @@ async def email_consultation_review(consultation_id: int, session: dict = Depend
         f"<p>A virtual consultation video is ready to review for <b>{safe_name}</b>.</p>"
         f"<p><a href=\"{link}\">Open the consultation</a> to watch what the patient will see.</p>"
     )
-    sent = _send_review_email(review_email, f"VC review — {name} (#{consultation_id})", html)
-    return {"sent": sent, "email": review_email, "link": link}
+    sent, error = _send_review_email(review_email, f"VC review — {name} (#{consultation_id})", html)
+    out = {"sent": sent, "email": review_email, "link": link}
+    if error:
+        out["error"] = error
+    return out
 
 
 @app.post("/vc/consultations/{consultation_id}/notify-patient")
@@ -3287,7 +3376,7 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
     token = c.get("token") or ""
     if not token:
         raise HTTPException(status_code=400, detail="Consultation has no share token")
-    base = os.environ.get("PUBLIC_BASE_URL", "https://v0-kleon-samples.vercel.app").rstrip("/")
+    base = (os.environ.get("PUBLIC_BASE_URL") or "https://destination-smile-consult.vercel.app").rstrip("/")
     link = f"{base}/consultation/{token}"
     import html as _html
     first = _html.escape((c.get("patient_name") or "there").split(" ")[0])
@@ -3303,12 +3392,15 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
         "<p style='color:#999;font-size:12px'>This personalized link is just for you. Questions? "
         "Reply to this email or call our office.</p></div>"
     )
-    sent = _send_review_email(to_email, "Your personalized consultation video is ready", html)
+    sent, error = _send_review_email(to_email, "Your personalized consultation video is ready", html)
     try:
         update_consultation(consultation_id, {"status": "sent", "sent_at": _dt.datetime.now(_dt.timezone.utc).isoformat()})
     except Exception:
         pass
-    return {"sent": sent, "email": to_email, "link": link}
+    out = {"sent": sent, "email": to_email, "link": link}
+    if error:
+        out["error"] = error
+    return out
 
 
 def _cleanup_old_media(days: int) -> dict:
@@ -3358,7 +3450,7 @@ async def maintenance_cleanup(request: Request):
         authed = (not _pw) or (bool(tok) and bool(_validate(tok)))
     if not authed:
         raise HTTPException(status_code=401, detail="unauthorized")
-    days = int(os.environ.get("VIDEO_RETENTION_DAYS", "0") or "0")
+    days = int(os.environ.get("VIDEO_RETENTION_DAYS", "90") or "90")
     result = _cleanup_old_media(days)
     _audit_log("cleanup_run", request, extra=f"days={days} deleted={result.get('deleted')}")
     return result
@@ -3458,7 +3550,7 @@ async def upload_patient_photo(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(content)
 
-    photo_url = f"/vc/photos/{unique_name}"
+    photo_url = signed_media_path(f"/vc/photos/{unique_name}")
     return PhotoUploadResponse(
         filename=unique_name,
         path=str(file_path),
@@ -3488,10 +3580,12 @@ def _safe_media_path(base: Path, filename: str) -> Path:
 
 
 @app.get("/vc/photos/{filename}")
-async def serve_patient_photo(filename: str):
-    """Serve a patient photo by its uuid filename (public-by-unguessable-name)."""
+async def serve_patient_photo(filename: str, request: Request):
+    """Serve a patient photo. Prefer signed URL or staff bearer; UUID alone when MEDIA_ENFORCE_SIGNED unset."""
     from fastapi.responses import FileResponse
     from fastapi import HTTPException
+    if not _allow_phi_media(request, filename):
+        raise HTTPException(status_code=401, detail="Signed media URL or staff auth required")
     file_path = _safe_media_path(_PHOTOS_DIR, filename)
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Photo not found")
@@ -3513,7 +3607,7 @@ async def upload_consult_video(file: UploadFile = File(...), session: dict = Dep
     with open(file_path, "wb") as f:
         f.write(content)
 
-    video_url = f"/vc/videos/{unique_name}"
+    video_url = signed_media_path(f"/vc/videos/{unique_name}")
     return {
         "filename": unique_name,
         "path": str(file_path),
@@ -3523,10 +3617,12 @@ async def upload_consult_video(file: UploadFile = File(...), session: dict = Dep
 
 
 @app.get("/vc/videos/{filename}")
-async def serve_consult_video(filename: str):
-    """Serve a consultation video (public — patient needs to watch)."""
+async def serve_consult_video(filename: str, request: Request):
+    """Serve a consultation video. Prefer signed URL or staff bearer."""
     from fastapi.responses import FileResponse
     from fastapi import HTTPException
+    if not _allow_phi_media(request, filename):
+        raise HTTPException(status_code=401, detail="Signed media URL or staff auth required")
     file_path = _safe_media_path(_VIDEOS_DIR, filename)
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Video not found")
@@ -3805,10 +3901,13 @@ async def get_consultation_by_token_endpoint(token: str):
             pass
     # Data minimization: return only patient-safe fields (no staff notes/script,
     # no email/phone/request_id/internal IDs) on this public token endpoint.
+    raw_video = c.get("video_url") or ""
+    # Strip any prior query and re-sign so patient players keep working when enforce flips on.
+    video_path = raw_video.split("?", 1)[0] if raw_video else ""
     return {
         "id": c.get("id"),
         "patient_name": c.get("patient_name"),
-        "video_url": c.get("video_url"),
+        "video_url": signed_media_path(video_path) if video_path else None,
         "video_source": c.get("video_source"),
         "status": c.get("status"),
         "summary_slide_data": c.get("summary_slide_data"),

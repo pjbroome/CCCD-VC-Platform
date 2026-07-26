@@ -146,7 +146,9 @@ export default function PresenterViewPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const displayVideoRef = useRef<HTMLVideoElement>(null)
   const compositeStreamRef = useRef<MediaStream | null>(null)
+  const compositeRafRef = useRef<number | null>(null)
 
   /* upload state */
   const [uploading, setUploading] = useState(false)
@@ -320,9 +322,24 @@ export default function PresenterViewPage() {
   }, [goNext, goPrev])
 
   /* ── recording controls ────────────────────────────────────── */
-  /* Build the recorder from the already-captured tab stream + mic, then start. */
+  /* Prefer MP4/H.264 when available (Safari/iOS patient playback); else WebM. */
+  const pickRecorderMime = useCallback((): string => {
+    const candidates = [
+      "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+      "video/mp4",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ]
+    for (const t of candidates) {
+      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) return t
+    }
+    return "video/webm"
+  }, [])
+
+  /* Composite: tab capture + camera bubble onto canvas, then record canvas+mic.
+     Falls back to raw tab stream if canvas/captureStream is unavailable. */
   const startRecorder = useCallback(async (displayStream: MediaStream) => {
-    /* Add the doctor's microphone so the walkthrough is narrated. */
     let micTrack: MediaStreamTrack | undefined = streamRef.current?.getAudioTracks?.()[0]
     if (!micTrack) {
       try {
@@ -333,36 +350,94 @@ export default function PresenterViewPage() {
       }
     }
 
-    /* Keep the live camera bubble playing (the share prompt can pause it). */
     try { await videoRef.current?.play() } catch { /* ignore */ }
 
-    const tracks: MediaStreamTrack[] = [...displayStream.getVideoTracks()]
-    if (micTrack) tracks.push(micTrack)
-    const combined = new MediaStream(tracks)
+    const displayVideo = displayVideoRef.current
+    const canvas = canvasRef.current
+    let recordStream: MediaStream = displayStream
+
+    if (displayVideo && canvas && typeof (canvas as HTMLCanvasElement & { captureStream?: (fps?: number) => MediaStream }).captureStream === "function") {
+      displayVideo.srcObject = displayStream
+      displayVideo.muted = true
+      try { await displayVideo.play() } catch { /* ignore */ }
+
+      const settings = displayStream.getVideoTracks()[0]?.getSettings?.() || {}
+      const width = Math.min(1920, Number(settings.width) || 1280)
+      const height = Math.min(1080, Number(settings.height) || 720)
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        const draw = () => {
+          ctx.fillStyle = "#09090b"
+          ctx.fillRect(0, 0, width, height)
+          if (displayVideo.readyState >= 2) {
+            ctx.drawImage(displayVideo, 0, 0, width, height)
+          }
+          const cam = videoRef.current
+          if (cam && cameraOn && cam.readyState >= 2) {
+            const sizeMap = { sm: 0.14, md: 0.2, lg: 0.28 } as const
+            const frac = sizeMap[bubbleSize]
+            const d = Math.round(Math.min(width, height) * frac)
+            const margin = Math.round(d * 0.18)
+            const x = width - d - margin
+            const y = height - d - margin
+            ctx.save()
+            ctx.beginPath()
+            ctx.arc(x + d / 2, y + d / 2, d / 2, 0, Math.PI * 2)
+            ctx.closePath()
+            ctx.clip()
+            // Mirror webcam like the on-screen bubble
+            ctx.translate(x + d, y)
+            ctx.scale(-1, 1)
+            ctx.drawImage(cam, 0, 0, d, d)
+            ctx.restore()
+            ctx.beginPath()
+            ctx.arc(x + d / 2, y + d / 2, d / 2, 0, Math.PI * 2)
+            ctx.strokeStyle = "rgba(255,255,255,0.35)"
+            ctx.lineWidth = 3
+            ctx.stroke()
+          }
+          compositeRafRef.current = requestAnimationFrame(draw)
+        }
+        draw()
+        const canvasStream = canvas.captureStream(30)
+        const tracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()]
+        if (micTrack) tracks.push(micTrack)
+        recordStream = new MediaStream(tracks)
+      }
+    } else {
+      const tracks: MediaStreamTrack[] = [...displayStream.getVideoTracks()]
+      if (micTrack) tracks.push(micTrack)
+      recordStream = new MediaStream(tracks)
+    }
+
     compositeStreamRef.current = displayStream
 
     chunksRef.current = []
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-      ? "video/webm;codecs=vp9,opus"
-      : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
-        ? "video/webm;codecs=vp8,opus"
-        : "video/webm"
+    const mimeType = pickRecorderMime()
+    const ext = mimeType.includes("mp4") ? "mp4" : "webm"
 
-    const recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 4_000_000 })
+    const recorder = new MediaRecorder(recordStream, { mimeType, videoBitsPerSecond: 4_000_000 })
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
     recorder.onstop = () => {
+      if (compositeRafRef.current != null) {
+        cancelAnimationFrame(compositeRafRef.current)
+        compositeRafRef.current = null
+      }
       const blob = new Blob(chunksRef.current, { type: mimeType })
       recordedBlobRef.current = blob
+      ;(recordedBlobRef.current as Blob & { __ext?: string }).__ext = ext
       setReviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
       compositeStreamRef.current?.getTracks().forEach((t) => t.stop())
       compositeStreamRef.current = null
+      if (displayVideoRef.current) displayVideoRef.current.srcObject = null
       if (timerRef.current) clearInterval(timerRef.current)
       setRecordingState("stopped")
     }
 
-    /* If the doctor uses the browser's own "Stop sharing" control, finalize too. */
     displayStream.getVideoTracks()[0]?.addEventListener("ended", () => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop()
     })
@@ -372,10 +447,16 @@ export default function PresenterViewPage() {
     setRecordingState("recording")
     setElapsedTime(0)
     timerRef.current = setInterval(() => setElapsedTime((prev) => prev + 1), 1000)
-  }, [])
+  }, [bubbleSize, cameraOn, pickRecorderMime])
 
-  /* On click (user gesture): pick the tab to share FIRST, then run the 3-2-1, then record. */
+  /* On click (user gesture): pick the tab to share FIRST, then run the 3-2-1, then record.
+     Chrome required — Safari/Firefox screen capture is unreliable for this flow.
+     Always choose “This Tab” (not Entire Screen / Window) or the recording will miss the slides. */
   const beginRecording = useCallback(async () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      setUploadMsg("Screen recording is not available in this browser. Use Google Chrome on desktop.")
+      return
+    }
     let displayStream: MediaStream
     try {
       displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -384,7 +465,17 @@ export default function PresenterViewPage() {
         audio: false,
       } as MediaStreamConstraints & { preferCurrentTab?: boolean })
     } catch {
-      setUploadMsg("Recording needs you to share “This Tab.” Click Start Recording and choose this tab.")
+      setUploadMsg(
+        "Recording needs Chrome → Share “This Tab” (not Entire Screen). Click Start Recording and pick this tab, then Allow."
+      )
+      return
+    }
+    const surface = displayStream.getVideoTracks()[0]?.getSettings?.()?.displaySurface
+    if (surface && surface !== "browser") {
+      displayStream.getTracks().forEach((t) => t.stop())
+      setUploadMsg(
+        `You shared “${surface}” — please share This Tab only so the slide deck is recorded. Click Start Recording again.`
+      )
       return
     }
     /* keep the camera bubble alive after the share prompt */
@@ -445,9 +536,11 @@ export default function PresenterViewPage() {
     setUploadMsg(null)
 
     try {
+      const ext = (recordedBlobRef.current as Blob & { __ext?: string }).__ext
+        || (recordedBlobRef.current.type.includes("mp4") ? "mp4" : "webm")
       const file = new File(
         [recordedBlobRef.current],
-        `consultation_${request.id}_${Date.now()}.webm`,
+        `consultation_${request.id}_${Date.now()}.${ext}`,
         { type: recordedBlobRef.current.type }
       )
 
@@ -476,9 +569,18 @@ export default function PresenterViewPage() {
       let emailNote = "."
       try {
         const r = await emailConsultationReview(consultation.id)
-        emailNote = r.sent ? ` — emailed to ${r.email} for your review.` : " — add an email key to deliver (review link ready)."
-      } catch {
-        emailNote = " (review link ready)."
+        if (r.sent) {
+          emailNote = ` — emailed to ${r.email} for your review.`
+        } else if (r.error?.includes("not configured")) {
+          emailNote = " — email provider not configured (review link ready)."
+        } else if (r.error) {
+          emailNote = ` — review email failed: ${r.error} (review link ready).`
+        } else {
+          emailNote = " — review email did not send (review link ready)."
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "unknown error"
+        emailNote = ` — review email error: ${msg} (review link ready).`
       }
       setUploadMsg(`Consultation #${consultation.id} saved${emailNote} Review: /consultation/${consultation.token ?? consultation.id}`)
       stopCamera() // done sending → release the webcam so the light turns off
@@ -828,7 +930,15 @@ export default function PresenterViewPage() {
         </div>
 
         {/* Recording controls */}
-        <div className="flex items-center justify-center gap-3 border-t border-zinc-800/50 px-4 py-3">
+        <div className="flex flex-col items-center gap-2 border-t border-zinc-800/50 px-4 py-3">
+          {recordingState === "idle" && (
+            <p className="max-w-xl text-center text-[11px] leading-relaxed text-zinc-500">
+              Use <span className="font-medium text-zinc-300">Chrome</span> on desktop. When prompted, share{" "}
+              <span className="font-medium text-zinc-300">This Tab</span> only (not Entire Screen). The recording
+              composites your slides + camera bubble; prefer MP4 when the browser supports it for Safari patients.
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-3">
           {recordingState === "idle" && (
             <button
               onClick={beginRecording}
@@ -950,12 +1060,15 @@ export default function PresenterViewPage() {
           {uploadMsg && (
             <span
               className={`ml-3 text-xs font-medium ${
-                uploadMsg.includes("failed") ? "text-red-400" : "text-emerald-400"
+                uploadMsg.includes("failed") || uploadMsg.includes("error") || uploadMsg.includes("needs")
+                  ? "text-red-400"
+                  : "text-emerald-400"
               }`}
             >
               {uploadMsg}
             </span>
           )}
+          </div>
         </div>
       </div>
 
@@ -971,7 +1084,8 @@ export default function PresenterViewPage() {
         />
       )}
 
-      {/* Hidden canvas for composite recording (future enhancement) */}
+      {/* Hidden elements for composite recording: tab frames + PiP camera onto canvas */}
+      <video ref={displayVideoRef} className="hidden" playsInline muted />
       <canvas ref={canvasRef} className="hidden" />
     </div>
   )
