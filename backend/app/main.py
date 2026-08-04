@@ -3297,17 +3297,29 @@ def _send_review_email(to_email: str, subject: str, html_body: str) -> tuple[boo
 
     Returns (ok, detail). detail is empty on success, otherwise a short reason.
     Resend sits behind Cloudflare — urllib must send a User-Agent or CF returns 403/1010.
+
+    Reply-To: patient-facing copy invites a reply ("Reply to this email or call our
+    office"), so a Reply-To is mandatory or those replies land on the sending domain
+    and are never seen. REPLY_TO_EMAIL is the monitored practice mailbox
+    (info@destinationsmile.com — Julie monitors it). Falls back to the From address.
     """
     resend_key = os.environ.get("RESEND_API_KEY", "")
     smtp_host = os.environ.get("SMTP_HOST", "")
     sender = os.environ.get("EMAIL_FROM", "") or os.environ.get("SMTP_USER", "") or "onboarding@resend.dev"
+    reply_to = (os.environ.get("REPLY_TO_EMAIL") or "").strip() or sender
     if resend_key:
         try:
             import urllib.error
             import urllib.request
             req = urllib.request.Request(
                 "https://api.resend.com/emails",
-                data=json.dumps({"from": sender, "to": [to_email], "subject": subject, "html": html_body}).encode(),
+                data=json.dumps({
+                    "from": sender,
+                    "to": [to_email],
+                    "reply_to": reply_to,
+                    "subject": subject,
+                    "html": html_body,
+                }).encode(),
                 headers={
                     "Authorization": f"Bearer {resend_key}",
                     "Content-Type": "application/json",
@@ -3339,6 +3351,7 @@ def _send_review_email(to_email: str, subject: str, html_body: str) -> tuple[boo
             msg = MIMEText(html_body, "html")
             msg["Subject"] = subject
             msg["From"] = sender
+            msg["Reply-To"] = reply_to
             msg["To"] = to_email
             with smtplib.SMTP(smtp_host, int(os.environ.get("SMTP_PORT", "587")), timeout=20) as s:
                 s.starttls()
@@ -3409,6 +3422,9 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
     import html as _html
     first = _html.escape((c.get("patient_name") or "there").split(" ")[0])
     practice = _html.escape(os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry"))
+    # Patient-facing contact points: the mailbox the practice actually monitors, plus the office line.
+    reply_addr = (os.environ.get("REPLY_TO_EMAIL") or "info@destinationsmile.com").strip()
+    office_phone = (os.environ.get("OFFICE_PHONE") or "704.364.4711").strip()
     html = (
         "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222'>"
         f"<p>Hi {first},</p>"
@@ -3417,8 +3433,10 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
         f"<p style='margin:26px 0'><a href='{link}' style='background:#c4a052;color:#fff;"
         "padding:13px 24px;border-radius:8px;text-decoration:none;font-weight:600'>Watch your consultation</a></p>"
         f"<p style='color:#666;font-size:13px'>Or paste this link into your browser:<br>{link}</p>"
-        "<p style='color:#999;font-size:12px'>This personalized link is just for you. Questions? "
-        "Reply to this email or call our office.</p></div>"
+        "<p style='color:#666;font-size:13px'>This personalized link is just for you.</p>"
+        f"<p style='color:#666;font-size:13px'>Questions? Reply to this email or reach us at "
+        f"<a href='mailto:{_html.escape(reply_addr)}' style='color:#c4a052'>{_html.escape(reply_addr)}</a>"
+        f" or {_html.escape(office_phone)}.</p></div>"
     )
     sent, error = _send_review_email(to_email, "Your personalized consultation video is ready", html)
     # Only record delivery when the provider actually accepted the message. Previously this
