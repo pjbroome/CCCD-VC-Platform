@@ -521,14 +521,19 @@ def _save_decks():
     _atomic_write_json(_DECKS_PATH, _decks)
 
 
-def save_recording_deck(name: str, slide_numbers: list[int]) -> dict:
-    """Save a named recording deck (ordered list of slide numbers)."""
+def save_recording_deck(
+    name: str,
+    slide_numbers: list[int],
+    recommendation_items: Optional[list[dict]] = None,
+) -> dict:
+    """Save a named recording deck (ordered list of slide numbers + optional summary rows)."""
     _load_decks()
     import datetime
     deck = {
         "id": max((d["id"] for d in _decks), default=0) + 1,
         "name": name,
         "slide_numbers": slide_numbers,
+        "recommendation_items": recommendation_items or [],
         "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
     _decks.append(deck)
@@ -542,6 +547,14 @@ def get_recording_decks() -> list[dict]:
     return _decks
 
 
+def get_recording_deck(deck_id: int) -> Optional[dict]:
+    _load_decks()
+    for deck in _decks:
+        if deck["id"] == deck_id:
+            return deck
+    return None
+
+
 def delete_recording_deck(deck_id: int) -> bool:
     """Delete a recording deck by ID."""
     _load_decks()
@@ -551,6 +564,194 @@ def delete_recording_deck(deck_id: int) -> bool:
             _save_decks()
             return True
     return False
+
+
+# --- Deck templates (reusable stacks: slides + summary fees) ---
+_TEMPLATES_PATH = _resolve_path("deck_templates.json")
+_templates: list[dict] = []
+
+# Baked-in starter stacks (also written to volume on first boot if empty).
+_DEFAULT_DECK_TEMPLATES: list[dict] = [
+    {
+        "id": 1,
+        "slug": "bonding",
+        "name": "Bonding",
+        "case_type": "bonding",
+        "description": "Chip repair / bonding cases with NPE close",
+        "slide_numbers": [1, 2, 5, 18, 25, 31, 33, 35, 36],
+        "recommendation_items": [
+            {"treatment": "Bonding", "visits": "1–2 visits", "investment": "Case dependent", "enabled": True},
+            {"treatment": "New Patient Evaluation (NPE)", "visits": "1 visit · reserve 1.5 hrs", "investment": "$500", "enabled": True},
+            {"treatment": "Bleaching", "visits": "1 visit", "investment": "$450–$650", "enabled": True},
+        ],
+        "concern_keywords": ["bond", "chip", "chipped", "crack", "broken edge"],
+        "treatment_tags": ["bonding"],
+    },
+    {
+        "id": 2,
+        "slug": "smile-project",
+        "name": "Smile Project",
+        "case_type": "smile_project",
+        "description": "No-prep veneers / full smile makeover path",
+        "slide_numbers": [1, 5, 11, 12, 18, 19, 20, 21, 22, 23, 24],
+        "recommendation_items": [
+            {"treatment": "Smile Project", "visits": "3 visits", "investment": "$15k–$35k", "enabled": True},
+            {"treatment": "New Patient Evaluation (NPE)", "visits": "1 visit · reserve 1.5 hrs", "investment": "$500", "enabled": True},
+            {"treatment": "No-Prep Veneers", "visits": "2–3 visits", "investment": "Case dependent", "enabled": True},
+        ],
+        "concern_keywords": [
+            "veneer", "smile project", "smile makeover", "full smile", "whiter smile",
+            "discolor", "gummy", "worn", "confidence", "makeover",
+        ],
+        "treatment_tags": ["no_prep_veneers", "prepless_veneers", "full_mouth_rejuvenation"],
+    },
+    {
+        "id": 3,
+        "slug": "invisalign-smile",
+        "name": "Invisalign + Smile Project",
+        "case_type": "invisalign_smile",
+        "description": "Alignment first, then veneers / smile finish",
+        "slide_numbers": [1, 2, 5, 20, 21, 22, 11, 12, 18, 19, 23],
+        "recommendation_items": [
+            {"treatment": "Invisalign", "visits": "3–4 visits", "investment": "$4,500–$9,500", "enabled": True},
+            {"treatment": "Smile Project", "visits": "3 visits", "investment": "$15k–$35k", "enabled": True},
+            {"treatment": "New Patient Evaluation (NPE)", "visits": "1 visit · reserve 1.5 hrs", "investment": "$500", "enabled": True},
+        ],
+        "concern_keywords": [
+            "invisalign", "crooked", "crowding", "crowd", "alignment", "straighten",
+            "bite", "overlap", "spaces", "gap",
+        ],
+        "treatment_tags": ["invisalign", "no_prep_veneers"],
+    },
+]
+
+
+def _load_templates():
+    global _templates
+    if _templates:
+        return
+    if _TEMPLATES_PATH.exists():
+        try:
+            with open(_TEMPLATES_PATH) as f:
+                _templates = json.load(f)
+        except Exception:
+            _templates = []
+    if not _templates:
+        _templates = [dict(t) for t in _DEFAULT_DECK_TEMPLATES]
+        _save_templates()
+
+
+def _save_templates():
+    _atomic_write_json(_TEMPLATES_PATH, _templates)
+
+
+def get_deck_templates() -> list[dict]:
+    _load_templates()
+    return _templates
+
+
+def get_deck_template(template_id: int) -> Optional[dict]:
+    _load_templates()
+    for t in _templates:
+        if t["id"] == template_id:
+            return t
+    return None
+
+
+def save_deck_template(payload: dict) -> dict:
+    """Create or update a deck template. Pass id to update."""
+    _load_templates()
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    tid = payload.get("id")
+    if tid:
+        for i, t in enumerate(_templates):
+            if t["id"] == tid:
+                updated = {**t, **payload, "id": tid, "updated_at": now}
+                _templates[i] = updated
+                _save_templates()
+                return updated
+    new_id = max((t["id"] for t in _templates), default=0) + 1
+    template = {
+        "id": new_id,
+        "slug": payload.get("slug") or f"stack-{new_id}",
+        "name": payload.get("name") or f"Stack {new_id}",
+        "case_type": payload.get("case_type") or "custom",
+        "description": payload.get("description") or "",
+        "slide_numbers": list(payload.get("slide_numbers") or []),
+        "recommendation_items": list(payload.get("recommendation_items") or []),
+        "concern_keywords": list(payload.get("concern_keywords") or []),
+        "treatment_tags": list(payload.get("treatment_tags") or []),
+        "created_at": now,
+        "updated_at": now,
+    }
+    _templates.append(template)
+    _save_templates()
+    return template
+
+
+def delete_deck_template(template_id: int) -> bool:
+    _load_templates()
+    for i, t in enumerate(_templates):
+        if t["id"] == template_id:
+            _templates.pop(i)
+            _save_templates()
+            return True
+    return False
+
+
+def suggest_deck_template(concern: str) -> Optional[dict]:
+    """Score templates against patient concern text; return best match + score.
+
+    Returns None if nothing scores above a weak threshold (caller may still
+    show a default Smile Project stack as a soft suggestion).
+    """
+    _load_templates()
+    text = (concern or "").strip().lower()
+    if not text:
+        # Soft default: Smile Project is the most common cosmetic path
+        for t in _templates:
+            if t.get("slug") == "smile-project":
+                return {**t, "suggest_score": 1, "suggest_reason": "default_cosmetic"}
+        return _templates[0] if _templates else None
+
+    best = None
+    best_score = 0
+    reasons: list[str] = []
+    for t in _templates:
+        score = 0
+        hit_kw = []
+        for kw in t.get("concern_keywords") or []:
+            if kw.lower() in text:
+                score += 3
+                hit_kw.append(kw)
+        # Name / case_type hits
+        name = (t.get("name") or "").lower()
+        if name and name in text:
+            score += 4
+        for tag in t.get("treatment_tags") or []:
+            tag_words = tag.replace("_", " ")
+            if tag_words in text or tag.replace("_", "") in text.replace(" ", ""):
+                score += 2
+        if score > best_score:
+            best_score = score
+            best = t
+            reasons = hit_kw
+
+    if not best:
+        return None
+    if best_score <= 0:
+        # Fallback soft suggestion
+        for t in _templates:
+            if t.get("slug") == "smile-project":
+                return {**t, "suggest_score": 0, "suggest_reason": "fallback_smile_project"}
+        return {**_templates[0], "suggest_score": 0, "suggest_reason": "fallback_first"}
+
+    return {
+        **best,
+        "suggest_score": best_score,
+        "suggest_reason": ",".join(reasons) if reasons else "keyword_match",
+    }
 
 
 # --- VC Requests (Patient Intake CRM) ---

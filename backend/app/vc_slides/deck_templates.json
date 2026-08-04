@@ -1,0 +1,53 @@
+[
+  {
+    "id": 1,
+    "slug": "bonding",
+    "name": "Bonding",
+    "case_type": "bonding",
+    "description": "Chip repair / bonding cases with NPE close",
+    "slide_numbers": [1, 2, 5, 18, 25, 31, 33, 35, 36],
+    "recommendation_items": [
+      {"treatment": "Bonding", "visits": "1–2 visits", "investment": "Case dependent", "enabled": true},
+      {"treatment": "New Patient Evaluation (NPE)", "visits": "1 visit · reserve 1.5 hrs", "investment": "$500", "enabled": true},
+      {"treatment": "Bleaching", "visits": "1 visit", "investment": "$450–$650", "enabled": true}
+    ],
+    "concern_keywords": ["bond", "chip", "chipped", "crack", "broken edge"],
+    "treatment_tags": ["bonding"]
+  },
+  {
+    "id": 2,
+    "slug": "smile-project",
+    "name": "Smile Project",
+    "case_type": "smile_project",
+    "description": "No-prep veneers / full smile makeover path",
+    "slide_numbers": [1, 5, 11, 12, 18, 19, 20, 21, 22, 23, 24],
+    "recommendation_items": [
+      {"treatment": "Smile Project", "visits": "3 visits", "investment": "$15k–$35k", "enabled": true},
+      {"treatment": "New Patient Evaluation (NPE)", "visits": "1 visit · reserve 1.5 hrs", "investment": "$500", "enabled": true},
+      {"treatment": "No-Prep Veneers", "visits": "2–3 visits", "investment": "Case dependent", "enabled": true}
+    ],
+    "concern_keywords": [
+      "veneer", "smile project", "smile makeover", "full smile", "whiter smile",
+      "discolor", "gummy", "worn", "confidence", "makeover"
+    ],
+    "treatment_tags": ["no_prep_veneers", "prepless_veneers", "full_mouth_rejuvenation"]
+  },
+  {
+    "id": 3,
+    "slug": "invisalign-smile",
+    "name": "Invisalign + Smile Project",
+    "case_type": "invisalign_smile",
+    "description": "Alignment first, then veneers / smile finish",
+    "slide_numbers": [1, 2, 5, 20, 21, 22, 11, 12, 18, 19, 23],
+    "recommendation_items": [
+      {"treatment": "Invisalign", "visits": "3–4 visits", "investment": "$4,500–$9,500", "enabled": true},
+      {"treatment": "Smile Project", "visits": "3 visits", "investment": "$15k–$35k", "enabled": true},
+      {"treatment": "New Patient Evaluation (NPE)", "visits": "1 visit · reserve 1.5 hrs", "investment": "$500", "enabled": true}
+    ],
+    "concern_keywords": [
+      "invisalign", "crooked", "crowding", "crowd", "alignment", "straighten",
+      "bite", "overlap", "spaces", "gap"
+    ],
+    "treatment_tags": ["invisalign", "no_prep_veneers"]
+  }
+]

@@ -32,7 +32,13 @@ from app.slide_sorter import (
     get_slides_for_vc_presentation,
     save_recording_deck,
     get_recording_decks,
+    get_recording_deck,
     delete_recording_deck,
+    get_deck_templates,
+    get_deck_template,
+    save_deck_template,
+    delete_deck_template,
+    suggest_deck_template,
     create_vc_request,
     get_vc_requests,
     get_vc_request,
@@ -3214,6 +3220,23 @@ class ReorderRequest(BaseModel):
 class RecordingDeckRequest(BaseModel):
     name: str
     slide_numbers: list[int]
+    recommendation_items: Optional[list[dict]] = None
+
+
+class DeckTemplateRequest(BaseModel):
+    id: Optional[int] = None
+    slug: Optional[str] = None
+    name: str
+    case_type: Optional[str] = "custom"
+    description: Optional[str] = ""
+    slide_numbers: list[int]
+    recommendation_items: Optional[list[dict]] = None
+    concern_keywords: Optional[list[str]] = None
+    treatment_tags: Optional[list[str]] = None
+
+
+class ApplyTemplateRequest(BaseModel):
+    template_id: int
 
 
 @app.get("/slides")
@@ -3475,8 +3498,8 @@ async def list_recording_decks():
 
 @app.post("/recording-decks")
 async def create_recording_deck(req: RecordingDeckRequest):
-    """Save a named recording deck (ordered list of slide numbers)."""
-    deck = save_recording_deck(req.name, req.slide_numbers)
+    """Save a named recording deck (ordered list of slide numbers + optional summary rows)."""
+    deck = save_recording_deck(req.name, req.slide_numbers, req.recommendation_items)
     return deck
 
 
@@ -3487,6 +3510,83 @@ async def remove_recording_deck(deck_id: int):
     if not success:
         return {"error": f"Deck {deck_id} not found"}
     return {"message": f"Deck {deck_id} deleted"}
+
+
+@app.get("/deck-templates")
+async def list_deck_templates(session: dict = Depends(require_admin)):
+    """Reusable slide stacks (Bonding, Smile Project, …) with summary fees preloaded."""
+    templates = get_deck_templates()
+    return {"total": len(templates), "templates": templates}
+
+
+@app.get("/deck-templates/suggest")
+async def suggest_deck_template_endpoint(
+    concern: str = Query("", description="Patient concern / goals text"),
+    session: dict = Depends(require_admin),
+):
+    """v1.5 — auto-suggest the best stack for this concern (1-click apply)."""
+    suggested = suggest_deck_template(concern)
+    return {"suggested": suggested, "templates": get_deck_templates()}
+
+
+@app.post("/deck-templates")
+async def upsert_deck_template(req: DeckTemplateRequest, session: dict = Depends(require_admin)):
+    """Create or update a stack. Pass id to update."""
+    template = save_deck_template(req.model_dump(exclude_none=True))
+    return template
+
+
+@app.delete("/deck-templates/{template_id}")
+async def remove_deck_template(template_id: int, session: dict = Depends(require_admin)):
+    if not delete_deck_template(template_id):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"message": f"Template {template_id} deleted"}
+
+
+@app.post("/vc/requests/{request_id}/apply-template")
+async def apply_template_to_request(
+    request_id: int,
+    req: ApplyTemplateRequest,
+    session: dict = Depends(require_admin),
+):
+    """One-click: load a stack onto this patient (slides + summary fees) and mark deck_built."""
+    from fastapi import HTTPException
+    request_row = get_vc_request(request_id)
+    if not request_row:
+        raise HTTPException(status_code=404, detail="Request not found")
+    template = get_deck_template(req.template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    patient = (
+        f"{(request_row.get('first_name') or '').strip()} {(request_row.get('last_name') or '').strip()}".strip()
+        or request_row.get("patient_name")
+        or f"Request #{request_id}"
+    )
+    # Replace prior deck if present
+    old_id = request_row.get("deck_id")
+    if old_id:
+        try:
+            delete_recording_deck(int(old_id))
+        except Exception:
+            pass
+
+    deck = save_recording_deck(
+        name=f"Request #{request_id} — {patient} [{template.get('name')}]",
+        slide_numbers=list(template.get("slide_numbers") or []),
+        recommendation_items=list(template.get("recommendation_items") or []),
+    )
+    updated = update_vc_request(
+        request_id,
+        {"deck_id": deck["id"], "status": "deck_built"},
+    )
+    return {
+        "request": updated,
+        "deck": deck,
+        "template": template,
+        "recommendation_items": deck.get("recommendation_items") or [],
+    }
 
 
 # --- Admin Auth Endpoints ---

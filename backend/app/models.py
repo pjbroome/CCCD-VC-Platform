@@ -39,7 +39,13 @@ VALID_STATUS_TRANSITIONS: dict[RequestStatus, list[RequestStatus]] = {
 
 
 def is_valid_transition(current: RequestStatus, target: RequestStatus) -> bool:
-    """Check if a status transition is allowed."""
+    """Check if a status transition is allowed.
+
+    Same-status updates are treated as no-ops (idempotent) so autosave / re-apply
+    stack can PATCH deck_id without failing on deck_built → deck_built.
+    """
+    if current == target:
+        return True
     return target in VALID_STATUS_TRANSITIONS.get(current, [])
 
 

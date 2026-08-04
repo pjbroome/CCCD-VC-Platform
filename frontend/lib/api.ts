@@ -244,7 +244,32 @@ export interface RecordingDeck {
   id: number;
   name: string;
   slide_numbers: number[];
+  recommendation_items?: Array<{
+    treatment: string;
+    visits?: string;
+    investment?: string;
+    enabled?: boolean;
+  }>;
   created_at: string;
+}
+
+export interface DeckTemplate {
+  id: number;
+  slug: string;
+  name: string;
+  case_type: string;
+  description?: string;
+  slide_numbers: number[];
+  recommendation_items: Array<{
+    treatment: string;
+    visits?: string;
+    investment?: string;
+    enabled?: boolean;
+  }>;
+  concern_keywords?: string[];
+  treatment_tags?: string[];
+  suggest_score?: number;
+  suggest_reason?: string;
 }
 
 export function slideImageUrl(filename: string): string {
@@ -316,12 +341,17 @@ export async function listRecordingDecks(): Promise<{ total: number; decks: Reco
 
 export async function createRecordingDeck(
   name: string,
-  slideNumbers: number[]
+  slideNumbers: number[],
+  recommendationItems?: Array<{ treatment: string; visits?: string; investment?: string; enabled?: boolean }>
 ): Promise<RecordingDeck> {
   const res = await fetch(`${API_BASE}/recording-decks`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ name, slide_numbers: slideNumbers }),
+    body: JSON.stringify({
+      name,
+      slide_numbers: slideNumbers,
+      recommendation_items: recommendationItems || [],
+    }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -339,6 +369,76 @@ export async function deleteRecordingDeck(deckId: number): Promise<void> {
     const text = await res.text();
     throw new Error(`Failed to delete deck (${res.status}): ${text}`);
   }
+}
+
+export async function listDeckTemplates(): Promise<{ total: number; templates: DeckTemplate[] }> {
+  const res = await fetch(`${API_BASE}/deck-templates`, { headers: authHeaders() });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to list stacks (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function suggestDeckTemplate(
+  concern: string
+): Promise<{ suggested: DeckTemplate | null; templates: DeckTemplate[] }> {
+  const res = await fetch(
+    `${API_BASE}/deck-templates/suggest?concern=${encodeURIComponent(concern || "")}`,
+    { headers: authHeaders() }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to suggest stack (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function saveDeckTemplate(
+  payload: Partial<DeckTemplate> & { name: string; slide_numbers: number[] }
+): Promise<DeckTemplate> {
+  const res = await fetch(`${API_BASE}/deck-templates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to save stack (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function deleteDeckTemplate(templateId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/deck-templates/${templateId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to delete stack (${res.status}): ${text}`);
+  }
+}
+
+export async function applyDeckTemplate(
+  requestId: number,
+  templateId: number
+): Promise<{
+  request: VCRequestListItem;
+  deck: RecordingDeck;
+  template: DeckTemplate;
+  recommendation_items: DeckTemplate["recommendation_items"];
+}> {
+  const res = await fetch(`${API_BASE}/vc/requests/${requestId}/apply-template`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ template_id: templateId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to apply stack (${res.status}): ${text}`);
+  }
+  return res.json();
 }
 
 // --- Video / Consultation API ---

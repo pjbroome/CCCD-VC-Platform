@@ -13,6 +13,8 @@ import {
   createConsultation,
   updateVCRequest,
   emailConsultationReview,
+  approveConsultation,
+  sendConsultation,
 } from "@/lib/api"
 import type { VCRequestListItem, SlideItem, RecordingDeck } from "@/lib/api"
 import { PhotoEditor } from "@/components/vc/PhotoEditor"
@@ -156,6 +158,9 @@ export default function PresenterViewPage() {
   const recordedBlobRef = useRef<Blob | null>(null)
   const [reviewUrl, setReviewUrl] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [savedConsultation, setSavedConsultation] = useState<{ id: number; token?: string } | null>(null)
+  const [patientSendBusy, setPatientSendBusy] = useState(false)
+  const [patientSendMsg, setPatientSendMsg] = useState<string | null>(null)
 
   /* ── load data ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -526,6 +531,8 @@ export default function PresenterViewPage() {
     setRecordingState("idle")
     setElapsedTime(0)
     setUploadMsg(null)
+    setSavedConsultation(null)
+    setPatientSendMsg(null)
   }, [])
 
   /* ── upload recording ──────────────────────────────────────── */
@@ -582,6 +589,8 @@ export default function PresenterViewPage() {
         const msg = err instanceof Error ? err.message : "unknown error"
         emailNote = ` — review email error: ${msg} (review link ready).`
       }
+      setSavedConsultation({ id: consultation.id, token: consultation.token })
+      setPatientSendMsg(null)
       setUploadMsg(`Consultation #${consultation.id} saved${emailNote} Review: /consultation/${consultation.token ?? consultation.id}`)
       stopCamera() // done sending → release the webcam so the light turns off
     } catch (err) {
@@ -590,6 +599,26 @@ export default function PresenterViewPage() {
       setUploading(false)
     }
   }, [request, deckSlides, summaryItems, stopCamera])
+
+  const approveAndSendToPatient = useCallback(async () => {
+    if (!savedConsultation || !request) return
+    setPatientSendBusy(true)
+    setPatientSendMsg(null)
+    try {
+      await approveConsultation(savedConsultation.id)
+      await updateVCRequest(request.id, { status: "approved" })
+      const { emailed } = await sendConsultation(savedConsultation.id, request.id)
+      setPatientSendMsg(
+        emailed
+          ? `Sent to patient (${request.email}).`
+          : `Marked sent — email may not have delivered; copy /consultation/${savedConsultation.token ?? savedConsultation.id}`
+      )
+    } catch (err) {
+      setPatientSendMsg(`Send failed: ${err instanceof Error ? err.message : "unknown error"}`)
+    } finally {
+      setPatientSendBusy(false)
+    }
+  }, [savedConsultation, request])
 
   /* ── bubble position cycling ────────────────────────────────── */
   const cycleBubbleSize = useCallback(() => {
@@ -1003,7 +1032,7 @@ export default function PresenterViewPage() {
             <>
               <button
                 onClick={saveRecording}
-                disabled={uploading}
+                disabled={uploading || !!savedConsultation}
                 className="flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-emerald-500 disabled:opacity-40"
               >
                 {uploading ? (
@@ -1014,6 +1043,8 @@ export default function PresenterViewPage() {
                     </svg>
                     Sending...
                   </>
+                ) : savedConsultation ? (
+                  <>Saved</>
                 ) : (
                   <>
                     <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1023,9 +1054,19 @@ export default function PresenterViewPage() {
                   </>
                 )}
               </button>
+              {savedConsultation && (
+                <button
+                  type="button"
+                  onClick={approveAndSendToPatient}
+                  disabled={patientSendBusy}
+                  className="flex items-center gap-2 rounded-full bg-[#c4a052] px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-lg transition-all hover:bg-[#d8bf7a] disabled:opacity-40"
+                >
+                  {patientSendBusy ? "Sending to patient…" : "Approve & send to patient"}
+                </button>
+              )}
               <button
                 onClick={discardRecording}
-                disabled={uploading}
+                disabled={uploading || patientSendBusy}
                 className="flex items-center gap-2 rounded-full bg-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 shadow-lg transition-all hover:bg-zinc-600 disabled:opacity-40"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1066,6 +1107,15 @@ export default function PresenterViewPage() {
               }`}
             >
               {uploadMsg}
+            </span>
+          )}
+          {patientSendMsg && (
+            <span
+              className={`ml-3 text-xs font-medium ${
+                patientSendMsg.includes("failed") ? "text-red-400" : "text-[#d8bf7a]"
+              }`}
+            >
+              {patientSendMsg}
             </span>
           )}
           </div>

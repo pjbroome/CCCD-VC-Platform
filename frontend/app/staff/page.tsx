@@ -412,18 +412,30 @@ export default function StaffDashboard() {
                             <span className="text-xs text-zinc-300">None</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/staff/${req.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition hover:brightness-95"
-                            style={{ background: "var(--k-accent-soft)", color: "var(--k-accent)" }}
-                          >
-                            View
-                            <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                            </svg>
-                          </Link>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {(req.status === "deck_built" || req.status === "recording_ready" || req.deck_id) && (
+                              <Link
+                                href={`/staff/${req.id}/deck/present`}
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                              >
+                                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
+                                Record
+                              </Link>
+                            )}
+                            <Link
+                              href={`/staff/${req.id}/deck`}
+                              className="inline-flex items-center gap-1 rounded-lg border border-[var(--k-line)] bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                            >
+                              {req.deck_id ? "Edit deck" : "Apply stack"}
+                            </Link>
+                            <Link
+                              href={`/staff/${req.id}`}
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-zinc-400 transition hover:text-zinc-700"
+                            >
+                              Profile
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}
