@@ -3363,7 +3363,12 @@ async def email_consultation_review(consultation_id: int, session: dict = Depend
     c = get_consultation(consultation_id)
     if not c:
         return {"error": "Consultation not found", "sent": False, "email": "", "link": ""}
-    review_email = os.environ.get("REVIEW_EMAIL", "pjbroome@gmail.com")
+    # No consumer-mailbox default: this email carries the patient's full name and a bearer
+    # token to their clinical video. Google's BAA covers Workspace, not consumer @gmail.com,
+    # so an unset REVIEW_EMAIL must fail closed rather than quietly leak PHI.
+    review_email = (os.environ.get("REVIEW_EMAIL") or "").strip()
+    if not review_email:
+        return {"error": "REVIEW_EMAIL is not configured", "sent": False, "email": "", "link": ""}
     base = (os.environ.get("PUBLIC_BASE_URL") or "https://destination-smile-consult.vercel.app").rstrip("/")
     token = c.get("token") or ""
     path = f"/consultation/{token}" if token else f"/consultation/{consultation_id}"
@@ -3416,8 +3421,21 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
         "Reply to this email or call our office.</p></div>"
     )
     sent, error = _send_review_email(to_email, "Your personalized consultation video is ready", html)
+    # Only record delivery when the provider actually accepted the message. Previously this
+    # wrote status="sent" unconditionally, so a failed send still showed as delivered in the
+    # staff dashboard — the patient would silently never receive their video and nobody would
+    # know to follow up. On failure we record the failure and the reason instead.
     try:
-        update_consultation(consultation_id, {"status": "sent", "sent_at": _dt.datetime.now(_dt.timezone.utc).isoformat()})
+        if sent:
+            update_consultation(consultation_id, {
+                "status": "sent",
+                "sent_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            })
+        else:
+            update_consultation(consultation_id, {
+                "status": "send_failed",
+                "send_error": (error or "unknown error")[:300],
+            })
     except Exception:
         pass
     out = {"sent": sent, "email": to_email, "link": link}
@@ -3768,24 +3786,20 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
     data.pop("website", None)
     data.pop("turnstile_token", None)
     result = create_vc_request(data)
-    # Best-effort confirmation email to the patient (no-op until email is configured).
-    try:
-        to = (data.get("email") or "").strip()
-        if to:
-            import html as _html
-            practice = _html.escape(os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry"))
-            first = _html.escape((data.get("first_name") or "there").strip() or "there")
-            _send_review_email(
-                to,
-                "We received your virtual consultation request",
-                "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222'>"
-                f"<p>Hi {first},</p><p>Thank you for your virtual consultation request with {practice}. "
-                "Dr. Broome will personally review your photos and send a personalized video reply, typically "
-                "within 24 hours — watch for an email with your private link.</p>"
-                "<p style='color:#999;font-size:12px'>If you didn't submit this, you can safely ignore this email.</p></div>",
-            )
-    except Exception:
-        pass
+    # No submission-confirmation email is sent, by owner decision (Patrick, 2026-08-03).
+    # The on-screen success state is the confirmation: it names the patient, states the
+    # email their video reply will go to, and sets the "may take a few days" expectation.
+    #
+    # Two reasons this is deliberate, not an omission:
+    #   1. HIPAA — a confirmation naming an identified person as someone seeking dental
+    #      treatment is PHI. Until email moves to AWS SES (BAA signed), the only available
+    #      sender was Resend, which has NO BAA. Sending nothing is the compliant choice.
+    #   2. The previous copy promised a reply "typically within 24 hours", which violates
+    #      the standing rule against any turnaround SLA in patient-facing copy.
+    #
+    # If a confirmation email is ever reinstated it MUST go via SES and MUST NOT carry a
+    # time promise. The video-ready notification (notify_patient) is a SEPARATE email and
+    # is still required — it is what delivers the consultation link.
     return result
 
 
