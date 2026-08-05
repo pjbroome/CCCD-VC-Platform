@@ -847,6 +847,47 @@ def _check_message_safety(message: str, request: Request = None) -> dict | None:
     return None
 
 
+def record_vc_abuse(request, kind: str, detail: str = "") -> dict:
+    """Record an abuse event from the PATIENT INTAKE form into the security ledger.
+
+    The intake form already rejected these attempts (Turnstile, honeypot, rate limit) — but
+    until now the rejections were invisible: nothing counted them, nothing correlated them by
+    IP, and a determined abuser could probe indefinitely without ever appearing anywhere a
+    human looks. This feeds them into the SAME ledger and the SAME auto-ban counters the chat
+    side already uses, so repeat offenders escalate to a ban instead of being rejected forever
+    one request at a time.
+
+    Deliberately NOT recorded: any patient-submitted field content. An abuse record needs the
+    fingerprint (who, how often, by what method), never the payload, which on this form could
+    contain PHI.
+
+    ⚠️ DESIGN DECISION — these strikes do NOT auto-block the intake form, and that is
+    intentional. The ban list is enforced on the chat path only. Auto-banning by IP on a
+    PATIENT form would be an own-goal: corporate NAT, hotel and clinic wifi put many people
+    behind one address, and Turnstile legitimately fails for real users with ad blockers or
+    flaky networks. Blocking a $35k prospect because their office shares an IP with a bot is
+    far more costly than logging a bot. So: count everything, surface it to staff via
+    /vc/abuse-ledger, let the volume-based rate limiter (self-expiring) handle floods, and
+    leave a hard ban as a deliberate human decision.
+    """
+    try:
+        ip = _get_client_ip(request)
+        incident = _build_incident(
+            message="",                      # never store submitted content from this form
+            trigger_type=f"vc_{kind}",
+            trigger_detail=detail[:200],
+            pattern_name="vc_intake",
+            request=request,
+        )
+        incident["severity"] = "medium"
+        _security_incidents.append(incident)
+        _track_ip_attempt(ip)                # feeds the existing 5-strike / 10-strike ban
+        return incident
+    except Exception as e:                   # abuse logging must NEVER break a submission
+        print(f"vc abuse log failed: {type(e).__name__}: {e}")
+        return {}
+
+
 def _build_incident(message: str, trigger_type: str, trigger_detail: str,
                     pattern_name: str, request: Request = None) -> dict:
     """Build a security incident record with attacker fingerprinting."""
@@ -3912,19 +3953,25 @@ def _verify_turnstile(token: str, secret: str) -> bool:
 
 
 @app.post("/vc/requests")
-async def create_vc_request_endpoint(req: VCRequestCreate):
+async def create_vc_request_endpoint(req: VCRequestCreate, request: Request):
     """Submit a new VC request from patient intake.
 
     Required fields: first_name, last_name, email, phone, concern, consent_acknowledged
     Optional: date_of_birth, city, state, photos
+
+    `request` is needed so rejected attempts can be fingerprinted into the abuse ledger.
     """
     # Honeypot: bots fill the hidden 'website' field — silently accept without storing.
+    # The response is deliberately indistinguishable from success so the bot never learns
+    # it was caught, but the attempt IS now counted against the sender's IP.
     if (req.website or "").strip():
+        record_vc_abuse(request, "honeypot_tripped", "hidden website field was filled")
         return {"id": 0, "status": "received"}
     # Bot verification — active only when TURNSTILE_SECRET is configured.
     _ts_secret = os.environ.get("TURNSTILE_SECRET", "")
     if _ts_secret and not _verify_turnstile((req.turnstile_token or "").strip(), _ts_secret):
         from fastapi import HTTPException
+        record_vc_abuse(request, "turnstile_failed", "Turnstile token missing or invalid")
         raise HTTPException(status_code=400, detail="Bot verification failed — please retry.")
     if not req.consent_acknowledged:
         from fastapi import HTTPException
@@ -3958,6 +4005,51 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
     # time promise. The video-ready notification (notify_patient) is a SEPARATE email and
     # is still required — it is what delivers the consultation link.
     return result
+
+
+@app.get("/vc/abuse-ledger")
+async def vc_abuse_ledger(session: dict = Depends(require_admin)):
+    """Staff view of intake-form abuse: what was rejected, from where, how often.
+
+    Groups by IP so a repeat offender is one row rather than fifty, and surfaces how close
+    each is to the auto-ban thresholds. Contains NO patient-submitted content by design —
+    only the fingerprint of rejected attempts.
+    """
+    from collections import Counter
+    events = [i for i in list(_security_incidents) if str(i.get("trigger_type", "")).startswith("vc_")]
+    by_ip: dict = {}
+    for e in events:
+        ip = e.get("ip_address", "?")
+        row = by_ip.setdefault(ip, {
+            "ip": ip, "attempts": 0, "kinds": Counter(),
+            "first_seen": e.get("timestamp"), "last_seen": e.get("timestamp"),
+            "user_agent": e.get("user_agent", ""),
+        })
+        row["attempts"] += 1
+        row["kinds"][e.get("trigger_type", "?")] += 1
+        row["last_seen"] = e.get("timestamp")
+    out = []
+    for ip, row in by_ip.items():
+        ban = _is_ip_banned(ip)
+        out.append({
+            "ip": ip,
+            "attempts": row["attempts"],
+            "kinds": dict(row["kinds"]),
+            "first_seen": row["first_seen"],
+            "last_seen": row["last_seen"],
+            "user_agent": row["user_agent"][:120],
+            "banned": bool(ban),
+            "ban_reason": (ban or {}).get("reason"),
+            "strikes_to_temp_ban": max(0, IP_BAN_THRESHOLD_TEMP - row["attempts"]),
+        })
+    out.sort(key=lambda r: r["attempts"], reverse=True)
+    return {
+        "total_events": len(events),
+        "unique_ips": len(out),
+        "temp_ban_at": IP_BAN_THRESHOLD_TEMP,
+        "perm_ban_at": IP_BAN_THRESHOLD_PERM,
+        "offenders": out,
+    }
 
 
 @app.post("/vc/feedback")
