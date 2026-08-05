@@ -3,8 +3,13 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install system dependencies
+# ffmpeg: consultation videos are transcoded on upload (H.264 720p + AAC + faststart).
+# Phone-recorded clips arrive at ~30 MB and take seconds to start on mobile data; the
+# transcode lands them at ~8-12 MB with the moov atom at the front so playback begins
+# immediately instead of after a full download.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry

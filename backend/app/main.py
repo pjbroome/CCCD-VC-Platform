@@ -695,6 +695,36 @@ def _send_security_alert(incident: dict) -> None:
     import html as _h
     _e = lambda v: _h.escape(str(v if v is not None else ""), quote=True)
 
+    # The SMTP path below is a dead end in production: neither SMTP_HOST nor
+    # SECURITY_ALERT_EMAIL is set on either Fly app, so every alert was silently dropped to
+    # stdout and the watchdog was effectively inert. Fall back to the provider-agnostic
+    # sender (_send_review_email → Resend or SMTP, whichever is configured) so incidents
+    # actually reach a human. Recipient precedence: SECURITY_ALERT_EMAIL, else the staff
+    # review mailbox — never a hardcoded consumer address.
+    if not SMTP_HOST:
+        _to = (SECURITY_ALERT_EMAIL or os.environ.get("REVIEW_EMAIL") or "").strip()
+        if _to:
+            try:
+                import html as _h0
+                _esc = lambda v: _h0.escape(str(v if v is not None else ""), quote=True)
+                _body = (
+                    "<div style='font-family:Arial,sans-serif;max-width:620px'>"
+                    f"<p><b>Security incident</b> — {_esc(incident.get('trigger_type','unknown'))}</p>"
+                    f"<p>IP: {_esc(incident.get('ip_address','?'))}<br>"
+                    f"Detail: {_esc(incident.get('trigger_detail','')) or '—'}<br>"
+                    f"User agent: {_esc(incident.get('user_agent',''))}<br>"
+                    f"Time: {_esc(incident.get('timestamp',''))}</p>"
+                    f"<p style='color:#666'>Excerpt: {_esc(incident.get('message_excerpt','')[:150])}</p>"
+                    "</div>"
+                )
+                ok, err = _send_review_email(
+                    _to, f"Security alert — {incident.get('trigger_type','incident')}", _body
+                )
+                _last_alert_sent = _dt.datetime.now() if ok else _last_alert_sent
+                print(f"ALERT via fallback sender: ok={ok} {err}")
+                return
+            except Exception as _e:
+                print(f"ALERT fallback failed: {type(_e).__name__}: {_e}")
     if not SMTP_HOST or not SECURITY_ALERT_EMAIL:
         print(f"ALERT (email not configured): {incident['trigger_type']} from {incident['ip_address']}")
         return
@@ -3765,6 +3795,59 @@ async def serve_patient_photo(filename: str, request: Request):
     return _safe_file_response(file_path)
 
 
+def _transcode_consult_video(path) -> dict:
+    """Re-encode a consultation video in place: H.264 720p + AAC, moov atom moved to the front.
+
+    Why each part matters:
+      - faststart puts the moov atom first, so a patient on mobile data starts watching
+        immediately instead of waiting for the whole file to arrive. This is the single
+        biggest perceived-quality win and it costs nothing in fidelity.
+      - CRF 23 at 720p is visually transparent for a talking-head clip while cutting a
+        ~30 MB phone recording to roughly 8-12 MB.
+      - scale caps HEIGHT at 720 and only ever downscales (min(720,ih)), so an already-small
+        clip is never upscaled into a bigger file.
+
+    Fails SAFE: if ffmpeg is missing, errors, times out, or somehow produces a LARGER file,
+    the original upload is left exactly as it was. A patient video is never worth losing to
+    a compression step.
+    """
+    import shutil as _shutil, subprocess as _sp, os as _os
+    if not _shutil.which("ffmpeg"):
+        return {"transcoded": False, "reason": "ffmpeg not available"}
+    src = str(path)
+    tmp = f"{src}.transcode.mp4"
+    try:
+        before = _os.path.getsize(src)
+        _sp.run(
+            ["ffmpeg", "-y", "-i", src,
+             "-vf", "scale=-2:min(720\\,ih)",
+             "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+             "-c:a", "aac", "-b:a", "128k",
+             "-movflags", "+faststart",
+             tmp],
+            check=True, capture_output=True, timeout=600,
+        )
+        after = _os.path.getsize(tmp)
+        if after <= 0 or after >= before:
+            _os.remove(tmp)
+            return {"transcoded": False, "reason": "no size benefit", "size_bytes": before}
+        _os.replace(tmp, src)
+        return {
+            "transcoded": True,
+            "original_bytes": before,
+            "size_bytes": after,
+            "saved_pct": round((1 - after / before) * 100, 1),
+        }
+    except Exception as e:
+        try:
+            if _os.path.exists(tmp):
+                _os.remove(tmp)
+        except Exception:
+            pass
+        print(f"video transcode skipped: {type(e).__name__}: {str(e)[:180]}")
+        return {"transcoded": False, "reason": f"{type(e).__name__}"}
+
+
 @app.post("/vc/videos/upload")
 async def upload_consult_video(file: UploadFile = File(...), session: dict = Depends(require_admin)):
     """Upload a consultation video. Returns the file path for linking to a consultation.
@@ -3780,13 +3863,22 @@ async def upload_consult_video(file: UploadFile = File(...), session: dict = Dep
     with open(file_path, "wb") as f:
         f.write(content)
 
+    original_bytes = len(content)
+    # Transcode off the event loop — ffmpeg on a 30 MB clip takes tens of seconds and would
+    # otherwise block every concurrent request, including patient form submissions.
+    import asyncio as _asyncio
+    transcode = await _asyncio.to_thread(_transcode_consult_video, file_path)
+
     video_url = signed_media_path(f"/vc/videos/{unique_name}")
-    return {
+    out = {
         "filename": unique_name,
         "path": str(file_path),
         "url": video_url,
-        "size_bytes": len(content),
+        "size_bytes": file_path.stat().st_size if file_path.exists() else original_bytes,
+        "original_bytes": original_bytes,
     }
+    out.update(transcode)
+    return out
 
 
 @app.get("/vc/videos/{filename}")
