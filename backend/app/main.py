@@ -227,7 +227,11 @@ def _is_rate_limited(request) -> bool:
 
 
 def _validate_upload(content_type: Optional[str], size: int, kind: str, max_mb: int) -> None:
-    """Reject uploads with the wrong content type, empty body, or over size limit."""
+    """Reject uploads with the wrong content type, empty body, or over size limit.
+
+    NOTE: `content_type` here is the CLIENT's claim and cannot be trusted on its own.
+    Callers handling untrusted uploads must also run _sniff_media_type() on the bytes.
+    """
     from fastapi import HTTPException
     if size == 0:
         raise HTTPException(status_code=400, detail="Empty file")
@@ -235,6 +239,101 @@ def _validate_upload(content_type: Optional[str], size: int, kind: str, max_mb: 
         raise HTTPException(status_code=400, detail=f"Invalid file type (expected {kind}*)")
     if size > max_mb * 1024 * 1024:
         raise HTTPException(status_code=413, detail=f"File too large (max {max_mb} MB)")
+
+
+# ── Upload content verification ────────────────────────────────────────────────
+# Added 2026-08-04 after a verified finding: an HTML file labelled `image/jpeg` was
+# accepted, stored as <uuid>.html because the extension came from the client-supplied
+# filename, and then served back as `text/html` — a stored-XSS vector. The three fixes
+# are (1) sniff real magic bytes, (2) derive the extension from what we DETECTED, never
+# from the client, (3) force a safe Content-Type on serve. See docs/SECURITY_TEST_RESULTS.md
+# "Finding 3".
+#
+# Deliberately signature-only: no re-encode, no EXIF strip. C10 (2026-08-02) needs the
+# original EXIF intact for the authenticity verdict (capture-time vs submission gap,
+# camera/software tags). Do not add image processing here.
+
+_IMAGE_SIGNATURES: tuple = (
+    (b"\xff\xd8\xff", "image/jpeg", ".jpg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png", ".png"),
+    (b"GIF87a", "image/gif", ".gif"),
+    (b"GIF89a", "image/gif", ".gif"),
+)
+# HEIC/HEIF and WebP carry their marker at a byte offset rather than position 0.
+_HEIF_BRANDS = (b"heic", b"heix", b"hevc", b"heim", b"heis", b"mif1", b"msf1", b"avif")
+_VIDEO_BRANDS = (b"isom", b"iso2", b"mp41", b"mp42", b"qt  ", b"M4V ", b"avc1")
+
+
+def _sniff_media_type(data: bytes, kind: str) -> tuple:
+    """Identify a file by its actual bytes. Returns (mime, canonical_extension).
+
+    Raises 400 if the content is not a real image/video of an allowed type, regardless
+    of what the client claimed. `kind` is "image/" or "video/".
+    """
+    from fastapi import HTTPException
+
+    head = data[:32]
+
+    if kind == "image/":
+        for magic, mime, ext in _IMAGE_SIGNATURES:
+            if head.startswith(magic):
+                return mime, ext
+        # WebP: "RIFF" .... "WEBP"
+        if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+            return "image/webp", ".webp"
+        # HEIC/HEIF/AVIF: ftyp box with a known brand
+        if head[4:8] == b"ftyp" and head[8:12] in _HEIF_BRANDS:
+            brand = head[8:12]
+            if brand == b"avif":
+                return "image/avif", ".avif"
+            return "image/heic", ".heic"
+        raise HTTPException(
+            status_code=400,
+            detail="That file is not a photo. Please upload a JPEG, PNG, HEIC or WebP image.",
+        )
+
+    if kind == "video/":
+        if head[4:8] == b"ftyp" and head[8:12] in _VIDEO_BRANDS + _HEIF_BRANDS:
+            return "video/mp4", ".mp4"
+        if head.startswith(b"\x1a\x45\xdf\xa3"):
+            return "video/webm", ".webm"
+        raise HTTPException(
+            status_code=400,
+            detail="That file is not a video. Please upload an MP4, MOV or WebM file.",
+        )
+
+    raise HTTPException(status_code=400, detail="Unsupported upload kind")
+
+
+# Only these types are ever echoed back in a Content-Type header. Anything stored before
+# this fix, or anything unrecognised, is served as an inert download instead of rendered.
+_SAFE_MEDIA_TYPES: dict = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+    ".gif": "image/gif", ".webp": "image/webp", ".heic": "image/heic",
+    ".heif": "image/heic", ".avif": "image/avif",
+    ".mp4": "video/mp4", ".mov": "video/mp4", ".webm": "video/webm",
+    ".m4v": "video/mp4",
+}
+
+
+def _safe_file_response(file_path: Path):
+    """FileResponse that can never hand a browser something it will execute.
+
+    FastAPI's FileResponse infers Content-Type from the file extension, which is how a
+    stored .html came back as text/html. Anything outside the allowlist is served as
+    application/octet-stream with an attachment disposition, so it downloads inertly.
+    """
+    from fastapi.responses import FileResponse
+
+    ext = file_path.suffix.lower()
+    media_type = _SAFE_MEDIA_TYPES.get(ext)
+    if media_type:
+        return FileResponse(file_path, media_type=media_type)
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
+    )
 
 
 def _is_public_path(path: str, method: str) -> bool:
@@ -3288,6 +3387,8 @@ async def upload_slide_endpoint(
         if not data:
             continue
         _validate_upload(f.content_type, len(data), "image/", 20)
+        # Staff-only route, but same rule: verify the bytes, not the client's label.
+        _sniff_media_type(data, "image/")
         created.append(add_slide(f.filename or "slide", data))
     return {"created": created, "count": len(created)}
 
@@ -3679,8 +3780,9 @@ async def upload_patient_photo(file: UploadFile = File(...)):
     """
     content = await file.read()
     _validate_upload(file.content_type, len(content), "image/", 15)
-    # Generate unique filename to prevent collisions
-    ext = Path(file.filename or "photo.jpg").suffix or ".jpg"
+    # The client's content_type and filename are both attacker-controlled. Trust neither:
+    # identify the file by its actual bytes and take the extension from THAT.
+    _mime, ext = _sniff_media_type(content, "image/")
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = _PHOTOS_DIR / unique_name
     with open(file_path, "wb") as f:
@@ -3725,7 +3827,7 @@ async def serve_patient_photo(filename: str, request: Request):
     file_path = _safe_media_path(_PHOTOS_DIR, filename)
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Photo not found")
-    return FileResponse(file_path)
+    return _safe_file_response(file_path)
 
 
 @app.post("/vc/videos/upload")
@@ -3737,7 +3839,7 @@ async def upload_consult_video(file: UploadFile = File(...), session: dict = Dep
     """
     content = await file.read()
     _validate_upload(file.content_type, len(content), "video/", 300)
-    ext = Path(file.filename or "video.mp4").suffix or ".mp4"
+    _mime, ext = _sniff_media_type(content, "video/")
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = _VIDEOS_DIR / unique_name
     with open(file_path, "wb") as f:
@@ -3762,7 +3864,7 @@ async def serve_consult_video(filename: str, request: Request):
     file_path = _safe_media_path(_VIDEOS_DIR, filename)
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Video not found")
-    return FileResponse(file_path)
+    return _safe_file_response(file_path)
 
 
 # --- VC Request (Patient Intake CRM) Endpoints ---
