@@ -1,5 +1,16 @@
 # CLAUDE.md — CCCD VC Platform (consolidated monorepo)
 
+
+## 🔒 EMAIL: AWS SES ONLY — Resend is revoked (2026-08-05)
+
+**Read `EMAIL_PROVIDER.md` before touching anything that sends mail.**
+
+Resend has **no BAA** and this platform handles PHI, so it was removed entirely — code and
+key both. Do **not** reintroduce `RESEND_API_KEY` or any non-BAA sender to make a test pass.
+SES (`us-east-2`) is the only permitted path; Google Workspace is fine for mail a human sends
+by hand. ⚠️ SES is still **sandboxed**, so it delivers only to *verified* identities — that is
+expected, not a bug, and verifying an address does not release the sandbox.
+
 ## What this is
 The **entire Virtual Consultation platform** for Charlotte Center for Cosmetic Dentistry in ONE
 repo: patient intake, staff admin dashboard, slide library, and slideshow (deck) creation/

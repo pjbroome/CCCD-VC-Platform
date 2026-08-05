@@ -804,6 +804,101 @@ def get_feedback() -> list[dict]:
     return []
 
 
+def _normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def _find_requests_by_email(email_norm: str, *, exclude_merged: bool = True) -> list[dict]:
+    if not email_norm:
+        return []
+    out = []
+    for r in _requests:
+        if _normalize_email(r.get("email", "")) != email_norm:
+            continue
+        if exclude_merged and r.get("merged_into_id"):
+            continue
+        out.append(r)
+    return out
+
+
+def get_related_requests(request_id: int) -> list[dict]:
+    """Return other intake requests for the same normalized email."""
+    _load_requests()
+    row = get_vc_request(request_id)
+    if not row:
+        return []
+    email_norm = _normalize_email(row.get("email", ""))
+    if not email_norm:
+        return []
+    return [r for r in _find_requests_by_email(email_norm) if r["id"] != request_id]
+
+
+def link_requests_by_email(request_id: int) -> None:
+    """Bidirectionally link all requests sharing an email (resubmit support)."""
+    _load_requests()
+    row = get_vc_request(request_id)
+    if not row:
+        return
+    email_norm = _normalize_email(row.get("email", ""))
+    if not email_norm:
+        return
+    siblings = _find_requests_by_email(email_norm)
+    ids = sorted(r["id"] for r in siblings)
+    group_id = row.get("patient_group_id") or siblings[0].get("patient_group_id")
+    if not group_id:
+        group_id = secrets.token_hex(8)
+    seq = len(ids)
+    changed = False
+    for r in _requests:
+        if r["id"] not in ids:
+            continue
+        related = [i for i in ids if i != r["id"]]
+        if r.get("related_request_ids") != related:
+            r["related_request_ids"] = related
+            changed = True
+        if r.get("patient_group_id") != group_id:
+            r["patient_group_id"] = group_id
+            changed = True
+        if r["id"] == request_id and r.get("consult_sequence") != seq:
+            r["consult_sequence"] = seq
+            changed = True
+        elif r["id"] != request_id and not r.get("consult_sequence"):
+            r["consult_sequence"] = ids.index(r["id"]) + 1
+            changed = True
+    if changed:
+        _save_requests()
+
+
+def merge_vc_request(source_id: int, primary_id: int) -> Optional[dict]:
+    """Fold source into primary — source hidden from inbox, notes appended."""
+    import datetime
+    _load_requests()
+    if source_id == primary_id:
+        return get_vc_request(primary_id)
+    primary = get_vc_request(primary_id)
+    source = get_vc_request(source_id)
+    if not primary or not source:
+        return None
+    stamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    note = (
+        f"[Merged request #{source_id} ({source.get('patient_name', '')}) on {stamp[:10]}]\n"
+        f"Concern: {source.get('concern', '')}\n"
+        f"{source.get('notes', '')}".strip()
+    )
+    primary_notes = (primary.get("notes") or "").strip()
+    primary["notes"] = (primary_notes + "\n\n" + note).strip() if primary_notes else note
+    primary["updated_at"] = stamp
+    for r in _requests:
+        if r["id"] == source_id:
+            r["merged_into_id"] = primary_id
+            r["status"] = "merged"
+            r["updated_at"] = stamp
+            break
+    _save_requests()
+    link_requests_by_email(primary_id)
+    return primary
+
+
 def create_vc_request(data: dict) -> dict:
     """Create a new VC request from patient intake.
     
@@ -817,12 +912,15 @@ def create_vc_request(data: dict) -> dict:
     import datetime
     _load_requests()
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    email_norm = _normalize_email(data.get("email", ""))
+    prior = _find_requests_by_email(email_norm) if email_norm else []
     request = {
         "id": max((r["id"] for r in _requests), default=0) + 1,
         # Patient identity
         "first_name": data.get("first_name", ""),
         "last_name": data.get("last_name", ""),
         "email": data.get("email", ""),
+        "email_normalized": email_norm,
         "phone": data.get("phone", ""),
         "date_of_birth": data.get("date_of_birth"),
         "city": data.get("city"),
@@ -830,6 +928,12 @@ def create_vc_request(data: dict) -> dict:
         # Attribution
         "referral_source": data.get("referral_source"),
         "source_url": data.get("source_url"),
+        # Resubmit / patient grouping
+        "patient_group_id": prior[0].get("patient_group_id") if prior else None,
+        "related_request_ids": [r["id"] for r in prior],
+        "consult_sequence": len(prior) + 1,
+        "merged_into_id": None,
+        "is_resubmit": len(prior) > 0,
         # Clinical
         "concern": data.get("concern", ""),
         "consent_acknowledged": data.get("consent_acknowledged", False),
@@ -847,15 +951,20 @@ def create_vc_request(data: dict) -> dict:
     }
     _requests.append(request)
     _save_requests()
+    link_requests_by_email(request["id"])
+    request = get_vc_request(request["id"]) or request
     return request
 
 
-def get_vc_requests(status: Optional[str] = None) -> list[dict]:
+def get_vc_requests(status: Optional[str] = None, *, include_merged: bool = False) -> list[dict]:
     """Get all VC requests, optionally filtered by status."""
     _load_requests()
+    rows = _requests
+    if not include_merged:
+        rows = [r for r in rows if not r.get("merged_into_id")]
     if status:
-        return [r for r in _requests if r["status"] == status]
-    return _requests
+        return [r for r in rows if r["status"] == status]
+    return rows
 
 
 def get_vc_request(request_id: int) -> Optional[dict]:
@@ -943,6 +1052,8 @@ def create_consultation(data: dict) -> dict:
         "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "follow_up_dates": [],
+        "nudge_sent_at": None,
+        "resend_count": 0,
         "notes": data.get("notes", ""),
     }
     _consultations.append(consultation)

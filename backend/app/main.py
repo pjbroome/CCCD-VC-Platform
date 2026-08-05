@@ -44,6 +44,8 @@ from app.slide_sorter import (
     get_vc_request,
     update_vc_request,
     delete_vc_request,
+    get_related_requests,
+    merge_vc_request,
     create_consultation,
     get_consultations,
     get_consultation,
@@ -3515,14 +3517,18 @@ async def email_consultation_review(consultation_id: int, session: dict = Depend
     return out
 
 
-@app.post("/vc/consultations/{consultation_id}/notify-patient")
-async def notify_patient(consultation_id: int, session: dict = Depends(require_admin)):
-    """Email the PATIENT their personalized consultation video link, and mark sent.
-    PHI-minimal body (first name + tokenized link only). Provider-agnostic; no-op
-    with a logged warning until RESEND_API_KEY or SMTP_HOST is configured."""
+async def _send_consultation_patient_email(
+    consultation_id: int,
+    *,
+    subject: str,
+    html: str,
+    resend: bool = False,
+) -> tuple[bool, str, str, str]:
+    """Send patient email for a consultation. Returns (sent, error, email, link)."""
     import datetime as _dt
     from fastapi import HTTPException
     from app.slide_sorter import get_consultation, update_consultation
+
     c = get_consultation(consultation_id)
     if not c:
         raise HTTPException(status_code=404, detail="Consultation not found")
@@ -3534,34 +3540,48 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
         raise HTTPException(status_code=400, detail="Consultation has no share token")
     base = (os.environ.get("PUBLIC_BASE_URL") or "https://consult.cccdsmiles.com").rstrip("/")
     link = f"{base}/consultation/{token}"
-    practice = os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry")
-    from app.email import zero_phi_video_ready_html
-
-    html = zero_phi_video_ready_html(link, practice)
-    # _send_review_email does blocking network I/O (urllib / smtplib, up to 20s). Calling it
-    # directly from an async handler blocks the event loop and stalls EVERY other request,
-    # including patient form submissions. Run it on a worker thread instead.
     import asyncio as _asyncio
-    sent, error = await _asyncio.to_thread(
-        _send_review_email, to_email, "Your personalized consultation video is ready", html
-    )
-    # Only record delivery when the provider actually accepted the message. Previously this
-    # wrote status="sent" unconditionally, so a failed send still showed as delivered in the
-    # staff dashboard — the patient would silently never receive their video and nobody would
-    # know to follow up. On failure we record the failure and the reason instead.
+    sent, error = await _asyncio.to_thread(_send_review_email, to_email, subject, html)
     try:
+        patch: dict = {}
         if sent:
-            update_consultation(consultation_id, {
-                "status": "sent",
-                "sent_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
-            })
-        else:
-            update_consultation(consultation_id, {
-                "status": "send_failed",
-                "send_error": (error or "unknown error")[:300],
-            })
+            patch["sent_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
+            if resend:
+                patch["resend_count"] = int(c.get("resend_count") or 0) + 1
+                follow_ups = list(c.get("follow_up_dates") or [])
+                follow_ups.append(patch["sent_at"])
+                patch["follow_up_dates"] = follow_ups
+                patch["status"] = "sent"
+            elif c.get("status") not in ("sent", "watched", "follow_up_logged"):
+                patch["status"] = "sent"
+        elif not resend:
+            patch["status"] = "send_failed"
+            patch["send_error"] = (error or "unknown error")[:300]
+        if patch:
+            update_consultation(consultation_id, patch)
     except Exception:
         pass
+    return sent, error, to_email, link
+
+
+@app.post("/vc/consultations/{consultation_id}/notify-patient")
+async def notify_patient(consultation_id: int, session: dict = Depends(require_admin)):
+    """Email the PATIENT their personalized consultation video link."""
+    from app.email import video_ready_html
+    from app.slide_sorter import get_consultation
+
+    c = get_consultation(consultation_id)
+    if not c:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    base = (os.environ.get("PUBLIC_BASE_URL") or "https://consult.cccdsmiles.com").rstrip("/")
+    link = f"{base}/consultation/{c.get('token') or ''}"
+    html = video_ready_html(link)
+    sent, error, to_email, link = await _send_consultation_patient_email(
+        consultation_id,
+        subject="Your personalized consultation video is ready",
+        html=html,
+    )
     out = {"sent": sent, "email": to_email, "link": link}
     if error:
         out["error"] = error
@@ -3596,13 +3616,62 @@ def _cleanup_old_media(days: int) -> dict:
     return out
 
 
+def _send_unwatched_nudges(days: int = 7) -> dict:
+    """Email patients who haven't opened their video N days after send."""
+    import datetime as _dt
+    from app.email import video_nudge_html, send_email
+    from app.slide_sorter import get_consultations, update_consultation
+
+    if os.environ.get("NUDGE_EMAILS_ENABLED", "1").strip().lower() in ("0", "false", "no"):
+        return {"enabled": False, "sent": 0, "skipped": 0}
+
+    now = _dt.datetime.now(_dt.timezone.utc)
+    cutoff = now - _dt.timedelta(days=days)
+    base = (os.environ.get("PUBLIC_BASE_URL") or "https://consult.cccdsmiles.com").rstrip("/")
+    sent = skipped = 0
+    for c in get_consultations():
+        if c.get("nudge_sent_at"):
+            skipped += 1
+            continue
+        if (c.get("watch_count") or 0) > 0 or (c.get("play_count") or 0) > 0:
+            skipped += 1
+            continue
+        sent_at_raw = c.get("sent_at") or c.get("created_at")
+        if not sent_at_raw:
+            skipped += 1
+            continue
+        try:
+            sent_at = _dt.datetime.fromisoformat(sent_at_raw.replace("Z", "+00:00"))
+            if sent_at.tzinfo is None:
+                sent_at = sent_at.replace(tzinfo=_dt.timezone.utc)
+        except Exception:
+            skipped += 1
+            continue
+        if sent_at > cutoff:
+            skipped += 1
+            continue
+        token = c.get("token") or ""
+        email = (c.get("email") or "").strip()
+        if not token or not email:
+            skipped += 1
+            continue
+        link = f"{base}/consultation/{token}"
+        ok, err = send_email(email, "Your consultation video is waiting", video_nudge_html(link, days))
+        if ok:
+            update_consultation(c["id"], {"nudge_sent_at": now.isoformat()})
+            sent += 1
+        else:
+            print(f"Nudge failed for consultation {c['id']}: {err}")
+            skipped += 1
+    return {"enabled": True, "days": days, "sent": sent, "skipped": skipped}
+
+
 @app.post("/vc/maintenance/cleanup")
 async def maintenance_cleanup(request: Request):
-    """Run media retention (delete consult videos older than VIDEO_RETENTION_DAYS).
+    """Run media retention + optional unwatched-video nudge emails.
 
     Auth: an `X-Cron-Secret` header matching CRON_SECRET (for the scheduled M2M caller —
-    the daily GitHub Action) OR a valid admin session. No-op (days=0) until
-    VIDEO_RETENTION_DAYS is set; the cron path is disabled until CRON_SECRET is set."""
+    the daily GitHub Action) OR a valid admin session."""
     import hmac as _hmac
     from fastapi import HTTPException
     from app.auth import validate_token as _validate, VC_ADMIN_PASSWORD as _pw
@@ -3617,7 +3686,9 @@ async def maintenance_cleanup(request: Request):
         raise HTTPException(status_code=401, detail="unauthorized")
     days = int(os.environ.get("VIDEO_RETENTION_DAYS", "90") or "90")
     result = _cleanup_old_media(days)
-    _audit_log("cleanup_run", request, extra=f"days={days} deleted={result.get('deleted')}")
+    nudge_days = int(os.environ.get("NUDGE_AFTER_DAYS", "7") or "7")
+    result["nudges"] = _send_unwatched_nudges(nudge_days)
+    _audit_log("cleanup_run", request, extra=f"days={days} deleted={result.get('deleted')} nudges={result['nudges'].get('sent')}")
     return result
 
 
@@ -4220,6 +4291,40 @@ async def get_vc_request_endpoint(request_id: int, session: dict = Depends(requi
     return result
 
 
+@app.get("/vc/requests/{request_id}/related")
+async def get_related_vc_requests(request_id: int, session: dict = Depends(require_admin)):
+    """Other intake requests from the same email (resubmit / name-change cases)."""
+    primary = get_vc_request(request_id)
+    if not primary:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
+    related = get_related_requests(request_id)
+    return {
+        "request_id": request_id,
+        "patient_group_id": primary.get("patient_group_id"),
+        "consult_sequence": primary.get("consult_sequence", 1),
+        "is_resubmit": bool(primary.get("is_resubmit")),
+        "related": related,
+    }
+
+
+@app.post("/vc/requests/{source_id}/merge-into/{primary_id}")
+async def merge_vc_requests_endpoint(
+    source_id: int,
+    primary_id: int,
+    session: dict = Depends(require_admin),
+):
+    """Merge a duplicate intake into the primary record (staff review action)."""
+    if source_id == primary_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Cannot merge a request into itself")
+    result = merge_vc_request(source_id, primary_id)
+    if not result:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Request not found")
+    return {"merged": True, "primary": result, "source_id": source_id}
+
+
 @app.put("/vc/requests/{request_id}")
 async def update_vc_request_endpoint(request_id: int, req: VCRequestUpdate, session: dict = Depends(require_admin)):
     """Update a VC request (status, notes, etc.). Admin-protected."""
@@ -4430,25 +4535,33 @@ async def record_watch_endpoint(consultation_id: int, session: dict = Depends(re
 
 @app.post("/vc/consultations/{consultation_id}/resend")
 async def resend_consultation(consultation_id: int, session: dict = Depends(require_admin)):
-    """Mark a consultation as resent and update follow-up dates."""
-    import datetime
-    consult = get_consultation(consultation_id)
-    if not consult:
-        return {"error": f"Consultation {consultation_id} not found"}
-    # This endpoint sends NOTHING — it only records that a follow-up happened out of band
-    # (e.g. the doctor emailed the link from Google Workspace). It previously wrote
-    # status="follow_up_sent", which read as "the system emailed the patient" and produced a
-    # success toast for a no-op. The status now says what actually happened, and the response
-    # states it explicitly so the UI cannot imply delivery.
-    follow_ups = consult.get("follow_up_dates", [])
-    follow_ups.append(datetime.datetime.now(datetime.timezone.utc).isoformat())
-    result = update_consultation(consultation_id, {
-        "status": "follow_up_logged",
-        "follow_up_dates": follow_ups,
-    })
-    if isinstance(result, dict):
-        result["emailed"] = False
-        result["note"] = "Follow-up logged. No email was sent by the system."
+    """Resend the patient's video link email (spam folder / didn't receive it)."""
+    from app.email import video_ready_html
+    from app.slide_sorter import get_consultation
+
+    c = get_consultation(consultation_id)
+    if not c:
+        return {"error": f"Consultation {consultation_id} not found", "sent": False}
+    base = (os.environ.get("PUBLIC_BASE_URL") or "https://consult.cccdsmiles.com").rstrip("/")
+    link = f"{base}/consultation/{c.get('token') or ''}"
+    html = video_ready_html(link)
+    sent, error, to_email, link = await _send_consultation_patient_email(
+        consultation_id,
+        subject="Your personalized consultation video is ready",
+        html=html,
+        resend=True,
+    )
+    result = get_consultation(consultation_id) or {}
+    result["sent"] = sent
+    result["emailed"] = sent
+    result["email"] = to_email
+    result["link"] = link
+    if error:
+        result["error"] = error
+    if sent:
+        result["note"] = "Video link resent by email."
+    else:
+        result["note"] = "Email not sent — copy the link for manual delivery (text/Oryx)."
     return result
 
 
