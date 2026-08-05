@@ -146,7 +146,7 @@ def _allow_phi_media(request: Request, filename: str) -> bool:
 
 # CORS — restricted to the VC Portal frontend (prod + Vercel previews + local dev).
 # Override with CORS_ALLOWED_ORIGINS (comma-separated) per deployment.
-_default_cors_origins = "https://destination-smile-consult.vercel.app,https://v0-kleon-samples.vercel.app,http://localhost:3000,http://localhost:3001"
+_default_cors_origins = "https://consult.cccdsmiles.com,https://api.consult.cccdsmiles.com,https://destination-smile-consult.vercel.app,https://v0-kleon-samples.vercel.app,http://localhost:3000,http://localhost:3001"
 _cors_origins = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", _default_cors_origins).split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -201,11 +201,15 @@ _RATE_LIMITS = {              # exact path -> (window seconds, max hits per IP)
 
 
 def _client_ip(request) -> str:
-    return (
-        request.headers.get("fly-client-ip")
-        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        or (request.client.host if request.client else "?")
-    )
+    # Rightmost XFF entry, not the first: the first is client-supplied and therefore forgeable,
+    # which would let one caller spread its requests across fake IPs and defeat rate limiting.
+    fly = (request.headers.get("fly-client-ip") or "").strip()
+    if fly:
+        return fly
+    xff = [p.strip() for p in (request.headers.get("x-forwarded-for") or "").split(",") if p.strip()]
+    if xff:
+        return xff[-1]
+    return (request.client.host if request.client else "?")
 
 
 def _is_rate_limited(request) -> bool:
@@ -249,9 +253,8 @@ def _validate_upload(content_type: Optional[str], size: int, kind: str, max_mb: 
 # from the client, (3) force a safe Content-Type on serve. See docs/SECURITY_TEST_RESULTS.md
 # "Finding 3".
 #
-# Deliberately signature-only: no re-encode, no EXIF strip. C10 (2026-08-02) needs the
-# original EXIF intact for the authenticity verdict (capture-time vs submission gap,
-# camera/software tags). Do not add image processing here.
+# Deliberately signature-only sniffing here; EXIF is extracted then stripped in
+# app.photo_processing after upload (C9/C10). See docs/SECURITY_TEST_RESULTS.md.
 
 _IMAGE_SIGNATURES: tuple = (
     (b"\xff\xd8\xff", "image/jpeg", ".jpg"),
@@ -621,12 +624,22 @@ _SUSPICIOUS_KEYWORDS = [
 
 
 def _get_client_ip(request: Request = None) -> str:
-    """Extract the real client IP from request headers (handles Fly.io proxy)."""
+    """Extract the real client IP (handles the Fly.io proxy).
+
+    A client can send its own X-Forwarded-For, so the FIRST entry is attacker-controlled —
+    taking it lets anyone forge the IP recorded in incidents and, worse, evade or misdirect
+    an IP ban. Fly appends the true peer address, so prefer Fly-Client-IP and otherwise take
+    the RIGHTMOST XFF entry, which is the one our own edge wrote.
+    """
     if not request:
         return "unknown"
-    return (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-            or request.headers.get("x-real-ip", "")
-            or (request.client.host if request.client else "unknown"))
+    fly = (request.headers.get("fly-client-ip") or "").strip()
+    if fly:
+        return fly
+    xff = [p.strip() for p in (request.headers.get("x-forwarded-for") or "").split(",") if p.strip()]
+    if xff:
+        return xff[-1]
+    return (request.client.host if request.client else "unknown")
 
 
 def _is_ip_banned(ip_address: str) -> dict | None:
@@ -676,6 +689,11 @@ def _send_security_alert(incident: dict) -> None:
     """Send email alert for security incidents (runs in background thread).
     Respects cooldown to avoid spamming."""
     global _last_alert_sent
+    # Every value below is attacker-controlled: the visitor picks their own User-Agent,
+    # Referer and message text. Interpolating them raw into HTML lets an attacker inject
+    # markup into the alert we read — so escape before rendering, never after.
+    import html as _h
+    _e = lambda v: _h.escape(str(v if v is not None else ""), quote=True)
 
     if not SMTP_HOST or not SECURITY_ALERT_EMAIL:
         print(f"ALERT (email not configured): {incident['trigger_type']} from {incident['ip_address']}")
@@ -703,24 +721,24 @@ def _send_security_alert(incident: dict) -> None:
             <h2 style="color: #d32f2f;">🚨 Sutton Security Incident</h2>
             <table style="border-collapse: collapse; width: 100%;">
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Trigger Type</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('trigger_type', 'unknown')}</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{_e(incident.get('trigger_type', 'unknown'))}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Detail</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('trigger_detail', 'unknown')}</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{_e(incident.get('trigger_detail', 'unknown'))}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Severity</td>
                     <td style="padding: 8px; border: 1px solid #ddd; color: {'#d32f2f' if incident.get('severity') == 'high' else '#f57c00'};">
-                        {incident.get('severity', 'unknown').upper()}</td></tr>
+                        {_e(incident.get('severity', 'unknown')).upper()}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">IP Address</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{ip}</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{_e(ip)}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Attempts from IP</td>
                     <td style="padding: 8px; border: 1px solid #ddd;">{attempt_count} (status: {ban_status})</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">User Agent</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('user_agent', 'unknown')}</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{_e(incident.get('user_agent', 'unknown'))}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Referer</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('referer', 'none')}</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{_e(incident.get('referer', 'none'))}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Message Excerpt</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-style: italic;">"{incident.get('message_excerpt', '')[:150]}"</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-style: italic;">"{_e(incident.get('message_excerpt', '')[:150])}"</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Timestamp</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{incident.get('timestamp', 'unknown')}</td></tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{_e(incident.get('timestamp', 'unknown'))}</td></tr>
             </table>
             <p style="margin-top: 20px; color: #666;">
                 View all incidents: <a href="https://sutton-api-watchdog.fly.dev/watchdog/incidents">Incident Log</a><br>
@@ -1873,19 +1891,11 @@ async def _generate_reply_with_watchdog(message: str, session_id: str,
 # --- API Endpoints ---
 @app.get("/")
 async def root():
-    return {
-        "status": "ok",
-        "service": "Sutton API — Destination Smile Brand Ambassador",
-        "model": SUTTON_MODEL,
-        "provider": LLM_PROVIDER,
-        "rag_enabled": RAG_ENABLED,
-        "watchdog_enabled": WATCHDOG_ENABLED,
-        "security_shield": True,
-        "docs": "/docs",
-        "chat": "POST /chat",
-        "watchdog": "/watchdog/status",
-        "incidents": "/watchdog/incidents",
-    }
+    # Deliberately minimal. This endpoint is unauthenticated and public, so it must not
+    # disclose the LLM model or provider, which subsystems are enabled, or a map of internal
+    # endpoints — that is free reconnaissance for anyone probing the API. Operational detail
+    # now lives behind auth on /healthz and /watchdog/status.
+    return {"status": "ok"}
 
 
 @app.get("/healthz")
@@ -3394,80 +3404,10 @@ async def upload_slide_endpoint(
 
 
 def _send_review_email(to_email: str, subject: str, html_body: str) -> tuple[bool, str]:
-    """Send a review email via Resend (RESEND_API_KEY) or SMTP (SMTP_HOST...).
+    """Send transactional email via AWS SES (BAA) or SMTP fallback. Resend is not used."""
+    from app.email import send_email
 
-    Returns (ok, detail). detail is empty on success, otherwise a short reason.
-    Resend sits behind Cloudflare — urllib must send a User-Agent or CF returns 403/1010.
-
-    Reply-To: patient-facing copy invites a reply ("Reply to this email or call our
-    office"), so a Reply-To is mandatory or those replies land on the sending domain
-    and are never seen. REPLY_TO_EMAIL is the monitored practice mailbox
-    (info@destinationsmile.com — Julie monitors it). Falls back to the From address.
-    """
-    resend_key = os.environ.get("RESEND_API_KEY", "")
-    smtp_host = os.environ.get("SMTP_HOST", "")
-    sender = os.environ.get("EMAIL_FROM", "") or os.environ.get("SMTP_USER", "") or "onboarding@resend.dev"
-    reply_to = (os.environ.get("REPLY_TO_EMAIL") or "").strip() or sender
-    if resend_key:
-        try:
-            import urllib.error
-            import urllib.request
-            req = urllib.request.Request(
-                "https://api.resend.com/emails",
-                data=json.dumps({
-                    "from": sender,
-                    "to": [to_email],
-                    "reply_to": reply_to,
-                    "subject": subject,
-                    "html": html_body,
-                }).encode(),
-                headers={
-                    "Authorization": f"Bearer {resend_key}",
-                    "Content-Type": "application/json",
-                    # Cloudflare (Resend edge) rejects bare urllib without a UA (HTTP 403 / CF 1010).
-                    "User-Agent": "cccd-vc-backend/1.0 (+https://destination-smile-consult.vercel.app)",
-                },
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                resp.read()
-            return True, ""
-        except urllib.error.HTTPError as e:
-            body = ""
-            try:
-                body = e.read().decode("utf-8", errors="replace")[:300]
-            except Exception:
-                pass
-            detail = f"Resend HTTP {e.code}: {body or e.reason}"
-            print(f"Resend email error: {detail}")
-            return False, detail
-        except Exception as e:
-            detail = f"Resend error: {e}"
-            print(detail)
-            return False, detail
-    if smtp_host:
-        try:
-            import smtplib
-            from email.mime.text import MIMEText
-            msg = MIMEText(html_body, "html")
-            msg["Subject"] = subject
-            msg["From"] = sender
-            msg["Reply-To"] = reply_to
-            msg["To"] = to_email
-            with smtplib.SMTP(smtp_host, int(os.environ.get("SMTP_PORT", "587")), timeout=20) as s:
-                s.starttls()
-                u, p = os.environ.get("SMTP_USER", ""), os.environ.get("SMTP_PASS", "")
-                if u:
-                    s.login(u, p)
-                s.sendmail(sender, [to_email], msg.as_string())
-            return True, ""
-        except Exception as e:
-            detail = f"SMTP error: {e}"
-            print(detail)
-            return False, detail
-    detail = "Email not configured (set RESEND_API_KEY or SMTP_HOST)"
-    print(f"{detail} — skipping send")
-    return False, detail
+    return send_email(to_email, subject, html_body)
 
 
 @app.post("/vc/consultations/{consultation_id}/email-review")
@@ -3518,28 +3458,19 @@ async def notify_patient(consultation_id: int, session: dict = Depends(require_a
     token = c.get("token") or ""
     if not token:
         raise HTTPException(status_code=400, detail="Consultation has no share token")
-    base = (os.environ.get("PUBLIC_BASE_URL") or "https://destination-smile-consult.vercel.app").rstrip("/")
+    base = (os.environ.get("PUBLIC_BASE_URL") or "https://consult.cccdsmiles.com").rstrip("/")
     link = f"{base}/consultation/{token}"
-    import html as _html
-    first = _html.escape((c.get("patient_name") or "there").split(" ")[0])
-    practice = _html.escape(os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry"))
-    # Patient-facing contact points: the mailbox the practice actually monitors, plus the office line.
-    reply_addr = (os.environ.get("REPLY_TO_EMAIL") or "info@destinationsmile.com").strip()
-    office_phone = (os.environ.get("OFFICE_PHONE") or "704.364.4711").strip()
-    html = (
-        "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222'>"
-        f"<p>Hi {first},</p>"
-        f"<p>Thank you for your virtual consultation request. Your personalized video reply "
-        f"from {practice} is ready to view.</p>"
-        f"<p style='margin:26px 0'><a href='{link}' style='background:#c4a052;color:#fff;"
-        "padding:13px 24px;border-radius:8px;text-decoration:none;font-weight:600'>Watch your consultation</a></p>"
-        f"<p style='color:#666;font-size:13px'>Or paste this link into your browser:<br>{link}</p>"
-        "<p style='color:#666;font-size:13px'>This personalized link is just for you.</p>"
-        f"<p style='color:#666;font-size:13px'>Questions? Reply to this email or reach us at "
-        f"<a href='mailto:{_html.escape(reply_addr)}' style='color:#c4a052'>{_html.escape(reply_addr)}</a>"
-        f" or {_html.escape(office_phone)}.</p></div>"
+    practice = os.environ.get("PRACTICE_NAME", "Charlotte Center for Cosmetic Dentistry")
+    from app.email import zero_phi_video_ready_html
+
+    html = zero_phi_video_ready_html(link, practice)
+    # _send_review_email does blocking network I/O (urllib / smtplib, up to 20s). Calling it
+    # directly from an async handler blocks the event loop and stalls EVERY other request,
+    # including patient form submissions. Run it on a worker thread instead.
+    import asyncio as _asyncio
+    sent, error = await _asyncio.to_thread(
+        _send_review_email, to_email, "Your personalized consultation video is ready", html
     )
-    sent, error = _send_review_email(to_email, "Your personalized consultation video is ready", html)
     # Only record delivery when the provider actually accepted the message. Previously this
     # wrote status="sent" unconditionally, so a failed send still showed as delivered in the
     # staff dashboard — the patient would silently never receive their video and nobody would
@@ -3783,17 +3714,21 @@ async def upload_patient_photo(file: UploadFile = File(...)):
     # The client's content_type and filename are both attacker-controlled. Trust neither:
     # identify the file by its actual bytes and take the extension from THAT.
     _mime, ext = _sniff_media_type(content, "image/")
+    from app.photo_processing import process_patient_photo, save_photo_metadata
+
+    stored_bytes, photo_meta = process_patient_photo(content, ext)
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = _PHOTOS_DIR / unique_name
     with open(file_path, "wb") as f:
-        f.write(content)
+        f.write(stored_bytes)
+    save_photo_metadata(_PHOTOS_DIR, unique_name, photo_meta)
 
     photo_url = signed_media_path(f"/vc/photos/{unique_name}")
     return PhotoUploadResponse(
         filename=unique_name,
         path=str(file_path),
         url=photo_url,
-        size_bytes=len(content),
+        size_bytes=len(stored_bytes),
     )
 
 
@@ -3906,6 +3841,16 @@ async def create_vc_request_endpoint(req: VCRequestCreate):
     data.pop("website", None)
     data.pop("turnstile_token", None)
     result = create_vc_request(data)
+    from app.photo_processing import aggregate_request_photo_authenticity
+
+    photos = result.get("photos") or []
+    if photos:
+        auth = aggregate_request_photo_authenticity(_PHOTOS_DIR, photos)
+        if auth:
+            from app.slide_sorter import update_vc_request
+
+            update_vc_request(result["id"], {"photo_authenticity": auth})
+            result["photo_authenticity"] = auth
     # No submission-confirmation email is sent, by owner decision (Patrick, 2026-08-03).
     # The on-screen success state is the confirmation: it names the patient, states the
     # email their video reply will go to, and sets the "may take a few days" expectation.
@@ -4218,12 +4163,20 @@ async def resend_consultation(consultation_id: int, session: dict = Depends(requ
     consult = get_consultation(consultation_id)
     if not consult:
         return {"error": f"Consultation {consultation_id} not found"}
+    # This endpoint sends NOTHING — it only records that a follow-up happened out of band
+    # (e.g. the doctor emailed the link from Google Workspace). It previously wrote
+    # status="follow_up_sent", which read as "the system emailed the patient" and produced a
+    # success toast for a no-op. The status now says what actually happened, and the response
+    # states it explicitly so the UI cannot imply delivery.
     follow_ups = consult.get("follow_up_dates", [])
     follow_ups.append(datetime.datetime.now(datetime.timezone.utc).isoformat())
     result = update_consultation(consultation_id, {
-        "status": "follow_up_sent",
+        "status": "follow_up_logged",
         "follow_up_dates": follow_ups,
     })
+    if isinstance(result, dict):
+        result["emailed"] = False
+        result["note"] = "Follow-up logged. No email was sent by the system."
     return result
 
 

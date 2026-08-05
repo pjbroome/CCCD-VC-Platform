@@ -15,7 +15,8 @@ RUN pip install poetry==1.8.4 && \
 COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies
-RUN poetry install --no-root --no-interaction --no-ansi
+RUN poetry install --no-root --no-interaction --no-ansi && \
+    pip install boto3
 
 # Copy application code
 COPY app/ app/
