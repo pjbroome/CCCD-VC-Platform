@@ -197,6 +197,8 @@ _RATE_LIMITS = {              # exact path -> (window seconds, max hits per IP)
     "/vc/photos/upload": (60, 30),   # intake photo uploads
     "/admin/login": (60, 8),         # staff login brute-force
     "/vc/feedback": (60, 10),        # tester feedback survey
+    "/vc/visit": (60, 40),           # funnel beacon — generous, but capped so the ring
+                                     # buffer cannot be flushed by a flood of junk events
 }
 
 
@@ -355,7 +357,7 @@ def _is_public_path(path: str, method: str) -> bool:
     ):
         return True
     # Public patient intake (write-only front door)
-    if method == "POST" and path in ("/vc/requests", "/vc/photos/upload", "/vc/feedback"):
+    if method == "POST" and path in ("/vc/requests", "/vc/photos/upload", "/vc/feedback", "/vc/visit"):
         return True
     # Patient consult page via unguessable token
     if path.startswith("/vc/consultations/by-token/"):
@@ -720,7 +722,8 @@ def _send_security_alert(incident: dict) -> None:
                 ok, err = _send_review_email(
                     _to, f"Security alert — {incident.get('trigger_type','incident')}", _body
                 )
-                _last_alert_sent = _dt.datetime.now() if ok else _last_alert_sent
+                import datetime as _dtl2   # _dt is not in scope here — it is function-local elsewhere
+                _last_alert_sent = _dtl2.datetime.now() if ok else _last_alert_sent
                 print(f"ALERT via fallback sender: ok={ok} {err}")
                 return
             except Exception as _e:
@@ -4005,6 +4008,91 @@ async def create_vc_request_endpoint(req: VCRequestCreate, request: Request):
     # time promise. The video-ready notification (notify_patient) is a SEPARATE email and
     # is still required — it is what delivers the consultation link.
     return result
+
+
+class VCVisitEvent(BaseModel):
+    """A funnel event from the patient intake page. Deliberately carries NO patient data."""
+    event: str                       # page_view | form_start | photos_added | submitted
+    session: str = ""                # random client-side id, not tied to identity
+    referrer: str = ""
+    utm_source: str = ""
+    utm_medium: str = ""
+    utm_campaign: str = ""
+    ms_since_load: int = 0
+
+
+# Ring buffer, not a database: this is conversion telemetry, not a record we must retain.
+# 5000 events is roughly a month at expected volume and costs nothing to keep in memory.
+_vc_visits: deque = deque(maxlen=5000)
+
+
+@app.post("/vc/visit")
+async def vc_visit(ev: VCVisitEvent, request: Request):
+    """First-party funnel beacon for the intake page.
+
+    Why first-party: this replaces the Google Analytics / third-party tag that would normally
+    do this job. On a page where a patient types their name, email and clinical concern, a
+    third-party tracker is a PHI-adjacent liability — GA4 was explicitly ruled out for this
+    platform. This endpoint sends nothing anywhere; the data stays on the BAA-covered backend.
+
+    What is deliberately NOT collected: no name, email, phone, ZIP, concern, photo, or full
+    IP. Only which step was reached, how long it took, and where the visit came from. The IP
+    is reduced to a /24 prefix so traffic can be sanity-checked for bot floods without the
+    page becoming a log of who visited a cosmetic dentistry consultation form.
+    """
+    try:
+        import datetime as _dtl   # _dt is function-local elsewhere in this module, not global
+        ip = _get_client_ip(request)
+        coarse = ".".join(ip.split(".")[:3]) + ".0" if ip.count(".") == 3 else "ipv6"
+        _vc_visits.append({
+            "ts": _dtl.datetime.now(_dtl.timezone.utc).isoformat(),
+            "event": (ev.event or "")[:32],
+            "session": (ev.session or "")[:40],
+            "referrer": (ev.referrer or "")[:200],
+            "utm": {k: v[:60] for k, v in
+                    (("source", ev.utm_source), ("medium", ev.utm_medium), ("campaign", ev.utm_campaign))
+                    if v},
+            "ms_since_load": max(0, min(ev.ms_since_load, 86_400_000)),
+            "ip_prefix": coarse,
+            "ua": (request.headers.get("user-agent") or "")[:160],
+        })
+    except Exception as e:
+        print(f"visit beacon dropped: {type(e).__name__}: {e}")
+    # Always 204 — a telemetry failure must never surface to a patient mid-form.
+    from fastapi import Response
+    return Response(status_code=204)
+
+
+@app.get("/vc/visitors")
+async def vc_visitors(session: dict = Depends(require_admin)):
+    """Staff funnel view: how many arrived, how many started, how many finished, and where
+    they dropped. Also surfaces top referrers and campaigns so marketing spend can be judged
+    against actual consultation requests rather than against page views."""
+    from collections import Counter
+    ev = list(_vc_visits)
+    sessions: dict = {}
+    for e in ev:
+        sid = e.get("session") or e.get("ip_prefix", "?")
+        sessions.setdefault(sid, set()).add(e.get("event"))
+    step_order = ["page_view", "form_start", "photos_added", "submitted"]
+    counts = {s: sum(1 for v in sessions.values() if s in v) for s in step_order}
+    def pct(a, b): return round(100.0 * a / b, 1) if b else 0.0
+    dropoff = {}
+    for i in range(len(step_order) - 1):
+        a, b = step_order[i], step_order[i + 1]
+        dropoff[f"{a}->{b}"] = {"kept": counts[b], "of": counts[a], "pct": pct(counts[b], counts[a])}
+    return {
+        "total_events": len(ev),
+        "sessions": len(sessions),
+        "funnel": counts,
+        "conversion_pct": pct(counts["submitted"], counts["page_view"]),
+        "dropoff": dropoff,
+        "top_referrers": Counter(
+            (e.get("referrer") or "direct").split("/")[2] if "//" in (e.get("referrer") or "") else "direct"
+            for e in ev).most_common(8),
+        "top_campaigns": Counter(
+            (e.get("utm") or {}).get("campaign", "none") for e in ev).most_common(8),
+    }
 
 
 @app.get("/vc/abuse-ledger")
