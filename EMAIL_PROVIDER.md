@@ -93,7 +93,7 @@ release the sandbox — the two are unrelated. Verified so far:
 | `cccdsmiles.com` (domain, DKIM) | ✅ SUCCESS |
 | `pjbroome@gmail.com` | ✅ SUCCESS |
 | `drbroome@destinationsmile.com` | ⏳ PENDING — needs one click |
-| `info@destinationsmile.com` | ⏳ PENDING — needs one click |
+| `info@destinationsmile.com` | ✅ SUCCESS (verified 2026-08-06; the first request expired unseen in spam — resend + spam check was the fix) |
 
 **Until production access is granted, the platform cannot email an arbitrary patient.** The
 approved workaround is that staff send the consultation link by hand from
