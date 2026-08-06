@@ -49,6 +49,36 @@ Discovered while auditing the live platform on 2026-08-03:
   user agents). No PHI, so the fast-access Gmail is correct here.
 - `RESEND_API_KEY` — **removed from Fly on 2026-08-05.** `fly secrets list` confirms zero
   Resend entries.
+- **Custom MAIL FROM: `mail.cccdsmiles.com`** — added 2026-08-06, status `SUCCESS`.
+
+## Custom MAIL FROM — why it exists, don't remove it
+
+**Symptom it fixed:** Google's daily DMARC report for cccdsmiles.com showed **`spf` failing on
+every message we sent** (7/7 on 2026-08-05), even though the underlying SPF check passed.
+
+**Cause — alignment, not a broken record.** By default SES uses its own bounce domain
+(`us-east-2.amazonses.com`) as the envelope sender. SPF then validates *that* domain, which does
+not match the visible From address (`cccdsmiles.com`), so **DMARC scores SPF as a fail**. Nothing
+was misconfigured; DMARC simply requires the two domains to share a parent. DKIM was aligned and
+passing throughout, which is the only reason mail still delivered — the domain was passing DMARC
+on one leg instead of two.
+
+**The fix (both halves are required):**
+1. SES: `aws sesv2 put-email-identity-mail-from-attributes --email-identity cccdsmiles.com --mail-from-domain mail.cccdsmiles.com --behavior-on-mx-failure USE_DEFAULT_VALUE --region us-east-2`
+2. Cloudflare DNS on `mail.cccdsmiles.com` — **MX** `feedback-smtp.us-east-2.amazonses.com`
+   priority 10, and **TXT** `v=spf1 include:amazonses.com ~all`.
+
+**Verified at the source** — headers of a live test message delivered 2026-08-06:
+`spf=pass smtp.mailfrom=…@mail.cccdsmiles.com` · `dkim=pass header.i=@cccdsmiles.com` ·
+**`dmarc=pass header.from=cccdsmiles.com`**. Both legs now align.
+
+⚠️ **Deleting either DNS record silently reverts this.** SES falls back to its own domain
+(`USE_DEFAULT_VALUE` means mail keeps flowing rather than bouncing), so nothing breaks loudly —
+SPF alignment just starts failing again in the DMARC reports. The MX record is for bounce
+handling only; it does **not** affect inbound mail to cccdsmiles.com.
+
+**Note:** `destinationsmile.com` sends via Google Workspace, not SES, so it does not need this.
+Its DMARC policy is a separate matter — both domains are still at `p=none` (monitor only).
 
 ## ⚠️ SES is still in the sandbox — know what that means
 
