@@ -82,8 +82,8 @@ Its DMARC policy is a separate matter — both domains are still at `p=none` (mo
 
 ## ⚠️ SES is still in the sandbox — know what that means
 
-As of 2026-08-05: `ProductionAccessEnabled: false`, quota 200/day, support case
-`178579830500567` still open.
+As of 2026-08-06: `ProductionAccessEnabled: false`, quota 200/day, support case
+`178579830500567` still open — **waiting on sandbox release** (Patrick verified `info@` 2026-08-06).
 
 **In sandbox, SES delivers only to verified identities.** Verifying an address does **not**
 release the sandbox — the two are unrelated. Verified so far:
